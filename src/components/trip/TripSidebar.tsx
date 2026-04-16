@@ -61,20 +61,12 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
           }}>
             Trips
           </span>
-          <button onClick={handleLogout} style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 9,
-            letterSpacing: '0.08em',
-            color: 'var(--text-dim)',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-          }}>
+          <button onClick={handleLogout} className="btn-text">
             {user?.name} · sign out
           </button>
         </div>
 
-        <button onClick={onNew} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+        <button onClick={onNew} className="btn btn-primary btn-block">
           + New trip
         </button>
       </div>
@@ -185,34 +177,15 @@ function TripActions({
   onEdit: (e: React.MouseEvent) => void
   onDelete: (e: React.MouseEvent) => void
 }) {
-  const btnStyle: React.CSSProperties = {
-    width: 24, height: 24, borderRadius: 4,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', border: '1px solid var(--border)',
-    background: 'var(--surface)', color: 'var(--text-dim)', transition: 'all 0.12s',
-  }
-
   return (
     <div className="trip-actions" style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
-      <button
-        onClick={onEdit}
-        title="Edit"
-        style={btnStyle}
-        onMouseEnter={e => { Object.assign(e.currentTarget.style, { color: 'var(--amber)', background: 'var(--amber-dim)', borderColor: 'var(--amber-border)' }) }}
-        onMouseLeave={e => { Object.assign(e.currentTarget.style, { color: 'var(--text-dim)', background: 'var(--surface)', borderColor: 'var(--border)' }) }}
-      >
+      <button onClick={onEdit} title="Edit" className="btn-icon-action edit">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
           <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
         </svg>
       </button>
-      <button
-        onClick={onDelete}
-        title="Delete"
-        style={btnStyle}
-        onMouseEnter={e => { Object.assign(e.currentTarget.style, { color: 'var(--red)', background: 'var(--red-dim)', borderColor: 'var(--red-border)' }) }}
-        onMouseLeave={e => { Object.assign(e.currentTarget.style, { color: 'var(--text-dim)', background: 'var(--surface)', borderColor: 'var(--border)' }) }}
-      >
+      <button onClick={onDelete} title="Delete" className="btn-icon-action del">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
           <polyline points="3 6 5 6 21 6"/>
           <path d="M19 6l-1 14H6L5 6"/>
