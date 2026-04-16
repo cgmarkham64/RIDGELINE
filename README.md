@@ -1,76 +1,109 @@
-# React + TypeScript + Vite
+# Ridgeline
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An outdoor and hiking trip tracking app. Log trips, write journal entries, import GPX tracks, manage gear loadouts, and browse photos — all in one place.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Tech Stack
 
-## React Compiler
+**Frontend** (`/src`)
+- React 19 + TypeScript
+- Vite 8
+- TanStack Router — code-based routing with auth-guard layout route
+- TanStack Query — server state, caching, and mutations
+- Axios — HTTP client with JWT interceptor
+- Zustand — auth state, persisted to `localStorage`
+- React Hook Form + Zod — forms and validation
+- Tailwind CSS v4
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**Backend** (`/server`)
+- Node.js + Express 4
+- MongoDB 8 (local) via Mongoose
+- TypeScript compiled with `tsx` (dev) / `tsc` (prod)
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Prerequisites
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Node.js 20+
+- MongoDB Community 8.0 (installed via Homebrew)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+brew tap mongodb/brew
+brew install mongodb-community@8.0
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Getting Started
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# Install frontend dependencies
+npm install
+
+# Install backend dependencies
+cd server && npm install && cd ..
+
+# Start MongoDB
+npm run mongodb:start
+
+# Run frontend + backend concurrently
+npm run dev:all
 ```
 
-cgmarkham64@gmail.com
-test123
+Frontend: http://localhost:5173  
+API: http://localhost:8000
+
+---
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the Vite dev server (frontend only) |
+| `npm run api:dev` | Start the Express API server (backend only) |
+| `npm run dev:all` | Run frontend and backend concurrently |
+| `npm run build` | Type-check and build for production |
+| `npm run lint` | Run ESLint |
+| `npm run preview` | Preview the production build locally |
+| `npm run mongodb:start` | Start MongoDB via Homebrew services |
+| `npm run mongodb:stop` | Stop MongoDB via Homebrew services |
+
+---
+
+## Project Structure
+
+```
+ridgeline/
+├── src/                        # Frontend
+│   ├── components/
+│   │   ├── journal/            # DaySelector, JournalSection
+│   │   ├── layout/             # IconRail
+│   │   └── trip/               # TripSidebar, TripModal, DeleteConfirm
+│   ├── hooks/                  # useTrips, useJournalDays
+│   ├── lib/                    # api.ts (axios), trips.ts, journalDays.ts
+│   ├── pages/                  # HomePage, MapPage, PhotosPage, GearPage, LoginPage, RegisterPage
+│   ├── routes/                 # TanStack Router route definitions
+│   ├── store/                  # auth.ts (Zustand)
+│   └── types/                  # Trip, JournalDay, GearItem, Loadout, Photo
+│
+└── server/                     # Backend
+    └── src/
+        ├── models/             # Trip.ts, JournalDay.ts, Loadout.ts, GearItem.ts
+        └── routes/             # trips.ts, journalDays.ts, loadouts.ts, gearItems.ts
+```
+
+---
+
+## API
+
+| Method | Path | Description |
+|---|---|---|
+| GET / POST | `/api/trips` | List / create trips |
+| GET / PUT / DELETE | `/api/trips/:id` | Read / update / delete trip |
+| GET / POST | `/api/journal-days?tripId=` | List / create journal entries |
+| PUT / DELETE | `/api/journal-days/:id` | Update / delete a journal entry |
+| GET / POST | `/api/loadouts` | List / create loadouts |
+| GET / PUT / DELETE | `/api/loadouts/:id` | Read / update / delete loadout |
+| GET / POST | `/api/gear-items` | List / create gear items |
+| GET / PUT / DELETE | `/api/gear-items/:id` | Read / update / delete gear item |
