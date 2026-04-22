@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { Trip } from '../models/Trip'
+import { JournalDay } from '../models/JournalDay'
 
 const router = Router()
 
@@ -39,17 +40,24 @@ router.put('/:id', async (req, res) => {
     const trip = await Trip.findById(req.params.id)
     if (!trip) return res.status(404).json({ error: 'Not found' })
 
-    // Use doc.set() instead of Object.assign — Object.assign creates own
-    // properties that shadow Mongoose's prototype setters, so changes never
-    // register and save() silently skips them.
-    trip.set(req.body)
+    // Separate gpxTracks out — Mongoose's set() recursively casts array
+    // elements and mangles the nested { type: 'LineString' } GeoJSON objects
+    // inside each entry. Write it directly via the MongoDB driver instead.
+    const { gpxTracks, ...rest } = req.body as Record<string, unknown>
 
-    // Mixed fields (GeoJSON) still need explicit markModified because Mongoose
-    // can't diff arbitrary objects to detect changes.
-    if ('gpxPlanned' in req.body) trip.markModified('gpxPlanned')
-    if ('gpxTrack' in req.body) trip.markModified('gpxTrack')
-
+    // Use doc.set() for all non-array-Mixed fields.
+    trip.set(rest)
+    if ('gpxPlanned' in rest) trip.markModified('gpxPlanned')
     await trip.save()
+
+    // Write gpxTracks (array of Mixed entries) directly, bypassing Mongoose.
+    if ('gpxTracks' in req.body) {
+      await Trip.collection.updateOne(
+        { _id: trip._id },
+        { $set: { gpxTracks } }
+      )
+    }
+
     const result = await Trip.findById(trip._id).populate('loadoutId').lean()
     res.json(result)
   } catch (err) {
@@ -62,6 +70,7 @@ router.delete('/:id', async (req, res) => {
   try {
     const trip = await Trip.findByIdAndDelete(req.params.id)
     if (!trip) return res.status(404).json({ error: 'Not found' })
+    await JournalDay.deleteMany({ tripId: req.params.id })
     res.status(204).send()
   } catch (err) {
     console.error('DELETE /trips/:id error:', err)

@@ -76,6 +76,12 @@ export interface GpxTrack {
   coordinates: [number, number, number][] // [lon, lat, ele]
 }
 
+export interface GpxTrackEntry {
+  id: string     // stable client-generated id (Date.now().toString())
+  label: string  // e.g. "Day 1", "Day 2"
+  track: GpxTrack
+}
+
 // ─── Trip ────────────────────────────────────────────────────────────────────
 
 export interface Trip {
@@ -89,7 +95,7 @@ export interface Trip {
   elevationGainFt?: number
   gpxFileUrl?: string
   gpxPlanned?: GpxTrack
-  gpxTrack?: GpxTrack
+  gpxTracks?: GpxTrackEntry[]
   coverPhotoId?: string
   loadoutId?: string
   journalDays?: JournalDay[]

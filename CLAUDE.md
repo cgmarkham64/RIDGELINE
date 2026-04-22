@@ -60,7 +60,7 @@ server/
 | Method         | Path                              | Description                                                        |
 |----------------|-----------------------------------|--------------------------------------------------------------------|
 | GET/POST       | `/api/trips`                      | List / create trips                                                |
-| GET/PUT/DELETE | `/api/trips/:id`                  | Read / update / delete trip (populates loadout). PUT accepts `gpxPlanned` and `gpxTrack` as GeoJSON LineString objects stored as Mixed fields — uses `doc.set()` + `markModified` to persist correctly. |
+| GET/PUT/DELETE | `/api/trips/:id`                  | Read / update / delete trip (populates loadout). PUT accepts `gpxPlanned` (GeoJSON LineString, persisted via `doc.set()` + `markModified`) and `gpxTracks` (array of `{ id, label, track }` entries, persisted via raw `collection.updateOne` + `$set` to bypass Mongoose casting of nested GeoJSON `type` keys). |
 | GET/POST       | `/api/journal-days?tripId=`       | List entries for a trip (sorted by dayNumber) / create entry       |
 | PUT/DELETE     | `/api/journal-days/:id`           | Update / delete a journal entry                                    |
 | GET/POST       | `/api/loadouts`                   | List / create loadouts (populates items)                           |
@@ -77,7 +77,7 @@ server/
 5. **DONE** GPX import + map — Parse the GPX file on upload (the gpx.ts util), store the track as a GeoJSON LineString in MongoDB, render it with Mapbox GL JS or Leaflet. This is your most technically interesting piece so save it until the foundation is solid.
 6. Photo upload + EXIF — Use the exif-js or exifr library to parse EXIF in the browser before uploading. Extract GPS coordinates, camera settings, and timestamp client-side, store them alongside the photo reference in MongoDB.
 7. Gear loadouts — Straightforward CRUD once the pattern is established from trips. Weight calculations are pure frontend math in Zustand.
-8. Upgrade `gpxTrack` (single) to `gpxTracks` (array) so a multi-day trip can store one GPS track per day. Requires schema change (`Schema.Types.Mixed` array), type update (`GpxTrack[]`), and UI refactor (track list with per-entry add/remove + color-coded polylines on the map).
+8. **DONE** Upgrade `gpxTrack` (single) to `gpxTracks` (array) so a multi-day trip can store one GPS track per day. Schema: `[Schema.Types.Mixed]` array of `{ id, label, track }` entries. UI: GPS Tracks panel with per-entry color-coded rows (8-color palette, cycles), per-entry kabob (replace/remove), "+ Add" button that appends a new day entry. Map renders each track in its assigned color; legend shows all visible tracks.
 
 ##### Todo Sidebar nav — planned page contents
 - **Map** (`/map`) — Global map showing all GPX tracks and planned routes across every trip. Clicking a track opens the associated trip or plan detail.

@@ -11,7 +11,7 @@ const TripSchema = new Schema(
     elevationGainFt: Number,
     gpxFileUrl:     String,
     gpxPlanned:     Schema.Types.Mixed,
-    gpxTrack:       Schema.Types.Mixed,
+    gpxTracks:      Schema.Types.Mixed,
     coverPhotoId:   String,
     loadoutId:      { type: Schema.Types.ObjectId, ref: 'Loadout' },
   },
