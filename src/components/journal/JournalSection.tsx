@@ -219,13 +219,15 @@ export function JournalSection({ trip }: Props) {
                 Saved ✓
               </span>
             )}
-            <button
-              type="submit"
-              disabled={save.isPending || (!isDirty && !!currentEntry)}
-              className="btn btn-primary btn-sm"
-            >
-              {save.isPending ? 'Saving…' : currentEntry ? 'Update' : 'Save entry'}
-            </button>
+            {!currentEntry && (
+              <button
+                type="submit"
+                disabled={save.isPending}
+                className="btn btn-primary btn-sm"
+              >
+                {save.isPending ? 'Saving…' : 'Save entry'}
+              </button>
+            )}
           </div>
         </form>
       )}
