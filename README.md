@@ -100,10 +100,10 @@ ridgeline/
 | Method | Path | Description |
 |---|---|---|
 | GET / POST | `/api/trips` | List / create trips |
-| GET / PUT / DELETE | `/api/trips/:id` | Read / update / delete trip |
-| GET / POST | `/api/journal-days?tripId=` | List / create journal entries |
+| GET / PUT / DELETE | `/api/trips/:id` | Read / update / delete trip (populates loadout). `PUT` accepts `gpxPlanned` and `gpxTrack` as GeoJSON LineString objects. |
+| GET / POST | `/api/journal-days?tripId=` | List entries for a trip (sorted by day) / create entry |
 | PUT / DELETE | `/api/journal-days/:id` | Update / delete a journal entry |
-| GET / POST | `/api/loadouts` | List / create loadouts |
+| GET / POST | `/api/loadouts` | List / create loadouts (populates gear items) |
 | GET / PUT / DELETE | `/api/loadouts/:id` | Read / update / delete loadout |
 | GET / POST | `/api/gear-items` | List / create gear items |
 | GET / PUT / DELETE | `/api/gear-items/:id` | Read / update / delete gear item |

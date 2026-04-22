@@ -4,6 +4,7 @@ import { TripSidebar } from '../components/trip/TripSidebar'
 import { TripModal } from '../components/trip/TripModal'
 import { DeleteConfirm } from '../components/trip/DeleteConfirm'
 import { JournalSection } from '../components/journal/JournalSection'
+import { GpxMapSection } from '../components/trip/GpxMapSection'
 
 type ModalState = { mode: 'create' } | { mode: 'edit'; trip: Trip }
 
@@ -46,6 +47,7 @@ export function HomePage() {
             trip={selectedTrip}
             onEdit={() => setModal({ mode: 'edit', trip: selectedTrip })}
             onDelete={() => setDeleteTarget(selectedTrip)}
+            onTripUpdated={setSelectedTrip}
           />
         ) : (
           <EmptyState onNew={() => setModal({ mode: 'create' })} />
@@ -106,10 +108,12 @@ function TripDetail({
   trip,
   onEdit,
   onDelete,
+  onTripUpdated,
 }: {
   trip: Trip
   onEdit: () => void
   onDelete: () => void
+  onTripUpdated: (trip: Trip) => void
 }) {
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '28px 32px 64px' }}>
@@ -182,9 +186,11 @@ function TripDetail({
         <JournalSection trip={trip} />
       </div>
 
+      {/* GPX track & map */}
+      <GpxMapSection trip={trip} onTripUpdated={onTripUpdated} />
+
       {/* Future sections */}
       <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <PlaceholderSection label="GPX track & map" />
         <PlaceholderSection label="Photos" />
         <PlaceholderSection label="Gear loadout" />
       </div>

@@ -10,6 +10,8 @@ const TripSchema = new Schema(
     distanceMiles:  Number,
     elevationGainFt: Number,
     gpxFileUrl:     String,
+    gpxPlanned:     Schema.Types.Mixed,
+    gpxTrack:       Schema.Types.Mixed,
     coverPhotoId:   String,
     loadoutId:      { type: Schema.Types.ObjectId, ref: 'Loadout' },
   },

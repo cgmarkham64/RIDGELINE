@@ -69,6 +69,13 @@ export interface JournalDay {
   photos?: Photo[]
 }
 
+// ─── GPX ─────────────────────────────────────────────────────────────────────
+
+export interface GpxTrack {
+  type: 'LineString'
+  coordinates: [number, number, number][] // [lon, lat, ele]
+}
+
 // ─── Trip ────────────────────────────────────────────────────────────────────
 
 export interface Trip {
@@ -81,6 +88,8 @@ export interface Trip {
   distanceMiles?: number
   elevationGainFt?: number
   gpxFileUrl?: string
+  gpxPlanned?: GpxTrack
+  gpxTrack?: GpxTrack
   coverPhotoId?: string
   loadoutId?: string
   journalDays?: JournalDay[]

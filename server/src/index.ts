@@ -12,7 +12,7 @@ const PORT = process.env.PORT ?? 8000
 const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/ridgeline'
 
 app.use(cors({ origin: 'http://localhost:5173' }))
-app.use(express.json())
+app.use(express.json({ limit: '10mb' }))
 
 app.use('/api/gear-items', gearItemsRouter)
 app.use('/api/journal-days', journalDaysRouter)

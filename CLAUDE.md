@@ -57,14 +57,16 @@ server/
 ```
 
 ### API Endpoints
-| Method         | Path                  | Description                                     |
-|----------------|-----------------------|-------------------------------------------------|
-| GET/POST       | `/api/trips`          | List / create trips                             |
-| GET/PUT/DELETE | `/api/trips/:id`      | Read / update / delete trip (populates loadout) |
-| GET/POST       | `/api/loadouts`       | List / create loadouts (populates items)        |
-| GET/PUT/DELETE | `/api/loadouts/:id`   | Read / update / delete loadout                  |
-| GET/POST       | `/api/gear-items`     | List / create gear items                        |
-| GET/PUT/DELETE | `/api/gear-items/:id` | Read / update / delete gear item                |
+| Method         | Path                              | Description                                                        |
+|----------------|-----------------------------------|--------------------------------------------------------------------|
+| GET/POST       | `/api/trips`                      | List / create trips                                                |
+| GET/PUT/DELETE | `/api/trips/:id`                  | Read / update / delete trip (populates loadout). PUT accepts `gpxPlanned` and `gpxTrack` as GeoJSON LineString objects stored as Mixed fields — uses `doc.set()` + `markModified` to persist correctly. |
+| GET/POST       | `/api/journal-days?tripId=`       | List entries for a trip (sorted by dayNumber) / create entry       |
+| PUT/DELETE     | `/api/journal-days/:id`           | Update / delete a journal entry                                    |
+| GET/POST       | `/api/loadouts`                   | List / create loadouts (populates items)                           |
+| GET/PUT/DELETE | `/api/loadouts/:id`               | Read / update / delete loadout                                     |
+| GET/POST       | `/api/gear-items`                 | List / create gear items                                           |
+| GET/PUT/DELETE | `/api/gear-items/:id`             | Read / update / delete gear item                                   |
 
 
 ### Todo
@@ -72,7 +74,8 @@ server/
 2. **DONE** MongoDB + Express API — Set up your backend first with the three core collections: trips, loadouts, gearItems. Get basic CRUD endpoints working before touching the frontend data layer.
 3. **DONE** Trip CRUD — The sidebar trip list, the 2create/edit modal, and delete confirm. This is your first full end-to-end feature and will validate your API, Tanstack Query setup, and Zustand integration all at once.
 4. **DONE** Journal entries — Day selector, the conditions template form, and the narrative field. Use react-hook-form + zod for the template — it maps perfectly to the structured condition fields.
-5. GPX import + map — Parse the GPX file on upload (the gpx.ts util), store the track as a GeoJSON LineString in MongoDB, render it with Mapbox GL JS or Leaflet. This is your most technically interesting piece so save it until the foundation is solid.
+5. **IN PROGRESS** GPX import + map — Parse the GPX file on upload (the gpx.ts util), store the track as a GeoJSON LineString in MongoDB, render it with Mapbox GL JS or Leaflet. This is your most technically interesting piece so save it until the foundation is solid.
+   - **TODO** Upgrade `gpxTrack` (single) to `gpxTracks` (array) so a multi-day trip can store one GPS track per day. Requires schema change (`Schema.Types.Mixed` array), type update (`GpxTrack[]`), and UI refactor (track list with per-entry add/remove + color-coded polylines on the map).
 6. Photo upload + EXIF — Use the exif-js or exifr library to parse EXIF in the browser before uploading. Extract GPS coordinates, camera settings, and timestamp client-side, store them alongside the photo reference in MongoDB.
 7. Gear loadouts — Straightforward CRUD once the pattern is established from trips. Weight calculations are pure frontend math in Zustand.
 
