@@ -243,7 +243,7 @@ function CondCell({ label, children }: { label: string; children: React.ReactNod
     }}>
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: '0.12em',
-        textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 5,
+        textTransform: 'uppercase', color: 'var(--text-mid)', marginBottom: 5,
       }}>
         {label}
       </div>
