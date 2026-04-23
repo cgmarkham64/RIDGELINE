@@ -80,7 +80,10 @@ server/
 8. Gear loadouts — Straightforward CRUD once the pattern is established from trips. Weight calculations are pure frontend math in Zustand.
 9. **DONE** Put Planned Routes and Tracks inside the same box, stacked on top of each other. When multiple Tracks are added it gets out of balance and doesn't look right.
 10. **DONE** Break Temperature into distinct Low and High input fields, add another column to the journal section to accommodate it and adjust the data model on the backend to support it. Ensure save is done onFocusChange same as the other fields.
-
+11. Add WILDLIFE, COMPANIONS panels to Journal
+12. Add "FIELD NOTES" label on Horizontal rule above the description section. 
+13. Add hover text for each day button that says the title of the entry if it exists, or some prompt for TODO if it doesn't.
+14. Instead of having all of this as a single column layout for the trip, adjust it to be two columns like in inspiration/ridgeline-fixed_1.html with the Route Map, elevation profile, and Loadout in a fixed drawer on the right side of the page. Leave out the Route Summary, I like that at the top where it's at.
 
 ##### Todo Sidebar nav — planned page contents
 - **Map** (`/map`) — Global map showing all GPX tracks and planned routes across every trip. Clicking a track opens the associated trip or plan detail.
