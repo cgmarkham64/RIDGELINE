@@ -101,6 +101,8 @@ p { margin: 0; }
 .btn-sky:hover      { background: rgba(90,180,220,0.14); }
 .btn-sm             { padding: 6px 10px; font-size: 10px; }
 .btn-block          { width: 100%; justify-content: center; }
+.btn-pine           { background: var(--pine-dim); color: var(--pine); border-color: var(--pine-border) }
+.btn-pine:hover     { background: rgba(66,143,94,0.19); }
 
 /* Text-only button (monospace label, no border/bg) */
 .btn-text {
