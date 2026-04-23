@@ -93,10 +93,12 @@ p { margin: 0; }
 
 .btn-primary        { background: var(--amber); color: #0f0d0b; border-color: var(--amber); }
 .btn-primary:hover  { background: #fbb040; border-color: #fbb040; }
-.btn-ghost          { background: transparent; color: var(--text-mid); border-color: var(--border); }
+.btn-ghost          { background: transparent; color: var(--text); border-color: var(--border); }
 .btn-ghost:hover    { border-color: var(--border-mid); color: var(--text); }
 .btn-danger         { background: var(--red-dim); color: var(--red); border-color: var(--red-border); }
 .btn-danger:hover   { background: rgba(217,64,48,0.18); }
+.btn-sky            { background: var(--sky-dim); color: var(--sky); border-color: var(--sky-border); }
+.btn-sky:hover      { background: rgba(90,180,220,0.14); }
 .btn-sm             { padding: 6px 10px; font-size: 10px; }
 .btn-block          { width: 100%; justify-content: center; }
 
