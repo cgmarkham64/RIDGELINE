@@ -17,7 +17,8 @@ const WEATHER_OPTIONS = [
 const schema = z.object({
   title: z.string().optional(),
   weatherNotes: z.string().optional(),
-  temperatureF: z.string().optional(),
+  tempLowF: z.string().optional(),
+  tempHighF: z.string().optional(),
   milesCovered: z.string().optional(),
   elevationGainFt: z.string().optional(),
   body: z.string().min(1, 'Write something before saving'),
@@ -86,7 +87,8 @@ export function JournalSection({ trip }: Props) {
         title: data.title || undefined,
         body: data.body,
         weatherNotes: data.weatherNotes || undefined,
-        temperatureF: data.temperatureF ? parseFloat(data.temperatureF) : undefined,
+        tempLowF: data.tempLowF ? parseFloat(data.tempLowF) : undefined,
+        tempHighF: data.tempHighF ? parseFloat(data.tempHighF) : undefined,
         milesCovered: data.milesCovered ? parseFloat(data.milesCovered) : undefined,
         elevationGainFt: data.elevationGainFt ? parseFloat(data.elevationGainFt) : undefined,
       },
@@ -140,8 +142,8 @@ export function JournalSection({ trip }: Props) {
             />
           </div>
 
-          {/* Conditions — 4 columns */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 22 }}>
+          {/* Conditions — 5 columns */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginBottom: 22 }}>
             <CondCell label="Miles">
               <input
                 type="number" step="0.1"
@@ -162,10 +164,20 @@ export function JournalSection({ trip }: Props) {
                 onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
               />
             </CondCell>
-            <CondCell label="Temp (°F)">
+            <CondCell label="Temp Low (°F)">
               <input
                 type="number" step="1"
-                {...register('temperatureF')}
+                {...register('tempLowF')}
+                placeholder="—"
+                style={condInput}
+                onFocus={e => { e.target.style.borderColor = 'var(--border-mid)' }}
+                onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
+              />
+            </CondCell>
+            <CondCell label="Temp High (°F)">
+              <input
+                type="number" step="1"
+                {...register('tempHighF')}
                 placeholder="—"
                 style={condInput}
                 onFocus={e => { e.target.style.borderColor = 'var(--border-mid)' }}
@@ -256,7 +268,8 @@ function entryToDefaults(entry: JournalDay | undefined) {
   return {
     title: entry?.title ?? '',
     weatherNotes: entry?.weatherNotes ?? '',
-    temperatureF: entry?.temperatureF?.toString() ?? '',
+    tempLowF: entry?.tempLowF?.toString() ?? '',
+    tempHighF: entry?.tempHighF?.toString() ?? '',
     milesCovered: entry?.milesCovered?.toString() ?? '',
     elevationGainFt: entry?.elevationGainFt?.toString() ?? '',
     body: entry?.body ?? '',

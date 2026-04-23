@@ -65,7 +65,8 @@ export interface JournalDay {
   milesCovered?: number
   elevationGainFt?: number
   weatherNotes?: string
-  temperatureF?: number
+  tempLowF?: number
+  tempHighF?: number
   photos?: Photo[]
 }
 

@@ -78,8 +78,9 @@ server/
 6. **DONE** Upgrade `gpxTrack` (single) to `gpxTracks` (array) so a multi-day trip can store one GPS track per day. Schema: `[Schema.Types.Mixed]` array of `{ id, label, track }` entries. UI: GPS Tracks panel with per-entry color-coded rows (8-color palette, cycles), per-entry kabob (replace/remove), "+ Add" button that appends a new day entry. Map renders each track in its assigned color; legend shows all visible tracks.
 7. Photo upload + EXIF — Use the exif-js or exifr library to parse EXIF in the browser before uploading. Extract GPS coordinates, camera settings, and timestamp client-side, store them alongside the photo reference in MongoDB.
 8. Gear loadouts — Straightforward CRUD once the pattern is established from trips. Weight calculations are pure frontend math in Zustand.
-9. Put Planned Routes and Tracks inside the same box, stacked on top of each other. When multiple Tracks are added it gets out of balance and doesn't look right.
-10. Break Temperature into Low and High, add another column to the section to accommodate it and adjust the data model on the backend to support it. Ensure save is done onFocusChange same as the other fields.
+9. **DONE** Put Planned Routes and Tracks inside the same box, stacked on top of each other. When multiple Tracks are added it gets out of balance and doesn't look right.
+10. **DONE** Break Temperature into distinct Low and High input fields, add another column to the journal section to accommodate it and adjust the data model on the backend to support it. Ensure save is done onFocusChange same as the other fields.
+
 
 ##### Todo Sidebar nav — planned page contents
 - **Map** (`/map`) — Global map showing all GPX tracks and planned routes across every trip. Clicking a track opens the associated trip or plan detail.

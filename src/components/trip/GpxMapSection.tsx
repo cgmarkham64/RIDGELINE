@@ -257,11 +257,11 @@ export function GpxMapSection({
         <div style={mono}>GPX Track &amp; Map</div>
       </div>
 
-      {/* Import area */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'flex-start' }}>
+      {/* Import area — single card, stacked */}
+      <div style={{ ...cardStyle, marginBottom: 12 }}>
 
-        {/* Planned Route card */}
-        <div style={{ ...cardStyle, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        {/* Planned Route row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
             <svg width="18" height="6" style={{ flexShrink: 0 }}>
               <line x1="0" y1="3" x2="18" y2="3" stroke={PLANNED_COLOR} strokeWidth="2.5" strokeDasharray="5 3" />
@@ -296,8 +296,11 @@ export function GpxMapSection({
           </div>
         </div>
 
-        {/* GPS Tracks panel */}
-        <div style={{ ...cardStyle, flex: 1, minWidth: 0 }}>
+        {/* Divider */}
+        <div style={{ borderTop: '1px solid var(--border)', margin: '10px 0' }} />
+
+        {/* GPS Tracks section */}
+        <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: gpxTracks.length > 0 ? 8 : 0 }}>
             <div style={{ fontFamily: 'var(--font-heading)', fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>
               GPS Tracks

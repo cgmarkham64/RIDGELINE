@@ -10,7 +10,8 @@ export interface JournalDayInput {
   milesCovered?: number
   elevationGainFt?: number
   weatherNotes?: string
-  temperatureF?: number
+  tempLowF?: number
+  tempHighF?: number
 }
 
 export async function fetchJournalDays(tripId: string): Promise<JournalDay[]> {

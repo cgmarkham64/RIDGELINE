@@ -10,7 +10,8 @@ const JournalDaySchema = new Schema(
     milesCovered:   Number,
     elevationGainFt: Number,
     weatherNotes:   String,
-    temperatureF:   Number,
+    tempLowF:       Number,
+    tempHighF:      Number,
   },
   { timestamps: true }
 )
