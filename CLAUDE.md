@@ -98,6 +98,8 @@ server/
     - TODO: map integration — render campsites as amber tent pins and photo spots as sky-blue camera pins on the trip map, matching the legend style from inspiration/ridgeline-fixed_1.html
     - TODO: right-pane list — compact rows grouped by type, each row shows color-coded dot + label + small coordinate chip; clicking routes to the appropriate tab
 8. Add summary stats to the Hero banner stats for total Weight Carried, and Max Elevation. These should be included as manual entries when the trip is created.
+9. Add search function to Trips list (by name OR state (acronym or long, CA or California))
+10. Add filter function to Trips list (finite by state, distance, elevation gain, etc.)
 
 ##### Todo Sidebar nav — planned page contents
 - **Map** (`/map`) — Global map showing all GPX tracks and planned routes across every trip. Clicking a track opens the associated trip or plan detail.
