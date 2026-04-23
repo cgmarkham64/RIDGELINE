@@ -83,7 +83,17 @@ server/
 11. Add WILDLIFE, COMPANIONS panels to Journal
 12. Add "FIELD NOTES" label on Horizontal rule above the description section. 
 13. Add hover text for each day button that says the title of the entry if it exists, or some prompt for TODO if it doesn't.
-14. Instead of having all of this as a single column layout for the trip, adjust it to be two columns like in inspiration/ridgeline-fixed_1.html with the Route Map, elevation profile, and Loadout in a fixed drawer on the right side of the page. Leave out the Route Summary, I like that at the top where it's at.
+14. **DONE** Instead of having all of this as a single column layout for the trip, adjust it to be three columns like in inspiration/ridgeline-fixed_1.html with the Trip Log being in column 1, the Journal entry to be in column 2 and the Route Map, elevation profile, and Loadout in a fixed drawer column on the right side of the page. Adjust the trip summary stats to be in a header more like the header for a trip in the inspiration/ridgeline-fixed_1.html file
+15. Share / Export PDF — The Share button in the trip hero opens a dialog with two options:
+    - **Copy link** — copies the current page URL to clipboard (implemented, shows a "Copied" confirmation).
+    - **Export as PDF** — generates a styled PDF trip report matching the app's visual design. TODO: implement using a headless print stylesheet or a library like `@react-pdf/renderer`. The PDF should include: trip hero (title, location, dates, stats), journal entries (each day with conditions grid and narrative), GPX map screenshot or SVG export, gear loadout weight summary, and photos with EXIF metadata. Style it to match the dark amber/mono aesthetic of the app.
+16. Waypoints — right-pane summary list of named points of interest on a trip. Two types:
+    - **Campsites** — name, night number, coordinates. Clicking navigates to the Map tab and highlights the campsite pin on the trip map.
+    - **Photo spots** — name, coordinates, optional link to a specific photo. Clicking navigates to either the Map tab (to show the location) or the Photos tab (to open the associated photo). Consider a toggle or dual-action affordance for spots that have both a GPS pin and a linked photo.
+    - TODO: data model — add a `waypoints` array to the Trip schema: `[{ id, type ('campsite'|'photo-spot'), label, lat, lon, nightNumber? (campsite), photoId? (photo-spot) }]`
+    - TODO: map integration — render campsites as amber tent pins and photo spots as sky-blue camera pins on the trip map, matching the legend style from inspiration/ridgeline-fixed_1.html
+    - TODO: right-pane list — compact rows grouped by type, each row shows color-coded dot + label + small coordinate chip; clicking routes to the appropriate tab
+17. Add summary stats to the Hero banner stats for total Weight Carried, and Max Elevation. These should be included as manual entries when the trip is created. 
 
 ##### Todo Sidebar nav — planned page contents
 - **Map** (`/map`) — Global map showing all GPX tracks and planned routes across every trip. Clicking a track opens the associated trip or plan detail.

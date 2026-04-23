@@ -252,11 +252,7 @@ export function GpxMapSection({
   }
 
   return (
-    <div style={{ marginTop: 24 }}>
-      <div style={{ marginBottom: 12 }}>
-        <div style={mono}>GPX Track &amp; Map</div>
-      </div>
-
+    <div>
       {/* Import area — single card, stacked */}
       <div style={{ ...cardStyle, marginBottom: 12 }}>
 
@@ -369,8 +365,9 @@ export function GpxMapSection({
           <MapContainer
             bounds={bounds}
             boundsOptions={{ padding: [24, 24] }}
-            style={{ height: 400, width: '100%' }}
+            style={{ height: 220, width: '100%' }}
             scrollWheelZoom={false}
+            attributionControl={false}
           >
             <TileLayer
               url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
