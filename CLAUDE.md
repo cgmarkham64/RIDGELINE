@@ -70,30 +70,34 @@ server/
 
 
 ### Todo
-1. **DONE** Auth — JWT login/register, persisted token in Zustand, axios interceptor that attaches it to every request. Nothing else works without this.
-2. **DONE** MongoDB + Express API — Set up your backend first with the three core collections: trips, loadouts, gearItems. Get basic CRUD endpoints working before touching the frontend data layer.
-3. **DONE** Trip CRUD — The sidebar trip list, the 2create/edit modal, and delete confirm. This is your first full end-to-end feature and will validate your API, Tanstack Query setup, and Zustand integration all at once.
-4. **DONE** Journal entries — Day selector, the conditions template form, and the narrative field. Use react-hook-form + zod for the template — it maps perfectly to the structured condition fields.
-5. **DONE** GPX import + map — Parse the GPX file on upload (the gpx.ts util), store the track as a GeoJSON LineString in MongoDB, render it with Mapbox GL JS or Leaflet. This is your most technically interesting piece so save it until the foundation is solid.
-6. **DONE** Upgrade `gpxTrack` (single) to `gpxTracks` (array) so a multi-day trip can store one GPS track per day. Schema: `[Schema.Types.Mixed]` array of `{ id, label, track }` entries. UI: GPS Tracks panel with per-entry color-coded rows (8-color palette, cycles), per-entry kabob (replace/remove), "+ Add" button that appends a new day entry. Map renders each track in its assigned color; legend shows all visible tracks.
-7. Photo upload + EXIF — Use the exif-js or exifr library to parse EXIF in the browser before uploading. Extract GPS coordinates, camera settings, and timestamp client-side, store them alongside the photo reference in MongoDB.
-8. Gear loadouts — Straightforward CRUD once the pattern is established from trips. Weight calculations are pure frontend math in Zustand.
-9. **DONE** Put Planned Routes and Tracks inside the same box, stacked on top of each other. When multiple Tracks are added it gets out of balance and doesn't look right.
-10. **DONE** Break Temperature into distinct Low and High input fields, add another column to the journal section to accommodate it and adjust the data model on the backend to support it. Ensure save is done onFocusChange same as the other fields.
-11. Add WILDLIFE, COMPANIONS panels to Journal
-12. Add "FIELD NOTES" label on Horizontal rule above the description section. 
-13. Add hover text for each day button that says the title of the entry if it exists, or some prompt for TODO if it doesn't.
-14. **DONE** Instead of having all of this as a single column layout for the trip, adjust it to be three columns like in inspiration/ridgeline-fixed_1.html with the Trip Log being in column 1, the Journal entry to be in column 2 and the Route Map, elevation profile, and Loadout in a fixed drawer column on the right side of the page. Adjust the trip summary stats to be in a header more like the header for a trip in the inspiration/ridgeline-fixed_1.html file
-15. Share / Export PDF — The Share button in the trip hero opens a dialog with two options:
+
+##### Done
+1. **DONE** Three-column trip layout — Hero header with gradient, mountain silhouette, and stat pill strip. Trip Log sidebar (col 1), Journal center pane (col 2), persistent right panel (col 3) with Route Map, Elevation Profile, Waypoints, Weight Breakdown, and OSM/CARTO attribution. Tab row (Journal / Map / Photos / Gear) between hero and content.
+2. **DONE** Auth — JWT login/register, persisted token in Zustand, axios interceptor that attaches it to every request. Nothing else works without this.
+3. **DONE** MongoDB + Express API — Set up your backend first with the three core collections: trips, loadouts, gearItems. Get basic CRUD endpoints working before touching the frontend data layer.
+4. **DONE** Trip CRUD — The sidebar trip list, the create/edit modal, and delete confirm. This is your first full end-to-end feature and will validate your API, Tanstack Query setup, and Zustand integration all at once.
+5. **DONE** Journal entries — Day selector, the conditions template form, and the narrative field. Use react-hook-form + zod for the template — it maps perfectly to the structured condition fields.
+6. **DONE** GPX import + map — Parse the GPX file on upload (the gpx.ts util), store the track as a GeoJSON LineString in MongoDB, render it with Mapbox GL JS or Leaflet. This is your most technically interesting piece so save it until the foundation is solid.
+7. **DONE** Upgrade `gpxTrack` (single) to `gpxTracks` (array) so a multi-day trip can store one GPS track per day. Schema: `[Schema.Types.Mixed]` array of `{ id, label, track }` entries. UI: GPS Tracks panel with per-entry color-coded rows (8-color palette, cycles), per-entry kabob (replace/remove), "+ Add" button that appends a new day entry. Map renders each track in its assigned color; legend shows all visible tracks.
+8. **DONE** Put Planned Routes and Tracks inside the same box, stacked on top of each other. When multiple Tracks are added it gets out of balance and doesn't look right.
+9. **DONE** Break Temperature into distinct Low and High input fields, add another column to the journal section to accommodate it and adjust the data model on the backend to support it. Ensure save is done onFocusChange same as the other fields.
+
+##### Up next
+1. Photo upload + EXIF — Use the exif-js or exifr library to parse EXIF in the browser before uploading. Extract GPS coordinates, camera settings, and timestamp client-side, store them alongside the photo reference in MongoDB.
+2. Gear loadouts — Straightforward CRUD once the pattern is established from trips. Weight calculations are pure frontend math in Zustand.
+3. Add WILDLIFE, COMPANIONS panels to Journal.
+4. Add "FIELD NOTES" label on horizontal rule above the description section.
+5. Add hover text for each day button that says the title of the entry if it exists, or some prompt if it doesn't.
+6. Share / Export PDF — The Share button in the trip hero opens a dialog with two options:
     - **Copy link** — copies the current page URL to clipboard (implemented, shows a "Copied" confirmation).
     - **Export as PDF** — generates a styled PDF trip report matching the app's visual design. TODO: implement using a headless print stylesheet or a library like `@react-pdf/renderer`. The PDF should include: trip hero (title, location, dates, stats), journal entries (each day with conditions grid and narrative), GPX map screenshot or SVG export, gear loadout weight summary, and photos with EXIF metadata. Style it to match the dark amber/mono aesthetic of the app.
-16. Waypoints — right-pane summary list of named points of interest on a trip. Two types:
+7. Waypoints — right-pane summary list of named points of interest on a trip. Two types:
     - **Campsites** — name, night number, coordinates. Clicking navigates to the Map tab and highlights the campsite pin on the trip map.
     - **Photo spots** — name, coordinates, optional link to a specific photo. Clicking navigates to either the Map tab (to show the location) or the Photos tab (to open the associated photo). Consider a toggle or dual-action affordance for spots that have both a GPS pin and a linked photo.
     - TODO: data model — add a `waypoints` array to the Trip schema: `[{ id, type ('campsite'|'photo-spot'), label, lat, lon, nightNumber? (campsite), photoId? (photo-spot) }]`
     - TODO: map integration — render campsites as amber tent pins and photo spots as sky-blue camera pins on the trip map, matching the legend style from inspiration/ridgeline-fixed_1.html
     - TODO: right-pane list — compact rows grouped by type, each row shows color-coded dot + label + small coordinate chip; clicking routes to the appropriate tab
-17. Add summary stats to the Hero banner stats for total Weight Carried, and Max Elevation. These should be included as manual entries when the trip is created. 
+8. Add summary stats to the Hero banner stats for total Weight Carried, and Max Elevation. These should be included as manual entries when the trip is created.
 
 ##### Todo Sidebar nav — planned page contents
 - **Map** (`/map`) — Global map showing all GPX tracks and planned routes across every trip. Clicking a track opens the associated trip or plan detail.
