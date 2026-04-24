@@ -16,27 +16,37 @@ export function DeleteConfirm({ trip, onClose, onDeleted }: Props) {
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 50,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'rgba(0,0,0,0.7)',
-    }}>
-      <div style={{
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--r-lg)',
-        width: '100%',
-        maxWidth: 360,
-        margin: '0 16px',
-        padding: 24,
-      }}>
-        <h2 style={{
-          fontFamily: 'var(--font-heading)',
-          fontSize: 16,
-          fontWeight: 700,
-          color: 'var(--text)',
-          marginBottom: 8,
-        }}>
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.7)',
+      }}
+    >
+      <div
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--r-lg)',
+          width: '100%',
+          maxWidth: 360,
+          margin: '0 16px',
+          padding: 24,
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: 'var(--font-heading)',
+            fontSize: 16,
+            fontWeight: 700,
+            color: 'var(--text)',
+            marginBottom: 8,
+          }}
+        >
           Delete trip?
         </h2>
         <p style={{ fontSize: 13, color: 'var(--text-mid)', marginBottom: 6 }}>

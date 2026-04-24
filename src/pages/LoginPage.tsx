@@ -46,7 +46,12 @@ export function LoginPage() {
 
         <div className="field">
           <label htmlFor="password">Password</label>
-          <input id="password" type="password" autoComplete="current-password" {...register('password')} />
+          <input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            {...register('password')}
+          />
           {errors.password && <span className="error">{errors.password.message}</span>}
         </div>
 

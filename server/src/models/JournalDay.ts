@@ -2,16 +2,16 @@ import { Schema, model, Types } from 'mongoose'
 
 const JournalDaySchema = new Schema(
   {
-    tripId:         { type: Types.ObjectId, ref: 'Trip', required: true },
-    date:           { type: Date, required: true },
-    dayNumber:      { type: Number, required: true },
-    title:          String,
-    body:           { type: String, default: '' },
-    milesCovered:   Number,
+    tripId: { type: Types.ObjectId, ref: 'Trip', required: true },
+    date: { type: Date, required: true },
+    dayNumber: { type: Number, required: true },
+    title: String,
+    body: { type: String, default: '' },
+    milesCovered: Number,
     elevationGainFt: Number,
-    weatherNotes:   String,
-    tempLowF:       Number,
-    tempHighF:      Number,
+    weatherNotes: String,
+    tempLowF: Number,
+    tempHighF: Number,
   },
   { timestamps: true }
 )

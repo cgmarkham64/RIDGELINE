@@ -19,7 +19,7 @@ export interface GearItem {
   category: GearCategory
   brand?: string
   weightGrams?: number
-  isWorn?: boolean  // worn weight vs pack weight
+  isWorn?: boolean // worn weight vs pack weight
   notes?: string
   link?: string
 }
@@ -58,7 +58,7 @@ export interface Photo {
 export interface JournalDay {
   _id: string
   tripId: string
-  date: string  // ISO date string, e.g. "2024-08-12T00:00:00.000Z"
+  date: string // ISO date string, e.g. "2024-08-12T00:00:00.000Z"
   dayNumber: number
   title?: string
   body: string
@@ -78,8 +78,8 @@ export interface GpxTrack {
 }
 
 export interface GpxTrackEntry {
-  id: string     // stable client-generated id (Date.now().toString())
-  label: string  // e.g. "Day 1", "Day 2"
+  id: string // stable client-generated id (Date.now().toString())
+  label: string // e.g. "Day 1", "Day 2"
   track: GpxTrack
 }
 

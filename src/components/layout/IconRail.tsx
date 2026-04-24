@@ -1,6 +1,14 @@
 import { Link } from '@tanstack/react-router'
 
-function NavLink({ to, title, children }: { to: string; title: string; children: React.ReactNode }) {
+function NavLink({
+  to,
+  title,
+  children,
+}: {
+  to: string
+  title: string
+  children: React.ReactNode
+}) {
   return (
     <Link
       to={to}
@@ -9,7 +17,16 @@ function NavLink({ to, title, children }: { to: string; title: string; children:
       activeProps={{ className: 'rail-btn active' }}
       activeOptions={to === '/' ? { exact: true } : undefined}
     >
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="17"
+        height="17"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         {children}
       </svg>
     </Link>
@@ -18,30 +35,34 @@ function NavLink({ to, title, children }: { to: string; title: string; children:
 
 export function IconRail() {
   return (
-    <nav style={{
-      width: 64,
-      flexShrink: 0,
-      background: 'var(--surface)',
-      borderRight: '1px solid var(--border)',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      padding: '16px 0 20px',
-      gap: 2,
-      height: '100%',
-      overflowY: 'auto',
-    }}>
-      <div style={{
-        fontFamily: 'var(--font-heading)',
-        fontSize: 9,
-        fontWeight: 800,
-        letterSpacing: '0.22em',
-        color: 'var(--amber)',
-        writingMode: 'vertical-lr',
-        transform: 'rotate(180deg)',
-        marginBottom: 20,
-        userSelect: 'none',
-      }}>
+    <nav
+      style={{
+        width: 64,
+        flexShrink: 0,
+        background: 'var(--surface)',
+        borderRight: '1px solid var(--border)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '16px 0 20px',
+        gap: 2,
+        height: '100%',
+        overflowY: 'auto',
+      }}
+    >
+      <div
+        style={{
+          fontFamily: 'var(--font-heading)',
+          fontSize: 9,
+          fontWeight: 800,
+          letterSpacing: '0.22em',
+          color: 'var(--amber)',
+          writingMode: 'vertical-lr',
+          transform: 'rotate(180deg)',
+          marginBottom: 20,
+          userSelect: 'none',
+        }}
+      >
         RDGLN
       </div>
 

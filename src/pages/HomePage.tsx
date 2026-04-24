@@ -77,7 +77,9 @@ function EmptyState({ onNew }: { onNew: () => void }) {
       <p className="empty-state__body">
         Pick a trip from the sidebar, or create a new one to get started.
       </p>
-      <button onClick={onNew} className="btn btn-primary">+ New trip</button>
+      <button onClick={onNew} className="btn btn-primary">
+        + New trip
+      </button>
     </div>
   )
 }

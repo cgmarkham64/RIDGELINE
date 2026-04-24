@@ -40,9 +40,7 @@ export function TripDetail({ trip, onEdit, onDelete, onTripUpdated }: Props) {
         <div className="center-pane">
           {activeTab === 'journal' ? (
             <>
-              {trip.description && (
-                <p className="trip-description">{trip.description}</p>
-              )}
+              {trip.description && <p className="trip-description">{trip.description}</p>}
               <JournalSection trip={trip} />
             </>
           ) : (
@@ -81,9 +79,7 @@ function TabRow({ activeTab, onChange }: { activeTab: Tab; onChange: (t: Tab) =>
 function TabComingSoon({ label }: { label: string }) {
   return (
     <div className="tab-coming-soon">
-      <div className="tab-coming-soon__name">
-        {label.charAt(0).toUpperCase() + label.slice(1)}
-      </div>
+      <div className="tab-coming-soon__name">{label.charAt(0).toUpperCase() + label.slice(1)}</div>
       <p className="tab-coming-soon__label">Coming soon</p>
     </div>
   )

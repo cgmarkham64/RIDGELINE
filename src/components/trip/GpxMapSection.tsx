@@ -49,17 +49,17 @@ const menuItemStyle: React.CSSProperties = {
 
 // ─── Color palette ───────────────────────────────────────────────────────────
 
-const PLANNED_COLOR = '#38bdf8'  // sky blue — dashed, reads as "future"
+const PLANNED_COLOR = '#38bdf8' // sky blue — dashed, reads as "future"
 
 const TRACK_COLORS = [
-  '#4ade80',  // green
-  '#fb923c',  // orange
-  '#a78bfa',  // violet
-  '#f472b6',  // pink
-  '#34d399',  // emerald
-  '#facc15',  // yellow
-  '#60a5fa',  // blue
-  '#f87171',  // red
+  '#4ade80', // green
+  '#fb923c', // orange
+  '#a78bfa', // violet
+  '#f472b6', // pink
+  '#34d399', // emerald
+  '#facc15', // yellow
+  '#60a5fa', // blue
+  '#f87171', // red
 ]
 
 function trackColor(index: number) {
@@ -143,7 +143,9 @@ export function GpxMapSection({
 
   useEffect(() => {
     if (!openMenu) return
-    function close() { setOpenMenu(null) }
+    function close() {
+      setOpenMenu(null)
+    }
     document.addEventListener('click', close)
     return () => document.removeEventListener('click', close)
   }, [openMenu])
@@ -159,9 +161,7 @@ export function GpxMapSection({
     if (!file || !target) return
 
     const busyKey =
-      target.type === 'planned' ? 'planned'
-      : target.type === 'track-new' ? 'new-track'
-      : target.id
+      target.type === 'planned' ? 'planned' : target.type === 'track-new' ? 'new-track' : target.id
 
     setImporting(busyKey)
     setError(null)
@@ -237,10 +237,7 @@ export function GpxMapSection({
     color: trackColor(i),
     positions: toLatLngs(entry.track),
   }))
-  const allPoints = [
-    ...plannedLatLngs,
-    ...tracksWithLatLngs.flatMap((t) => t.positions),
-  ]
+  const allPoints = [...plannedLatLngs, ...tracksWithLatLngs.flatMap((t) => t.positions)]
   const bounds = allPoints.length > 1 ? L.latLngBounds(allPoints) : null
   const hasAny = allPoints.length > 1
 
@@ -255,22 +252,42 @@ export function GpxMapSection({
     <div>
       {/* Import area — single card, stacked */}
       <div style={{ ...cardStyle, marginBottom: 12 }}>
-
         {/* Planned Route row */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
             <svg width="18" height="6" style={{ flexShrink: 0 }}>
-              <line x1="0" y1="3" x2="18" y2="3" stroke={PLANNED_COLOR} strokeWidth="2.5" strokeDasharray="5 3" />
+              <line
+                x1="0"
+                y1="3"
+                x2="18"
+                y2="3"
+                stroke={PLANNED_COLOR}
+                strokeWidth="2.5"
+                strokeDasharray="5 3"
+              />
             </svg>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: 'var(--font-heading)', fontSize: 12, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap' }}>
+              <div
+                style={{
+                  fontFamily: 'var(--font-heading)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: 'var(--text)',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 Planned Route
               </div>
               <div style={{ ...mono, fontSize: 8 }}>
-                {importing === 'planned' ? 'Importing…'
-                  : removing === 'planned' ? 'Removing…'
-                  : trip.gpxPlanned ? 'Imported'
-                  : 'Import before the trip'}
+                {importing === 'planned'
+                  ? 'Importing…'
+                  : removing === 'planned'
+                    ? 'Removing…'
+                    : trip.gpxPlanned
+                      ? 'Imported'
+                      : 'Import before the trip'}
               </div>
             </div>
           </div>
@@ -279,14 +296,25 @@ export function GpxMapSection({
               className="btn btn-ghost btn-sm"
               style={{ fontSize: 16, lineHeight: 1, padding: '2px 7px', letterSpacing: '0.05em' }}
               disabled={importing === 'planned' || removing === 'planned'}
-              onClick={(e) => { e.stopPropagation(); setOpenMenu(openMenu === 'planned' ? null : 'planned') }}
-            >⋮</button>
+              onClick={(e) => {
+                e.stopPropagation()
+                setOpenMenu(openMenu === 'planned' ? null : 'planned')
+              }}
+            >
+              ⋮
+            </button>
             {openMenu === 'planned' && (
               <KabobMenu
                 hasTrack={!!trip.gpxPlanned}
                 importLabel={trip.gpxPlanned ? 'Replace .gpx' : 'Import .gpx'}
-                onImport={() => { setOpenMenu(null); openPicker({ type: 'planned' }) }}
-                onRemove={() => { setOpenMenu(null); removePlanned() }}
+                onImport={() => {
+                  setOpenMenu(null)
+                  openPicker({ type: 'planned' })
+                }}
+                onRemove={() => {
+                  setOpenMenu(null)
+                  removePlanned()
+                }}
               />
             )}
           </div>
@@ -297,13 +325,35 @@ export function GpxMapSection({
 
         {/* GPS Tracks section */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: gpxTracks.length > 0 ? 8 : 0 }}>
-            <div style={{ fontFamily: 'var(--font-heading)', fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              marginBottom: gpxTracks.length > 0 ? 8 : 0,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: 'var(--font-heading)',
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'var(--text)',
+              }}
+            >
               GPS Tracks
             </div>
             <button
               className="btn btn-ghost btn-sm"
-              style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '2px 8px', flexShrink: 0 }}
+              style={{
+                fontSize: 10,
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                padding: '2px 8px',
+                flexShrink: 0,
+              }}
               disabled={importing === 'new-track'}
               onClick={() => openPicker({ type: 'track-new' })}
             >
@@ -322,28 +372,61 @@ export function GpxMapSection({
                 const busy = isImporting || isRemoving
                 const menuOpen = openMenu === entry.id
                 return (
-                  <div key={entry.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                  <div
+                    key={entry.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 6,
+                    }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
                       <svg width="14" height="6" style={{ flexShrink: 0 }}>
                         <line x1="0" y1="3" x2="14" y2="3" stroke={color} strokeWidth="2.5" />
                       </svg>
-                      <span style={{ ...mono, fontSize: 8, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span
+                        style={{
+                          ...mono,
+                          fontSize: 8,
+                          color: 'var(--text)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {isImporting ? 'Importing…' : isRemoving ? 'Removing…' : entry.label}
                       </span>
                     </div>
                     <div style={{ position: 'relative', flexShrink: 0 }}>
                       <button
                         className="btn btn-ghost btn-sm"
-                        style={{ fontSize: 14, lineHeight: 1, padding: '1px 5px', letterSpacing: '0.05em' }}
+                        style={{
+                          fontSize: 14,
+                          lineHeight: 1,
+                          padding: '1px 5px',
+                          letterSpacing: '0.05em',
+                        }}
                         disabled={busy}
-                        onClick={(e) => { e.stopPropagation(); setOpenMenu(menuOpen ? null : entry.id) }}
-                      >⋮</button>
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setOpenMenu(menuOpen ? null : entry.id)
+                        }}
+                      >
+                        ⋮
+                      </button>
                       {menuOpen && (
                         <KabobMenu
                           hasTrack
                           importLabel="Replace .gpx"
-                          onImport={() => { setOpenMenu(null); openPicker({ type: 'track-replace', id: entry.id }) }}
-                          onRemove={() => { setOpenMenu(null); removeTrack(entry.id) }}
+                          onImport={() => {
+                            setOpenMenu(null)
+                            openPicker({ type: 'track-replace', id: entry.id })
+                          }}
+                          onRemove={() => {
+                            setOpenMenu(null)
+                            removeTrack(entry.id)
+                          }}
                         />
                       )}
                     </div>
@@ -361,7 +444,15 @@ export function GpxMapSection({
 
       {/* Map */}
       {hasAny && bounds ? (
-        <div style={{ position: 'relative', zIndex: 1, borderRadius: 'var(--r-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            borderRadius: 'var(--r-md)',
+            overflow: 'hidden',
+            border: '1px solid var(--border)',
+          }}
+        >
           <MapContainer
             bounds={bounds}
             boundsOptions={{ padding: [24, 24] }}
@@ -377,22 +468,51 @@ export function GpxMapSection({
               detectRetina
             />
             {plannedLatLngs.length > 1 && (
-              <Polyline positions={plannedLatLngs} color={PLANNED_COLOR} weight={4} opacity={0.9} dashArray="10 6" />
+              <Polyline
+                positions={plannedLatLngs}
+                color={PLANNED_COLOR}
+                weight={4}
+                opacity={0.9}
+                dashArray="10 6"
+              />
             )}
             {tracksWithLatLngs.map(({ entry, color, positions }) =>
               positions.length > 1 ? (
-                <Polyline key={entry.id} positions={positions} color={color} weight={3} opacity={0.9} />
+                <Polyline
+                  key={entry.id}
+                  positions={positions}
+                  color={color}
+                  weight={3}
+                  opacity={0.9}
+                />
               ) : null
             )}
             <FitBounds positions={allPoints} />
           </MapContainer>
 
           {/* Legend — shown when at least one polyline is visible */}
-          <div style={{ display: 'flex', gap: 16, padding: '8px 12px', background: 'var(--surface)', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 16,
+              padding: '8px 12px',
+              background: 'var(--surface)',
+              borderTop: '1px solid var(--border)',
+              flexWrap: 'wrap',
+            }}
+          >
             {plannedLatLngs.length > 1 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <svg width="20" height="6">
-                  <line x1="0" y1="3" x2="20" y2="3" stroke={PLANNED_COLOR} strokeWidth="2.5" strokeDasharray="5 3" />
+                  <line
+                    x1="0"
+                    y1="3"
+                    x2="20"
+                    y2="3"
+                    stroke={PLANNED_COLOR}
+                    strokeWidth="2.5"
+                    strokeDasharray="5 3"
+                  />
                 </svg>
                 <span style={{ ...mono, fontSize: 8 }}>Planned Route</span>
               </div>
@@ -410,7 +530,14 @@ export function GpxMapSection({
           </div>
         </div>
       ) : (
-        <div style={{ border: '1px dashed var(--border)', borderRadius: 'var(--r-md)', padding: '28px 20px', textAlign: 'center' }}>
+        <div
+          style={{
+            border: '1px dashed var(--border)',
+            borderRadius: 'var(--r-md)',
+            padding: '28px 20px',
+            textAlign: 'center',
+          }}
+        >
           <div style={{ fontSize: 24, opacity: 0.2, marginBottom: 6 }}>🗺</div>
           <p style={mono}>Import a planned route or GPS track above to render the map</p>
         </div>

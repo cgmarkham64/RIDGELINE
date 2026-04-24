@@ -21,8 +21,11 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   const loadout = await Loadout.findByIdAndUpdate(req.params.id, req.body, {
-    new: true, runValidators: true,
-  }).populate('items').lean()
+    new: true,
+    runValidators: true,
+  })
+    .populate('items')
+    .lean()
   if (!loadout) return res.status(404).json({ error: 'Not found' })
   res.json(loadout)
 })

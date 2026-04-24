@@ -21,7 +21,8 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   const item = await GearItem.findByIdAndUpdate(req.params.id, req.body, {
-    new: true, runValidators: true,
+    new: true,
+    runValidators: true,
   }).lean()
   if (!item) return res.status(404).json({ error: 'Not found' })
   res.json(item)

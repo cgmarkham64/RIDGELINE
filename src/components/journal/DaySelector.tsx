@@ -17,7 +17,9 @@ function buildDays(startDate: string, endDate: string): DayMeta[] {
     days.push({
       dayNumber: dayNum,
       date: current.toISOString().slice(0, 10),
-      shortLabel: current.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase(),
+      shortLabel: current
+        .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        .toUpperCase(),
     })
     current = new Date(current.getTime() + 86_400_000)
     dayNum++

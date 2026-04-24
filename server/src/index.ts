@@ -4,6 +4,7 @@ import cors from 'cors'
 import mongoose from 'mongoose'
 import gearItemsRouter from './routes/gearItems'
 import journalDaysRouter from './routes/journalDays'
+import journalScanRouter from './routes/journalScan'
 import loadoutsRouter from './routes/loadouts'
 import tripsRouter from './routes/trips'
 
@@ -16,6 +17,7 @@ app.use(express.json({ limit: '10mb' }))
 
 app.use('/api/gear-items', gearItemsRouter)
 app.use('/api/journal-days', journalDaysRouter)
+app.use('/api/journal-scan', journalScanRouter)
 app.use('/api/loadouts', loadoutsRouter)
 app.use('/api/trips', tripsRouter)
 

@@ -17,7 +17,11 @@ export async function mockLogin({ email, password }: LoginInput): Promise<AuthRe
   }
 }
 
-export async function mockRegister({ name, email, password }: RegisterInput): Promise<AuthResponse> {
+export async function mockRegister({
+  name,
+  email,
+  password,
+}: RegisterInput): Promise<AuthResponse> {
   await delay(MOCK_DELAY)
   if (password.length < 6) throw new Error('Password must be at least 6 characters')
   return {

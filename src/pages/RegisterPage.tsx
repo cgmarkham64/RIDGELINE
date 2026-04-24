@@ -53,7 +53,12 @@ export function RegisterPage() {
 
         <div className="field">
           <label htmlFor="password">Password</label>
-          <input id="password" type="password" autoComplete="new-password" {...register('password')} />
+          <input
+            id="password"
+            type="password"
+            autoComplete="new-password"
+            {...register('password')}
+          />
           {errors.password && <span className="error">{errors.password.message}</span>}
         </div>
 

@@ -52,10 +52,7 @@ router.put('/:id', async (req, res) => {
 
     // Write gpxTracks (array of Mixed entries) directly, bypassing Mongoose.
     if ('gpxTracks' in req.body) {
-      await Trip.collection.updateOne(
-        { _id: trip._id },
-        { $set: { gpxTracks } }
-      )
+      await Trip.collection.updateOne({ _id: trip._id }, { $set: { gpxTracks } })
     }
 
     const result = await Trip.findById(trip._id).populate('loadoutId').lean()

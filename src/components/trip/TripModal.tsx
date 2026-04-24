@@ -68,8 +68,13 @@ export function TripModal({ trip, onClose, onSaved }: Props) {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      title: '', location: '', startDate: '', endDate: '',
-      description: '', distanceMiles: '', elevationGainFt: '',
+      title: '',
+      location: '',
+      startDate: '',
+      endDate: '',
+      description: '',
+      distanceMiles: '',
+      elevationGainFt: '',
     },
   })
 
@@ -104,105 +109,197 @@ export function TripModal({ trip, onClose, onSaved }: Props) {
   }
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 50,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'rgba(0,0,0,0.7)',
-    }}>
-      <div style={{
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--r-lg)',
-        width: '100%',
-        maxWidth: 520,
-        margin: '0 16px',
-      }}>
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.7)',
+      }}
+    >
+      <div
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--r-lg)',
+          width: '100%',
+          maxWidth: 520,
+          margin: '0 16px',
+        }}
+      >
         {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '16px 20px',
-          borderBottom: '1px solid var(--border)',
-        }}>
-          <span style={{
-            fontFamily: 'var(--font-heading)',
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: '0.16em',
-            textTransform: 'uppercase',
-            color: 'var(--text-dim)',
-          }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '16px 20px',
+            borderBottom: '1px solid var(--border)',
+          }}
+        >
+          <span
+            style={{
+              fontFamily: 'var(--font-heading)',
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: 'var(--text-dim)',
+            }}
+          >
             {isEdit ? 'Edit trip' : 'New trip'}
           </span>
-          <button onClick={onClose} style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text-dim)', fontSize: 18, lineHeight: 1,
-          }}>×</button>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--text-dim)',
+              fontSize: 18,
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}
+        >
           <div style={field}>
             <label style={label}>Title *</label>
-            <input {...register('title')} placeholder="e.g. Lost Coast Trail" style={input}
-              onFocus={e => { e.target.style.borderColor = 'var(--border-mid)' }}
-              onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
+            <input
+              {...register('title')}
+              placeholder="e.g. Lost Coast Trail"
+              style={input}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--border-mid)'
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'var(--border)'
+              }}
             />
-            {errors.title && <span style={{ fontSize: 11, color: 'var(--red)' }}>{errors.title.message}</span>}
+            {errors.title && (
+              <span style={{ fontSize: 11, color: 'var(--red)' }}>{errors.title.message}</span>
+            )}
           </div>
 
           <div style={field}>
             <label style={label}>Location *</label>
-            <input {...register('location')} placeholder="e.g. Kings Range, CA" style={input}
-              onFocus={e => { e.target.style.borderColor = 'var(--border-mid)' }}
-              onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
+            <input
+              {...register('location')}
+              placeholder="e.g. Kings Range, CA"
+              style={input}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--border-mid)'
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'var(--border)'
+              }}
             />
-            {errors.location && <span style={{ fontSize: 11, color: 'var(--red)' }}>{errors.location.message}</span>}
+            {errors.location && (
+              <span style={{ fontSize: 11, color: 'var(--red)' }}>{errors.location.message}</span>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={field}>
               <label style={label}>Start date *</label>
-              <input type="date" {...register('startDate')} style={input}
-                onFocus={e => { e.target.style.borderColor = 'var(--border-mid)' }}
-                onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
+              <input
+                type="date"
+                {...register('startDate')}
+                style={input}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--border-mid)'
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'var(--border)'
+                }}
               />
-              {errors.startDate && <span style={{ fontSize: 11, color: 'var(--red)' }}>{errors.startDate.message}</span>}
+              {errors.startDate && (
+                <span style={{ fontSize: 11, color: 'var(--red)' }}>
+                  {errors.startDate.message}
+                </span>
+              )}
             </div>
             <div style={field}>
               <label style={label}>End date *</label>
-              <input type="date" {...register('endDate')} style={input}
-                onFocus={e => { e.target.style.borderColor = 'var(--border-mid)' }}
-                onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
+              <input
+                type="date"
+                {...register('endDate')}
+                style={input}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--border-mid)'
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'var(--border)'
+                }}
               />
-              {errors.endDate && <span style={{ fontSize: 11, color: 'var(--red)' }}>{errors.endDate.message}</span>}
+              {errors.endDate && (
+                <span style={{ fontSize: 11, color: 'var(--red)' }}>{errors.endDate.message}</span>
+              )}
             </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={field}>
               <label style={label}>Distance (mi)</label>
-              <input type="number" step="0.1" min="0" {...register('distanceMiles')} placeholder="25.4" style={input}
-                onFocus={e => { e.target.style.borderColor = 'var(--border-mid)' }}
-                onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                {...register('distanceMiles')}
+                placeholder="25.4"
+                style={input}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--border-mid)'
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'var(--border)'
+                }}
               />
             </div>
             <div style={field}>
               <label style={label}>Elevation gain (ft)</label>
-              <input type="number" step="1" min="0" {...register('elevationGainFt')} placeholder="4200" style={input}
-                onFocus={e => { e.target.style.borderColor = 'var(--border-mid)' }}
-                onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
+              <input
+                type="number"
+                step="1"
+                min="0"
+                {...register('elevationGainFt')}
+                placeholder="4200"
+                style={input}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--border-mid)'
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'var(--border)'
+                }}
               />
             </div>
           </div>
 
           <div style={field}>
             <label style={label}>Description</label>
-            <textarea {...register('description')} rows={3} placeholder="A brief overview of the trip…" style={{
-              ...input,
-              resize: 'none',
-              lineHeight: 1.6,
-            }}
-              onFocus={e => { e.target.style.borderColor = 'var(--border-mid)' }}
-              onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
+            <textarea
+              {...register('description')}
+              rows={3}
+              placeholder="A brief overview of the trip…"
+              style={{
+                ...input,
+                resize: 'none',
+                lineHeight: 1.6,
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--border-mid)'
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'var(--border)'
+              }}
             />
           </div>
 
