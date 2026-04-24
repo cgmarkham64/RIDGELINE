@@ -5,8 +5,8 @@ import L, { type LatLngBoundsExpression } from 'leaflet'
 import type { GpxTrack, GpxTrackEntry, Trip, Waypoint, WaypointType } from '../../types'
 import { api } from '../../lib/api'
 import { GpxMapSection } from '../trip/GpxMapSection'
-import { DEFAULT_FORM, PLANNED_COLOR, mono, trackColor } from './constants'
-import { makeWaypointIcon, makePendingIcon } from './WaypointIcon'
+import { DEFAULT_FORM, PLANNED_COLOR, mono, trackColor, resolveStartEnd } from './constants'
+import { makeWaypointIcon, makePendingIcon, makeStartIcon, makeEndIcon } from './WaypointIcon'
 import { FitBounds, MapClickHandler, MapFocuser, MapRefCapture } from './MapHelpers'
 import { WaypointForm } from './WaypointForm'
 import { WaypointChip } from './WaypointChip'
@@ -198,6 +198,7 @@ export function MapTab({ trip, onTripUpdated }: Props) {
         addFormType={addForm.type}
         focusId={focusId}
         mapRef={mapRef}
+        startEnd={resolveStartEnd(plannedLatLngs, tracksWithLatLngs)}
         onMapClick={handleMapClick}
         onMarkerClick={handleMarkerClick}
         onFocusDone={() => setFocusId(null)}
@@ -381,6 +382,7 @@ function MapArea({
   addFormType,
   focusId,
   mapRef,
+  startEnd,
   onMapClick,
   onMarkerClick,
   onFocusDone,
@@ -396,6 +398,7 @@ function MapArea({
   addFormType: WaypointType
   focusId: string | null
   mapRef: React.RefObject<L.Map | null>
+  startEnd: { start: [number, number]; end: [number, number] } | null
   onMapClick: (lat: number, lon: number) => void
   onMarkerClick: (wp: Waypoint) => void
   onFocusDone: () => void
@@ -442,6 +445,12 @@ function MapArea({
               eventHandlers={{ click: () => onMarkerClick(wp) }}
             />
           ))}
+          {startEnd && (
+            <>
+              <Marker position={startEnd.start} icon={makeStartIcon()} interactive={false} />
+              <Marker position={startEnd.end} icon={makeEndIcon()} interactive={false} />
+            </>
+          )}
           {pendingLatLon && (
             <Marker
               position={[pendingLatLon.lat, pendingLatLon.lon]}

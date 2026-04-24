@@ -150,6 +150,40 @@ export function makeWaypointIcon(type: WaypointType, active: boolean, markerSize
   })
 }
 
+// ─── Start / End endpoint icons ───────────────────────────────────────────────
+
+const START_COLOR = '#4ade80'
+const END_COLOR = '#f87171'
+
+function endpointDivIcon(color: string, svgInner: string, size: number): L.DivIcon {
+  return L.divIcon({
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:#0f0d0b;border:1.5px solid ${color};display:flex;align-items:center;justify-content:center;box-shadow:0 0 6px ${color}55;">
+      <svg width="${size - 6}" height="${size - 6}" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">${svgInner}</svg>
+    </div>`,
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  })
+}
+
+export function makeStartIcon(size = 22): L.DivIcon {
+  // Play triangle → "start"
+  return endpointDivIcon(
+    START_COLOR,
+    `<path d="M5.5 4.5L12 8L5.5 11.5Z" fill="${START_COLOR}" opacity="0.95"/>`,
+    size
+  )
+}
+
+export function makeEndIcon(size = 22): L.DivIcon {
+  // Stop square → "end"
+  return endpointDivIcon(
+    END_COLOR,
+    `<rect x="5" y="5" width="6" height="6" rx="0.5" fill="${END_COLOR}" opacity="0.95"/>`,
+    size
+  )
+}
+
 export function makePendingIcon(type: WaypointType): L.DivIcon {
   const color = WAYPOINT_COLOR[type]
   const size = 30

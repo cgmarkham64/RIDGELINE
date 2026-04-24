@@ -1,5 +1,38 @@
 import type { CSSProperties } from 'react'
-import type { WaypointType } from '../../types'
+import type { GpxTrackEntry, WaypointType } from '../../types'
+
+// ─── Start / end point resolution ────────────────────────────────────────────
+
+/** Returns the overall [lat, lon] start and end of the trip's tracks.
+ *  GPS tracks (sorted chronologically) take priority over the planned route. */
+export function resolveStartEnd(
+  plannedLatLngs: [number, number][],
+  tracksWithLatLngs: { positions: [number, number][]; entry: GpxTrackEntry }[]
+): { start: [number, number]; end: [number, number] } | null {
+  const valid = tracksWithLatLngs.filter((t) => t.positions.length > 1)
+  if (valid.length > 0) {
+    const sorted = valid.slice().sort((a, b) => {
+      const ta = a.entry.firstTimestamp
+      const tb = b.entry.firstTimestamp
+      if (!ta && !tb) return 0
+      if (!ta) return 1
+      if (!tb) return -1
+      return ta.localeCompare(tb)
+    })
+    const last = sorted[sorted.length - 1]
+    return {
+      start: sorted[0].positions[0],
+      end: last.positions[last.positions.length - 1],
+    }
+  }
+  if (plannedLatLngs.length > 1) {
+    return {
+      start: plannedLatLngs[0],
+      end: plannedLatLngs[plannedLatLngs.length - 1],
+    }
+  }
+  return null
+}
 
 export const PLANNED_COLOR = '#38bdf8'
 

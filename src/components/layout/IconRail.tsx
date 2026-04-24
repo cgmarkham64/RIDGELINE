@@ -53,7 +53,7 @@ export function IconRail() {
       <div
         style={{
           fontFamily: 'var(--font-heading)',
-          fontSize: 9,
+          fontSize: 11,
           fontWeight: 800,
           letterSpacing: '0.22em',
           color: 'var(--amber)',

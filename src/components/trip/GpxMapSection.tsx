@@ -7,7 +7,8 @@ import type { Trip, GpxTrack, GpxTrackEntry } from '../../types'
 import { parseGpx } from '../../lib/gpx'
 import type { ParsedGpx } from '../../lib/gpx'
 import { api } from '../../lib/api'
-import { makeWaypointIcon } from '../map/WaypointIcon'
+import { makeWaypointIcon, makeStartIcon, makeEndIcon } from '../map/WaypointIcon'
+import { resolveStartEnd } from '../map/constants'
 
 // ─── Map helpers ─────────────────────────────────────────────────────────────
 
@@ -247,6 +248,7 @@ export function GpxMapSection({
     positions: toLatLngs(entry.track),
   }))
   const allPoints = [...plannedLatLngs, ...tracksWithLatLngs.flatMap((t) => t.positions)]
+  const startEnd = resolveStartEnd(plannedLatLngs, tracksWithLatLngs)
   const bounds = allPoints.length > 1 ? L.latLngBounds(allPoints) : null
   const hasAny = allPoints.length > 1
 
@@ -512,6 +514,12 @@ export function GpxMapSection({
                 />
               )
             })}
+            {startEnd && (
+              <>
+                <Marker position={startEnd.start} icon={makeStartIcon(18)} interactive={false} />
+                <Marker position={startEnd.end} icon={makeEndIcon(18)} interactive={false} />
+              </>
+            )}
             <FitBounds positions={allPoints} />
           </MapContainer>
 
