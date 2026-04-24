@@ -166,6 +166,10 @@ export function JournalSection({ trip }: Props) {
       if (data.tempHighF) setValue('tempHighF', String(data.tempHighF), { shouldDirty: true })
       if (data.weatherNotes) setValue('weatherNotes', data.weatherNotes, { shouldDirty: true })
       if (data.body) setValue('body', data.body, { shouldDirty: true })
+
+      // Blur any focused form field so the auto-save fires now (while the
+      // scan overlay is still up) rather than when the user next clicks elsewhere.
+      ;(document.activeElement as HTMLElement)?.blur()
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
