@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react'
 import type { Trip, Waypoint } from '../../types'
 import { GpxMapSection } from './GpxMapSection'
 import { ElevationProfile } from './ElevationProfile'
@@ -12,6 +13,11 @@ interface Props {
 
 export function TripRightPanel({ trip, onTripUpdated, activeTab }: Props) {
   const isMapTab = activeTab === 'map'
+  const [activeWaypointId, setActiveWaypointId] = useState<string | null>(null)
+
+  function handleWaypointClick(id: string) {
+    setActiveWaypointId((prev) => (prev === id ? null : id))
+  }
 
   return (
     <div
@@ -28,15 +34,33 @@ export function TripRightPanel({ trip, onTripUpdated, activeTab }: Props) {
     >
       {!isMapTab && (
         <RpSection label="Route Map">
-          <GpxMapSection trip={trip} onTripUpdated={onTripUpdated} showMap={true} />
+          <GpxMapSection
+            trip={trip}
+            onTripUpdated={onTripUpdated}
+            showMap={true}
+            activeWaypointId={activeWaypointId}
+            onWaypointClick={handleWaypointClick}
+          />
         </RpSection>
       )}
       <RpSection label="Elevation Profile">
-        <ElevationProfile planned={trip.gpxPlanned} gpxTracks={trip.gpxTracks} />
+        <ElevationProfile
+          planned={trip.gpxPlanned}
+          gpxTracks={trip.gpxTracks}
+          waypoints={trip.waypoints}
+          activeWaypointId={activeWaypointId}
+          onWaypointClick={handleWaypointClick}
+        />
       </RpSection>
-      <RpSection label="Waypoints">
-        <WaypointList waypoints={trip.waypoints ?? []} />
-      </RpSection>
+      {!isMapTab && (
+        <RpSection label="Waypoints">
+          <WaypointList
+            waypoints={trip.waypoints ?? []}
+            activeWaypointId={activeWaypointId}
+            onWaypointClick={handleWaypointClick}
+          />
+        </RpSection>
+      )}
       <RpSection label="Weight Breakdown">
         <ComingSoon />
       </RpSection>
@@ -99,7 +123,23 @@ function RpSection({ label, children }: { label: string; children: React.ReactNo
   )
 }
 
-function WaypointList({ waypoints }: { waypoints: Waypoint[] }) {
+function WaypointList({
+  waypoints,
+  activeWaypointId,
+  onWaypointClick,
+}: {
+  waypoints: Waypoint[]
+  activeWaypointId?: string | null
+  onWaypointClick?: (id: string) => void
+}) {
+  const activeRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (activeWaypointId && activeRef.current) {
+      activeRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [activeWaypointId])
+
   if (waypoints.length === 0) {
     return (
       <p
@@ -121,59 +161,84 @@ function WaypointList({ waypoints }: { waypoints: Waypoint[] }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      {sorted.map((wp) => (
-        <div
-          key={wp.id}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '7px 10px',
-            background: 'var(--surface2)',
-            border: `1px solid ${WAYPOINT_COLOR[wp.type]}33`,
-            borderRadius: 'var(--r-md)',
-          }}
-        >
-          <WaypointIcon type={wp.type} size={16} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div
-              style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: 12,
-                color: 'var(--text)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {wp.label}
+      {sorted.map((wp) => {
+        const isActive = wp.id === activeWaypointId
+        const color = WAYPOINT_COLOR[wp.type]
+        return (
+          <div
+            key={wp.id}
+            ref={isActive ? activeRef : null}
+            onClick={() => onWaypointClick?.(wp.id)}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 0,
+              padding: '7px 10px',
+              background: isActive ? `${color}12` : 'var(--surface2)',
+              border: `1px solid ${isActive ? color + '66' : color + '33'}`,
+              borderRadius: 'var(--r-md)',
+              cursor: 'pointer',
+              transition: 'background 0.15s, border-color 0.15s',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <WaypointIcon type={wp.type} size={16} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 12,
+                    color: 'var(--text)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {wp.label}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 7,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      color,
+                    }}
+                  >
+                    {WAYPOINT_LABEL[wp.type]}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 7,
+                      letterSpacing: '0.04em',
+                      color: 'var(--text-dim)',
+                    }}
+                  >
+                    {wp.lat.toFixed(4)}, {wp.lon.toFixed(4)}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-              <span
+            {isActive && wp.notes && (
+              <div
                 style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 7,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  color: WAYPOINT_COLOR[wp.type],
-                }}
-              >
-                {WAYPOINT_LABEL[wp.type]}
-              </span>
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 7,
-                  letterSpacing: '0.04em',
+                  marginTop: 7,
+                  paddingTop: 7,
+                  borderTop: `1px solid ${color}33`,
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 11,
                   color: 'var(--text-dim)',
+                  lineHeight: 1.5,
                 }}
               >
-                {wp.lat.toFixed(4)}, {wp.lon.toFixed(4)}
-              </span>
-            </div>
+                {wp.notes}
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }

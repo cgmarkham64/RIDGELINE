@@ -1,4 +1,6 @@
-import type { GpxTrack, GpxTrackEntry } from '../../types'
+import { useState } from 'react'
+import type { GpxTrack, GpxTrackEntry, Waypoint } from '../../types'
+import { WAYPOINT_COLOR } from '../map/constants'
 
 // ─── Source resolution ────────────────────────────────────────────────────────
 
@@ -69,7 +71,7 @@ function downsample<T>(arr: T[], max: number): T[] {
   return result
 }
 
-interface Point { distMi: number; eleFt: number }
+interface Point { distMi: number; eleFt: number; lat: number; lon: number }
 
 interface CombinedPoints {
   pts: Point[]
@@ -92,11 +94,22 @@ function buildCombinedPoints(tracks: GpxTrack[]): CombinedPoints {
         const [pLon, pLat] = sampled[i - 1]
         cumDist += haversineMiles(pLat, pLon, lat, lon)
       }
-      pts.push({ distMi: cumDist, eleFt: ele * M_TO_FT })
+      pts.push({ distMi: cumDist, eleFt: ele * M_TO_FT, lat, lon })
     }
   }
 
   return { pts, boundaries }
+}
+
+/** Returns the Point on the track nearest to the given coordinates */
+function findNearestPoint(pts: Point[], lat: number, lon: number): Point {
+  let nearest = pts[0]
+  let minDist = Infinity
+  for (const pt of pts) {
+    const d = haversineMiles(pt.lat, pt.lon, lat, lon)
+    if (d < minDist) { minDist = d; nearest = pt }
+  }
+  return nearest
 }
 
 function computeStats(pts: Point[]) {
@@ -121,7 +134,7 @@ function computeStats(pts: Point[]) {
 
 const VB_W = 260
 const VB_H = 90
-const PAD = { l: 2, r: 2, t: 10, b: 6 }
+const PAD = { l: 2, r: 2, t: 10, b: 13 }
 const CW = VB_W - PAD.l - PAD.r
 const CH = VB_H - PAD.t - PAD.b
 
@@ -183,9 +196,15 @@ const statValueStyle: React.CSSProperties = {
 export function ElevationProfile({
   planned,
   gpxTracks = [],
+  waypoints = [],
+  activeWaypointId,
+  onWaypointClick,
 }: {
   planned: GpxTrack | undefined
   gpxTracks?: GpxTrackEntry[]
+  waypoints?: Waypoint[]
+  activeWaypointId?: string | null
+  onWaypointClick?: (id: string) => void
 }) {
   const source = resolveSource(planned, gpxTracks)
 
@@ -207,6 +226,28 @@ export function ElevationProfile({
     pts, minEle, maxEle, totalDist, boundaries, labels
   )
 
+  const eleRange = maxEle - minEle || 1
+  const px = (distMi: number) => PAD.l + (distMi / totalDist) * CW
+  const py = (eleFt: number) => PAD.t + CH - ((eleFt - minEle) / eleRange) * CH
+
+  const waypointMarkers = waypoints.map((wp) => {
+    const nearest = findNearestPoint(pts, wp.lat, wp.lon)
+    return {
+      id: wp.id,
+      x: px(nearest.distMi),
+      y: py(nearest.eleFt),
+      color: WAYPOINT_COLOR[wp.type],
+      label: wp.label,
+    }
+  })
+
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const hoveredMarker = hoveredId ? waypointMarkers.find((m) => m.id === hoveredId) : null
+
+  // Tooltip dimensions in SVG units
+  const TOOLTIP_H = 13
+  const TOOLTIP_PAD_X = 5
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <span style={{ ...monoStyle, fontSize: 7 }}>{heading}</span>
@@ -215,6 +256,7 @@ export function ElevationProfile({
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         width="100%"
         preserveAspectRatio="none"
+        overflow="visible"
         style={{ display: 'block', height: 80 }}
       >
         {/* Grid lines */}
@@ -237,6 +279,58 @@ export function ElevationProfile({
 
         {/* Elevation line */}
         <path d={lineD} fill="none" stroke="var(--amber)" strokeWidth="1.2" strokeLinejoin="round" />
+
+        {/* Waypoint markers */}
+        {waypointMarkers.map(({ id, x, y, color }) => {
+          const isActive = id === activeWaypointId
+          return (
+            <g
+              key={id}
+              style={{ cursor: 'pointer' }}
+              onClick={() => onWaypointClick?.(id)}
+              onMouseEnter={() => setHoveredId(id)}
+              onMouseLeave={() => setHoveredId(null)}
+            >
+              <line
+                x1={x} y1={y} x2={x} y2={PAD.t + CH}
+                stroke={color} strokeWidth={isActive ? 1.2 : 0.8} strokeDasharray="1.5 1.5" opacity={isActive ? 0.9 : 0.6}
+              />
+              <circle cx={x} cy={y} r={isActive ? 3.5 : 2.5} fill={color} opacity="0.95" />
+              {isActive && <circle cx={x} cy={y} r="5.5" fill={color} opacity="0.2" />}
+            </g>
+          )
+        })}
+
+        {/* Instant tooltip for hovered waypoint */}
+        {hoveredMarker && (() => {
+          const { x, y, color, label } = hoveredMarker
+          const approxCharW = 5.5
+          const tooltipW = label.length * approxCharW + TOOLTIP_PAD_X * 2
+          const rawX = x - tooltipW / 2
+          const tooltipX = Math.max(PAD.l, Math.min(rawX, PAD.l + CW - tooltipW))
+          const tooltipY = y - TOOLTIP_H - 5
+          return (
+            <g style={{ pointerEvents: 'none' }}>
+              <rect
+                x={tooltipX} y={tooltipY}
+                width={tooltipW} height={TOOLTIP_H}
+                rx="1.5"
+                fill="#1a1814"
+                stroke={color}
+                strokeWidth="0.6"
+                opacity="0.95"
+              />
+              <text
+                x={tooltipX + tooltipW / 2}
+                y={tooltipY + TOOLTIP_H - 3}
+                textAnchor="middle"
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fill: color, letterSpacing: '0.04em' }}
+              >
+                {label}
+              </text>
+            </g>
+          )
+        })()}
 
         {/* Day boundary dividers */}
         {dividers.map(({ x, label }) => (
@@ -262,7 +356,7 @@ export function ElevationProfile({
             x={x}
             y={VB_H - 0.5}
             textAnchor={x <= PAD.l ? 'start' : x >= PAD.l + CW - 1 ? 'end' : 'middle'}
-            style={{ fontFamily: 'var(--font-mono)', fontSize: 5, fill: 'var(--text-dim)', letterSpacing: '0.05em' }}
+            style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fill: 'var(--text-dim)', letterSpacing: '0.05em' }}
           >
             {distLabel} mi
           </text>

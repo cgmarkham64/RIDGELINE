@@ -136,10 +136,10 @@ function waypointSvgString(type: WaypointType, size: number): string {
   }
 }
 
-export function makeWaypointIcon(type: WaypointType, active: boolean): L.DivIcon {
+export function makeWaypointIcon(type: WaypointType, active: boolean, markerSize?: number): L.DivIcon {
   const color = WAYPOINT_COLOR[type]
-  const size = active ? 32 : 28
-  const svgSize = active ? 18 : 15
+  const size = markerSize ?? (active ? 32 : 28)
+  const svgSize = Math.round(size * (active ? 0.56 : 0.54))
   const borderColor = active ? color : color + '88'
   return L.divIcon({
     html: `<div class="wp-marker-wrap${active ? ' wp-marker-active' : ''}" style="--wp-border-color:${borderColor};--wp-glow-dim:${color}33;--wp-glow-bright:${color}66;width:${size}px;height:${size}px;">${waypointSvgString(type, svgSize)}</div>`,

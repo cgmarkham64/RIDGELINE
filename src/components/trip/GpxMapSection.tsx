@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { MapContainer, TileLayer, Polyline, useMap } from 'react-leaflet'
+import { MapContainer, Marker, TileLayer, Polyline, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { LatLngBoundsExpression } from 'leaflet'
 import L from 'leaflet'
@@ -7,6 +7,7 @@ import type { Trip, GpxTrack, GpxTrackEntry } from '../../types'
 import { parseGpx } from '../../lib/gpx'
 import type { ParsedGpx } from '../../lib/gpx'
 import { api } from '../../lib/api'
+import { makeWaypointIcon } from '../map/WaypointIcon'
 
 // ─── Map helpers ─────────────────────────────────────────────────────────────
 
@@ -128,10 +129,14 @@ export function GpxMapSection({
   trip,
   onTripUpdated,
   showMap = true,
+  activeWaypointId,
+  onWaypointClick,
 }: {
   trip: Trip
   onTripUpdated: (trip: Trip) => void
   showMap?: boolean
+  activeWaypointId?: string | null
+  onWaypointClick?: (id: string) => void
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pendingTarget = useRef<ImportTarget | null>(null)
@@ -491,6 +496,22 @@ export function GpxMapSection({
                 />
               ) : null
             )}
+            {(trip.waypoints ?? []).map((wp) => {
+              const isActive = wp.id === activeWaypointId
+              return (
+                <Marker
+                  key={wp.id}
+                  position={[wp.lat, wp.lon]}
+                  icon={makeWaypointIcon(wp.type, isActive, isActive ? 26 : 20)}
+                  interactive={!!onWaypointClick}
+                  eventHandlers={
+                    onWaypointClick
+                      ? { click: () => onWaypointClick(wp.id) }
+                      : undefined
+                  }
+                />
+              )
+            })}
             <FitBounds positions={allPoints} />
           </MapContainer>
 
