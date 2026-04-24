@@ -12,6 +12,7 @@ const TripSchema = new Schema(
     gpxFileUrl: String,
     gpxPlanned: Schema.Types.Mixed,
     gpxTracks: Schema.Types.Mixed,
+    waypoints: Schema.Types.Mixed,
     coverPhotoId: String,
     loadoutId: { type: Schema.Types.ObjectId, ref: 'Loadout' },
   },

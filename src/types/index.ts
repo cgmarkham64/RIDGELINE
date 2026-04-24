@@ -83,6 +83,27 @@ export interface GpxTrackEntry {
   track: GpxTrack
 }
 
+// ─── Waypoints ───────────────────────────────────────────────────────────────
+
+export type WaypointType =
+  | 'campsite'
+  | 'wildlife'
+  | 'viewpoint'
+  | 'no-water'
+  | 'some-water'
+  | 'lots-of-water'
+  | 'other'
+
+export interface Waypoint {
+  id: string
+  type: WaypointType
+  label: string
+  lat: number
+  lon: number
+  notes?: string
+  photoId?: string // for future photo linkage
+}
+
 // ─── Trip ────────────────────────────────────────────────────────────────────
 
 export interface Trip {
@@ -97,6 +118,7 @@ export interface Trip {
   gpxFileUrl?: string
   gpxPlanned?: GpxTrack
   gpxTracks?: GpxTrackEntry[]
+  waypoints?: Waypoint[]
   coverPhotoId?: string
   loadoutId?: string
   journalDays?: JournalDay[]

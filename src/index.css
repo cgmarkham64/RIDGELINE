@@ -571,6 +571,22 @@ p {
   text-decoration: none;
 }
 
+/* ─── Waypoint halo pulse ────────────────────────────────── */
+@keyframes waypoint-halo-pulse {
+  0%,
+  100% {
+    fill-opacity: 0.1;
+    stroke-opacity: 0.25;
+  }
+  50% {
+    fill-opacity: 0.35;
+    stroke-opacity: 0.9;
+  }
+}
+.waypoint-halo {
+  animation: waypoint-halo-pulse 1.6s ease-in-out infinite;
+}
+
 /* ─── Loading overlay ────────────────────────────────────── */
 @keyframes hiker-fade-in {
   from {

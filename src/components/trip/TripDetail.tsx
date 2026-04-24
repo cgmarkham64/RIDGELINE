@@ -4,6 +4,7 @@ import { TripHero } from './TripHero'
 import { TripRightPanel } from './TripRightPanel'
 import { ShareDialog } from './ShareDialog'
 import { JournalSection } from '../journal/JournalSection'
+import { MapTab } from '../map/MapTab'
 
 type Tab = 'journal' | 'map' | 'photos' | 'gear'
 const TABS: Tab[] = ['journal', 'map', 'photos', 'gear']
@@ -37,18 +38,23 @@ export function TripDetail({ trip, onEdit, onDelete, onTripUpdated }: Props) {
       <TabRow activeTab={activeTab} onChange={setActiveTab} />
 
       <div className="content-split">
-        <div className="center-pane">
+        <div
+          className="center-pane"
+          style={activeTab === 'map' ? { padding: 0, overflow: 'hidden' } : undefined}
+        >
           {activeTab === 'journal' ? (
             <>
               {trip.description && <p className="trip-description">{trip.description}</p>}
               <JournalSection trip={trip} />
             </>
+          ) : activeTab === 'map' ? (
+            <MapTab trip={trip} onTripUpdated={onTripUpdated} />
           ) : (
             <TabComingSoon label={activeTab} />
           )}
         </div>
 
-        <TripRightPanel trip={trip} onTripUpdated={onTripUpdated} />
+        <TripRightPanel trip={trip} onTripUpdated={onTripUpdated} activeTab={activeTab} />
       </div>
 
       {showShare && <ShareDialog trip={trip} onClose={() => setShowShare(false)} />}

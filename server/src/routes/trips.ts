@@ -40,19 +40,22 @@ router.put('/:id', async (req, res) => {
     const trip = await Trip.findById(req.params.id)
     if (!trip) return res.status(404).json({ error: 'Not found' })
 
-    // Separate gpxTracks out — Mongoose's set() recursively casts array
-    // elements and mangles the nested { type: 'LineString' } GeoJSON objects
-    // inside each entry. Write it directly via the MongoDB driver instead.
-    const { gpxTracks, ...rest } = req.body as Record<string, unknown>
+    // Separate Mixed array fields — Mongoose's set() recursively casts array
+    // elements and mangles nested GeoJSON { type } keys. Write them directly
+    // via the MongoDB driver instead.
+    const { gpxTracks, waypoints, ...rest } = req.body as Record<string, unknown>
 
-    // Use doc.set() for all non-array-Mixed fields.
+    // Use doc.set() for all scalar / non-array-Mixed fields.
     trip.set(rest)
     if ('gpxPlanned' in rest) trip.markModified('gpxPlanned')
     await trip.save()
 
-    // Write gpxTracks (array of Mixed entries) directly, bypassing Mongoose.
-    if ('gpxTracks' in req.body) {
-      await Trip.collection.updateOne({ _id: trip._id }, { $set: { gpxTracks } })
+    // Write Mixed arrays directly, bypassing Mongoose casting.
+    const directUpdate: Record<string, unknown> = {}
+    if ('gpxTracks' in req.body) directUpdate.gpxTracks = gpxTracks
+    if ('waypoints' in req.body) directUpdate.waypoints = waypoints
+    if (Object.keys(directUpdate).length > 0) {
+      await Trip.collection.updateOne({ _id: trip._id }, { $set: directUpdate })
     }
 
     const result = await Trip.findById(trip._id).populate('loadoutId').lean()

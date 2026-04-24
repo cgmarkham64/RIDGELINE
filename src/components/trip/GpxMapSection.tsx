@@ -126,9 +126,11 @@ function KabobMenu({
 export function GpxMapSection({
   trip,
   onTripUpdated,
+  showMap = true,
 }: {
   trip: Trip
   onTripUpdated: (trip: Trip) => void
+  showMap?: boolean
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pendingTarget = useRef<ImportTarget | null>(null)
@@ -442,8 +444,8 @@ export function GpxMapSection({
         <p style={{ fontSize: 11, color: 'var(--red, #ef4444)', marginBottom: 8 }}>{error}</p>
       )}
 
-      {/* Map */}
-      {hasAny && bounds ? (
+      {/* Map — hidden when showMap={false} (e.g. map tab renders its own full-size map) */}
+      {showMap && hasAny && bounds ? (
         <div
           style={{
             position: 'relative',
@@ -529,7 +531,7 @@ export function GpxMapSection({
               ))}
           </div>
         </div>
-      ) : (
+      ) : showMap ? (
         <div
           style={{
             border: '1px dashed var(--border)',
@@ -541,7 +543,7 @@ export function GpxMapSection({
           <div style={{ fontSize: 24, opacity: 0.2, marginBottom: 6 }}>🗺</div>
           <p style={mono}>Import a planned route or GPS track above to render the map</p>
         </div>
-      )}
+      ) : null}
 
       <input
         ref={fileInputRef}

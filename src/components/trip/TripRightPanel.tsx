@@ -4,9 +4,12 @@ import { GpxMapSection } from './GpxMapSection'
 interface Props {
   trip: Trip
   onTripUpdated: (trip: Trip) => void
+  activeTab?: string
 }
 
-export function TripRightPanel({ trip, onTripUpdated }: Props) {
+export function TripRightPanel({ trip, onTripUpdated, activeTab }: Props) {
+  const isMapTab = activeTab === 'map'
+
   return (
     <div
       style={{
@@ -15,12 +18,16 @@ export function TripRightPanel({ trip, onTripUpdated }: Props) {
         borderLeft: '1px solid var(--border)',
         background: 'var(--surface)',
         overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
         padding: '18px 14px',
       }}
     >
-      <RpSection label="Route Map">
-        <GpxMapSection trip={trip} onTripUpdated={onTripUpdated} />
-      </RpSection>
+      {!isMapTab && (
+        <RpSection label="Route Map">
+          <GpxMapSection trip={trip} onTripUpdated={onTripUpdated} showMap={true} />
+        </RpSection>
+      )}
       <RpSection label="Elevation Profile">
         <ComingSoon />
       </RpSection>
@@ -30,38 +37,38 @@ export function TripRightPanel({ trip, onTripUpdated }: Props) {
       <RpSection label="Weight Breakdown">
         <ComingSoon />
       </RpSection>
-
-      {/* Map tile attribution */}
-      <div
-        style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 8,
-          letterSpacing: '0.06em',
-          color: 'var(--text-dim)',
-          lineHeight: 1.7,
-          paddingTop: 12,
-          borderTop: '1px solid var(--border)',
-        }}
-      >
-        Map data &copy;{' '}
-        <a
-          href="https://www.openstreetmap.org/copyright"
-          target="_blank"
-          rel="noreferrer"
-          style={{ color: 'var(--text-dim)', textDecoration: 'underline', textUnderlineOffset: 2 }}
+      {!isMapTab && (
+        <div
+          style={{
+            marginTop: 'auto',
+            paddingTop: 16,
+            fontFamily: 'var(--font-mono)',
+            fontSize: 8,
+            letterSpacing: '0.06em',
+            color: 'var(--text-dim)',
+            lineHeight: 1.8,
+          }}
         >
-          OpenStreetMap
-        </a>{' '}
-        contributors, tiles by{' '}
-        <a
-          href="https://carto.com/attributions"
-          target="_blank"
-          rel="noreferrer"
-          style={{ color: 'var(--text-dim)', textDecoration: 'underline', textUnderlineOffset: 2 }}
-        >
-          CARTO
-        </a>
-      </div>
+          Map data &copy;{' '}
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: 'var(--text-dim)', textDecoration: 'underline', textUnderlineOffset: 2 }}
+          >
+            OpenStreetMap
+          </a>{' '}
+          contributors, tiles by{' '}
+          <a
+            href="https://carto.com/attributions"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: 'var(--text-dim)', textDecoration: 'underline', textUnderlineOffset: 2 }}
+          >
+            CARTO
+          </a>
+        </div>
+      )}
     </div>
   )
 }
