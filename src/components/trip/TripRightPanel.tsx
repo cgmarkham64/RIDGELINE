@@ -1,6 +1,8 @@
-import type { Trip } from '../../types'
+import type { Trip, Waypoint } from '../../types'
 import { GpxMapSection } from './GpxMapSection'
 import { ElevationProfile } from './ElevationProfile'
+import { WaypointIcon } from '../map/WaypointIcon'
+import { WAYPOINT_COLOR, WAYPOINT_LABEL } from '../map/constants'
 
 interface Props {
   trip: Trip
@@ -33,7 +35,7 @@ export function TripRightPanel({ trip, onTripUpdated, activeTab }: Props) {
         <ElevationProfile planned={trip.gpxPlanned} gpxTracks={trip.gpxTracks} />
       </RpSection>
       <RpSection label="Waypoints">
-        <ComingSoon />
+        <WaypointList waypoints={trip.waypoints ?? []} />
       </RpSection>
       <RpSection label="Weight Breakdown">
         <ComingSoon />
@@ -93,6 +95,85 @@ function RpSection({ label, children }: { label: string; children: React.ReactNo
         {label}
       </div>
       {children}
+    </div>
+  )
+}
+
+function WaypointList({ waypoints }: { waypoints: Waypoint[] }) {
+  if (waypoints.length === 0) {
+    return (
+      <p
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 9,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          color: 'var(--text-dim)',
+          lineHeight: 1.7,
+        }}
+      >
+        No waypoints yet — add them from the Map tab
+      </p>
+    )
+  }
+
+  const sorted = waypoints.slice().sort((a, b) => b.lon - a.lon || b.lat - a.lat)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {sorted.map((wp) => (
+        <div
+          key={wp.id}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '7px 10px',
+            background: 'var(--surface2)',
+            border: `1px solid ${WAYPOINT_COLOR[wp.type]}33`,
+            borderRadius: 'var(--r-md)',
+          }}
+        >
+          <WaypointIcon type={wp.type} size={16} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: 12,
+                color: 'var(--text)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {wp.label}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 7,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: WAYPOINT_COLOR[wp.type],
+                }}
+              >
+                {WAYPOINT_LABEL[wp.type]}
+              </span>
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 7,
+                  letterSpacing: '0.04em',
+                  color: 'var(--text-dim)',
+                }}
+              >
+                {wp.lat.toFixed(4)}, {wp.lon.toFixed(4)}
+              </span>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
