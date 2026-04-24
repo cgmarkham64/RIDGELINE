@@ -5,6 +5,7 @@ import type { LatLngBoundsExpression } from 'leaflet'
 import L from 'leaflet'
 import type { Trip, GpxTrack, GpxTrackEntry } from '../../types'
 import { parseGpx } from '../../lib/gpx'
+import type { ParsedGpx } from '../../lib/gpx'
 import { api } from '../../lib/api'
 
 // ─── Map helpers ─────────────────────────────────────────────────────────────
@@ -169,25 +170,26 @@ export function GpxMapSection({
     setError(null)
     try {
       const text = await file.text()
-      const gpxData = parseGpx(text)
+      const { track, firstTimestamp }: ParsedGpx = parseGpx(text)
 
       if (target.type === 'planned') {
-        const { data } = await api.put<Trip>(`/api/trips/${trip._id}`, { gpxPlanned: gpxData })
+        const { data } = await api.put<Trip>(`/api/trips/${trip._id}`, { gpxPlanned: track })
         onTripUpdated(data)
       } else if (target.type === 'track-new') {
         const newEntry: GpxTrackEntry = {
           id: Date.now().toString(),
           label: `Day ${gpxTracks.length + 1}`,
-          track: gpxData,
+          track,
+          firstTimestamp,
         }
         const { data } = await api.put<Trip>(`/api/trips/${trip._id}`, {
           gpxTracks: [...gpxTracks, newEntry],
         })
         onTripUpdated(data)
       } else {
-        // track-replace: swap the matching entry's track in-place
+        // track-replace: swap the matching entry's track in-place, refresh its timestamp
         const updated = gpxTracks.map((entry) =>
-          entry.id === target.id ? { ...entry, track: gpxData } : entry
+          entry.id === target.id ? { ...entry, track, firstTimestamp } : entry
         )
         const { data } = await api.put<Trip>(`/api/trips/${trip._id}`, { gpxTracks: updated })
         onTripUpdated(data)

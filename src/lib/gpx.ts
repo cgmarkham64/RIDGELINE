@@ -1,6 +1,12 @@
 import type { GpxTrack } from '../types'
 
-export function parseGpx(gpxText: string): GpxTrack {
+export interface ParsedGpx {
+  track: GpxTrack
+  /** ISO 8601 timestamp of the first track point — present when the GPX includes <time> elements */
+  firstTimestamp?: string
+}
+
+export function parseGpx(gpxText: string): ParsedGpx {
   const parser = new DOMParser()
   const doc = parser.parseFromString(gpxText, 'application/xml')
 
@@ -18,5 +24,8 @@ export function parseGpx(gpxText: string): GpxTrack {
     return [lon, lat, ele]
   })
 
-  return { type: 'LineString', coordinates }
+  const firstTimeEl = trkpts[0]?.querySelector('time')
+  const firstTimestamp = firstTimeEl?.textContent?.trim() || undefined
+
+  return { track: { type: 'LineString', coordinates }, firstTimestamp }
 }

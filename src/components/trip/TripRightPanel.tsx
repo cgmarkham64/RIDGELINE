@@ -1,5 +1,6 @@
 import type { Trip } from '../../types'
 import { GpxMapSection } from './GpxMapSection'
+import { ElevationProfile } from './ElevationProfile'
 
 interface Props {
   trip: Trip
@@ -29,7 +30,7 @@ export function TripRightPanel({ trip, onTripUpdated, activeTab }: Props) {
         </RpSection>
       )}
       <RpSection label="Elevation Profile">
-        <ComingSoon />
+        <ElevationProfile planned={trip.gpxPlanned} gpxTracks={trip.gpxTracks} />
       </RpSection>
       <RpSection label="Waypoints">
         <ComingSoon />

@@ -81,6 +81,7 @@ export interface GpxTrackEntry {
   id: string // stable client-generated id (Date.now().toString())
   label: string // e.g. "Day 1", "Day 2"
   track: GpxTrack
+  firstTimestamp?: string // ISO 8601 timestamp of the first track point, used to order tracks
 }
 
 // ─── Waypoints ───────────────────────────────────────────────────────────────
