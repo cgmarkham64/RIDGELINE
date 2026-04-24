@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  CircleMarker,
   MapContainer,
+  Marker,
   Polyline,
   Popup,
   TileLayer,
@@ -158,6 +158,81 @@ function WaypointIcon({ type, size = 14 }: { type: WaypointType; size?: number }
         </svg>
       )
   }
+}
+
+// ─── Map icon factories ───────────────────────────────────────────────────────
+
+function waypointSvgString(type: WaypointType, size: number): string {
+  const c = WAYPOINT_COLOR[type]
+  switch (type) {
+    case 'campsite':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 2L15 13H1L8 2Z" fill="${c}" opacity="0.9"/>
+        <path d="M6.5 13L8 9.5L9.5 13" fill="#0f0d0b"/>
+        <line x1="1" y1="13" x2="15" y2="13" stroke="${c}" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>`
+    case 'wildlife':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 16 16" fill="${c}" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="8" cy="11" rx="3.2" ry="2.4"/>
+        <circle cx="4.8" cy="7.8" r="1.5"/>
+        <circle cx="8" cy="6.8" r="1.5"/>
+        <circle cx="11.2" cy="7.8" r="1.5"/>
+      </svg>`
+    case 'viewpoint':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1.5" y="5" width="13" height="9" rx="1.5" fill="${c}" opacity="0.9"/>
+        <path d="M6 5V3.5C6 3 6.5 2.5 7 2.5H9C9.5 2.5 10 3 10 3.5V5" fill="${c}" opacity="0.7"/>
+        <circle cx="8" cy="9.5" r="2.8" fill="#0f0d0b"/>
+        <circle cx="8" cy="9.5" r="1.6" fill="${c}" opacity="0.5"/>
+      </svg>`
+    case 'no-water':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 2C8 2 4 7 4 10C4 12.21 5.79 14 8 14C10.21 14 12 12.21 12 10C12 7 8 2 8 2Z" fill="${c}" fill-opacity="0.25" stroke="${c}" stroke-width="1.2"/>
+        <line x1="4.5" y1="4.5" x2="11.5" y2="12.5" stroke="${c}" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>`
+    case 'some-water':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 2C8 2 4 7 4 10C4 12.21 5.79 14 8 14C10.21 14 12 12.21 12 10C12 7 8 2 8 2Z" fill="none" stroke="${c}" stroke-width="1.2"/>
+        <path d="M4.15 11C4.75 12.76 6.24 14 8 14C9.76 14 11.25 12.76 11.85 11Z" fill="${c}" fill-opacity="0.9"/>
+      </svg>`
+    case 'lots-of-water':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 2C8 2 4 7 4 10C4 12.21 5.79 14 8 14C10.21 14 12 12.21 12 10C12 7 8 2 8 2Z" fill="${c}" fill-opacity="0.9"/>
+        <ellipse cx="6.4" cy="9.5" rx="1" ry="1.6" fill="white" fill-opacity="0.3" transform="rotate(-15 6.4 9.5)"/>
+      </svg>`
+    case 'other':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 1.5C5.5 1.5 3.5 3.5 3.5 6C3.5 9.5 8 14.5 8 14.5C8 14.5 12.5 9.5 12.5 6C12.5 3.5 10.5 1.5 8 1.5Z" fill="${c}" opacity="0.9"/>
+        <circle cx="8" cy="6" r="2" fill="#0f0d0b"/>
+      </svg>`
+  }
+}
+
+function makeWaypointIcon(type: WaypointType, active: boolean): L.DivIcon {
+  const color = WAYPOINT_COLOR[type]
+  const size = active ? 32 : 28
+  const svgSize = active ? 18 : 15
+  const dimGlow = color + '33'
+  const brightGlow = color + '66'
+  const borderColor = active ? color : color + '88'
+  return L.divIcon({
+    html: `<div class="wp-marker-wrap${active ? ' wp-marker-active' : ''}" style="--wp-border-color:${borderColor};--wp-glow-dim:${dimGlow};--wp-glow-bright:${brightGlow};width:${size}px;height:${size}px;">${waypointSvgString(type, svgSize)}</div>`,
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -(size / 2) - 2],
+  })
+}
+
+function makePendingIcon(type: WaypointType): L.DivIcon {
+  const color = WAYPOINT_COLOR[type]
+  const size = 30
+  return L.divIcon({
+    html: `<div class="wp-marker-wrap wp-marker-active" style="--wp-border-color:${color};--wp-glow-dim:${color}33;--wp-glow-bright:${color}66;width:${size}px;height:${size}px;opacity:0.85;">${waypointSvgString(type, 16)}</div>`,
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  })
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -528,7 +603,7 @@ export function MapTab({ trip, onTripUpdated }: Props) {
             </p>
           ) : waypoints.length > 0 ? (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {waypoints.map((wp) => (
+              {waypoints.slice().sort((a, b) => b.lon - a.lon || b.lat - a.lat).map((wp) => (
                 <WaypointChip
                   key={wp.id}
                   wp={wp}
@@ -585,48 +660,26 @@ export function MapTab({ trip, onTripUpdated }: Props) {
             {waypoints.map((wp) => {
               const active = editingId === wp.id
               return (
-                <>
-                  {active && (
-                    <CircleMarker
-                      key={`${wp.id}-halo`}
-                      center={[wp.lat, wp.lon]}
-                      radius={12}
-                      fillColor={WAYPOINT_COLOR[wp.type]}
-                      fillOpacity={0.22}
-                      color={WAYPOINT_COLOR[wp.type]}
-                      weight={1.5}
-                      interactive={false}
-                      className="waypoint-halo"
+                <Marker
+                  key={wp.id}
+                  position={[wp.lat, wp.lon]}
+                  icon={makeWaypointIcon(wp.type, active)}
+                >
+                  <Popup>
+                    <WaypointPopup
+                      wp={wp}
+                      onEdit={() => startEdit(wp)}
+                      onDelete={() => handleDeleteWaypoint(wp.id)}
                     />
-                  )}
-                  <CircleMarker
-                    key={wp.id}
-                    center={[wp.lat, wp.lon]}
-                    radius={active ? 10 : 8}
-                    fillColor={WAYPOINT_COLOR[wp.type]}
-                    color={active ? 'white' : 'rgba(0,0,0,0.4)'}
-                    fillOpacity={0.92}
-                    weight={active ? 2.5 : 1.5}
-                  >
-                    <Popup>
-                      <WaypointPopup
-                        wp={wp}
-                        onEdit={() => startEdit(wp)}
-                        onDelete={() => handleDeleteWaypoint(wp.id)}
-                      />
-                    </Popup>
-                  </CircleMarker>
-                </>
+                  </Popup>
+                </Marker>
               )
             })}
             {pendingLatLon && (
-              <CircleMarker
-                center={[pendingLatLon.lat, pendingLatLon.lon]}
-                radius={9}
-                fillColor={WAYPOINT_COLOR[addForm.type]}
-                color="white"
-                fillOpacity={0.85}
-                weight={2}
+              <Marker
+                position={[pendingLatLon.lat, pendingLatLon.lon]}
+                icon={makePendingIcon(addForm.type)}
+                interactive={false}
               />
             )}
             <MapClickHandler active={addMode} onMapClick={handleMapClick} />

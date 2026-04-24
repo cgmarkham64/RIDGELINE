@@ -571,20 +571,35 @@ p {
   text-decoration: none;
 }
 
-/* ─── Waypoint halo pulse ────────────────────────────────── */
-@keyframes waypoint-halo-pulse {
+/* ─── Waypoint map markers ───────────────────────────────── */
+.wp-marker-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(15, 13, 11, 0.92);
+  border: 1.5px solid var(--wp-border-color);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+}
+
+@keyframes wp-glow-pulse {
   0%,
   100% {
-    fill-opacity: 0.1;
-    stroke-opacity: 0.25;
+    box-shadow:
+      0 0 0 3px var(--wp-glow-dim),
+      0 2px 6px rgba(0, 0, 0, 0.55);
   }
   50% {
-    fill-opacity: 0.35;
-    stroke-opacity: 0.9;
+    box-shadow:
+      0 0 0 7px var(--wp-glow-bright),
+      0 2px 6px rgba(0, 0, 0, 0.55);
   }
 }
-.waypoint-halo {
-  animation: waypoint-halo-pulse 1.6s ease-in-out infinite;
+
+.wp-marker-active {
+  border-width: 2px;
+  border-color: var(--wp-border-color);
+  animation: wp-glow-pulse 1.6s ease-in-out infinite;
 }
 
 /* ─── Loading overlay ────────────────────────────────────── */
