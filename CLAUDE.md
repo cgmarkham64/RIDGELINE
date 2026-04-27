@@ -67,17 +67,17 @@ server/
 ```
 
 ### API Endpoints
-| Method         | Path                              | Description                                                        |
-|----------------|-----------------------------------|--------------------------------------------------------------------|
-| GET/POST       | `/api/trips`                      | List / create trips                                                |
-| GET/PUT/DELETE | `/api/trips/:id`                  | Read / update / delete trip (populates loadout). PUT accepts `gpxPlanned` (GeoJSON LineString, persisted via `doc.set()` + `markModified`) and `gpxTracks` (array of `{ id, label, track }` entries, persisted via raw `collection.updateOne` + `$set` to bypass Mongoose casting of nested GeoJSON `type` keys). |
-| GET/POST       | `/api/journal-days?tripId=`       | List entries for a trip (sorted by dayNumber) / create entry       |
-| PUT/DELETE     | `/api/journal-days/:id`           | Update / delete a journal entry                                    |
-| GET/POST       | `/api/loadouts`                   | List / create loadouts (populates items)                           |
-| GET/PUT/DELETE | `/api/loadouts/:id`               | Read / update / delete loadout                                     |
-| GET/POST       | `/api/gear-items`                 | List / create gear items                                           |
-| GET/PUT/DELETE | `/api/gear-items/:id`             | Read / update / delete gear item                                   |
-| POST           | `/api/journal-scan`               | AI-powered journal image scan — sends base64 image to Claude, returns structured JSON (title, body, milesCovered, elevationGainFt, tempLowF, tempHighF, weatherNotes) |
+| Method         | Path                        | Description                                                                                                                                                                                                                                                                                                       |
+|----------------|-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| GET/POST       | `/api/trips`                | List / create trips                                                                                                                                                                                                                                                                                               |
+| GET/PUT/DELETE | `/api/trips/:id`            | Read / update / delete trip (populates loadout). PUT accepts `gpxPlanned` (GeoJSON LineString, persisted via `doc.set()` + `markModified`) and `gpxTracks` (array of `{ id, label, track }` entries, persisted via raw `collection.updateOne` + `$set` to bypass Mongoose casting of nested GeoJSON `type` keys). |
+| GET/POST       | `/api/journal-days?tripId=` | List entries for a trip (sorted by dayNumber) / create entry                                                                                                                                                                                                                                                      |
+| PUT/DELETE     | `/api/journal-days/:id`     | Update / delete a journal entry                                                                                                                                                                                                                                                                                   |
+| GET/POST       | `/api/loadouts`             | List / create loadouts (populates items)                                                                                                                                                                                                                                                                          |
+| GET/PUT/DELETE | `/api/loadouts/:id`         | Read / update / delete loadout                                                                                                                                                                                                                                                                                    |
+| GET/POST       | `/api/gear-items`           | List / create gear items                                                                                                                                                                                                                                                                                          |
+| GET/PUT/DELETE | `/api/gear-items/:id`       | Read / update / delete gear item                                                                                                                                                                                                                                                                                  |
+| POST           | `/api/journal-scan`         | AI-powered journal image scan — sends base64 image to Claude, returns structured JSON (title, body, milesCovered, elevationGainFt, tempLowF, tempHighF, weatherNotes)                                                                                                                                             |
 
 
 ### Todo
