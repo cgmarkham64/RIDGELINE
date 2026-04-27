@@ -106,6 +106,18 @@ server/
 7. Add summary stats to the Hero banner stats for total Weight Carried, and Max Elevation. These should be included as manual entries when the trip is created for now with a plan to link the fields to map and loadout data later.
 8. Add search function to Trips list (by name OR state (acronym or long, CA or California))
 9. Add filter function to Trips list (finite by state, distance, elevation gain, etc.)
+10. Real auth system (pre-Keycloak stepping stone)
+    - **Current state**: Auth is entirely mocked — `src/lib/mockAuth.ts` generates a fake base64 token (not a real signed JWT). The server has no `jsonwebtoken` package, no `/api/auth` routes, no User model, and no signing secret. All 5 API route groups are fully open; the only protection is a CORS origin restriction to `localhost:5173`, trivially bypassed by curl.
+    - **What's needed** (this is meaningful scope, not a quick fix):
+      1. Add `jsonwebtoken` + `bcryptjs` to `server/package.json`
+      2. Create a `User` Mongoose model (`server/src/models/User.ts`)
+      3. Build real `/api/auth/login` and `/api/auth/register` routes that hash passwords and sign real JWTs
+      4. Create `server/src/middleware/auth.ts` to verify tokens on incoming requests
+      5. Apply auth middleware to all routers in `server/src/index.ts`
+      6. Replace `src/lib/mockAuth.ts` on the frontend with real API calls
+    - **Long-term**: Replace the homegrown JWT system with Keycloak-issued tokens once Keycloak is stood up. Design the middleware in step 4 to make that swap easy.
+    - **Critical design constraint**: Use the JWT `sub` claim as the user identifier on all MongoDB documents (trips, journal days, etc.) from day one — do NOT use a local MongoDB ObjectId as `createdBy`. Keycloak also uses `sub`, so the field stays consistent and avoids a data migration when switching over.
+11. Implement Keycloak security and accounts
 
 ##### Todo Sidebar nav — planned page contents
 - **Map** (`/map`) — Global map showing all GPX tracks and planned routes across every trip. Clicking a track opens the associated trip or plan detail.
