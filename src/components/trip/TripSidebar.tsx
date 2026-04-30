@@ -1,7 +1,5 @@
 import type { Trip } from '../../types'
 import { useTrips } from '../../hooks/useTrips'
-import { useAuthStore } from '../../store/auth'
-import { useNavigate } from '@tanstack/react-router'
 
 interface Props {
   selectedId: string | null
@@ -19,13 +17,6 @@ function formatDateRange(start: string, end: string) {
 
 export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: Props) {
   const { data: trips, isLoading, isError } = useTrips()
-  const { user, clearAuth } = useAuthStore()
-  const navigate = useNavigate()
-
-  function handleLogout() {
-    clearAuth()
-    navigate({ to: '/login' })
-  }
 
   const sorted = trips
     ? [...trips].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
@@ -54,23 +45,18 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
           gap: 10,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span
-            style={{
-              fontFamily: 'var(--font-heading)',
-              fontSize: 9,
-              fontWeight: 800,
-              letterSpacing: '0.22em',
-              textTransform: 'uppercase',
-              color: 'var(--text-dim)',
-            }}
-          >
-            Trips
-          </span>
-          <button onClick={handleLogout} className="btn-text">
-            {user?.name} · sign out
-          </button>
-        </div>
+        <span
+          style={{
+            fontFamily: 'var(--font-heading)',
+            fontSize: 9,
+            fontWeight: 800,
+            letterSpacing: '0.22em',
+            textTransform: 'uppercase',
+            color: 'var(--text-dim)',
+          }}
+        >
+          Trips
+        </span>
 
         <button onClick={onNew} className="btn btn-primary btn-block">
           + New trip
