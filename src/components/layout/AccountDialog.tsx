@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { useAuthStore } from '../../store/auth'
 import { api } from '../../lib/api'
 import { uploadAvatar, removeAvatar } from '../../lib/auth'
@@ -28,6 +28,14 @@ function resizeImage(file: File): Promise<string> {
     img.onerror = reject
     img.src = url
   })
+}
+
+function apiError(err: unknown, fallback: string): string {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const res = (err as { response?: { data?: { error?: string } } }).response
+    if (res?.data?.error) return res.data.error
+  }
+  return fallback
 }
 
 function initials(name: string) {
@@ -83,14 +91,15 @@ export function AccountDialog({ onClose }: Props) {
   const [pwSuccess, setPwSuccess] = useState(false)
   const [pwError, setPwError] = useState<string | null>(null)
 
-  if (!user) return null
-
-  const nameDirty = name.trim() !== user.name
-
-  // ── Avatar ──────────────────────────────────────────────────────────────────
+  // Avatar
   const [avatarSaving, setAvatarSaving] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
   const [avatarHovered, setAvatarHovered] = useState(false)
+  const [removeHovered, setRemoveHovered] = useState(false)
+
+  if (!user) return null
+
+  const nameDirty = name.trim() !== user.name
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -115,8 +124,8 @@ export function AccountDialog({ onClose }: Props) {
       const dataUrl = await resizeImage(file)
       const updated = await uploadAvatar(dataUrl)
       updateUser({ avatarUrl: updated.avatarUrl ?? undefined })
-    } catch (err: any) {
-      setAvatarError(err?.response?.data?.error ?? 'Upload failed. Please try again.')
+    } catch (err: unknown) {
+      setAvatarError(apiError(err, 'Upload failed. Please try again.'))
     } finally {
       setAvatarSaving(false)
       if (fileRef.current) fileRef.current.value = ''
@@ -129,8 +138,8 @@ export function AccountDialog({ onClose }: Props) {
     try {
       await removeAvatar()
       updateUser({ avatarUrl: undefined })
-    } catch (err: any) {
-      setAvatarError(err?.response?.data?.error ?? 'Remove failed')
+    } catch (err: unknown) {
+      setAvatarError(apiError(err, 'Remove failed'))
     } finally {
       setAvatarSaving(false)
     }
@@ -148,8 +157,8 @@ export function AccountDialog({ onClose }: Props) {
       setAuth(data.token, { id: data.user.id, email: data.user.email, name: data.user.name, avatarUrl: currentUser.avatarUrl })
       setNameSuccess(true)
       setTimeout(() => setNameSuccess(false), 2500)
-    } catch (err: any) {
-      setNameError(err?.response?.data?.error ?? 'Failed to save')
+    } catch (err: unknown) {
+      setNameError(apiError(err, 'Failed to save'))
     } finally {
       setNameSaving(false)
     }
@@ -173,8 +182,8 @@ export function AccountDialog({ onClose }: Props) {
       setPwSuccess(true)
       setCurrentPw(''); setNewPw(''); setConfirmPw('')
       setTimeout(() => { setPwSuccess(false); setPwOpen(false) }, 2500)
-    } catch (err: any) {
-      setPwError(err?.response?.data?.error ?? 'Failed to update password')
+    } catch (err: unknown) {
+      setPwError(apiError(err, 'Failed to update password'))
     } finally {
       setPwSaving(false)
     }
@@ -285,13 +294,14 @@ export function AccountDialog({ onClose }: Props) {
                   <span style={{ color: 'var(--border-mid)', fontSize: 10 }}>·</span>
                   <button
                     onClick={handleRemoveAvatar}
+                    onMouseEnter={() => setRemoveHovered(true)}
+                    onMouseLeave={() => setRemoveHovered(false)}
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                      fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-dim)',
+                      fontFamily: 'var(--font-mono)', fontSize: 11,
+                      color: removeHovered ? 'var(--red)' : 'var(--text-dim)',
                       transition: 'color 0.08s',
                     }}
-                    onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--red)')}
-                    onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-dim)')}
                   >
                     Remove
                   </button>
