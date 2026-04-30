@@ -106,18 +106,25 @@ server/
 7. Add summary stats to the Hero banner stats for total Weight Carried, and Max Elevation. These should be included as manual entries when the trip is created for now with a plan to link the fields to map and loadout data later.
 8. Add search function to Trips list (by name OR state (acronym or long, CA or California))
 9. Add filter function to Trips list (finite by state, distance, elevation gain, etc.)
-10. Real auth system (pre-Keycloak stepping stone)
-    - **Current state**: Auth is entirely mocked — `src/lib/mockAuth.ts` generates a fake base64 token (not a real signed JWT). The server has no `jsonwebtoken` package, no `/api/auth` routes, no User model, and no signing secret. All 5 API route groups are fully open; the only protection is a CORS origin restriction to `localhost:5173`, trivially bypassed by curl.
-    - **What's needed** (this is meaningful scope, not a quick fix):
-      1. Add `jsonwebtoken` + `bcryptjs` to `server/package.json`
-      2. Create a `User` Mongoose model (`server/src/models/User.ts`)
-      3. Build real `/api/auth/login` and `/api/auth/register` routes that hash passwords and sign real JWTs
-      4. Create `server/src/middleware/auth.ts` to verify tokens on incoming requests
-      5. Apply auth middleware to all routers in `server/src/index.ts`
-      6. Replace `src/lib/mockAuth.ts` on the frontend with real API calls
-    - **Long-term**: Replace the homegrown JWT system with Keycloak-issued tokens once Keycloak is stood up. Design the middleware in step 4 to make that swap easy.
-    - **Critical design constraint**: Use the JWT `sub` claim as the user identifier on all MongoDB documents (trips, journal days, etc.) from day one — do NOT use a local MongoDB ObjectId as `createdBy`. Keycloak also uses `sub`, so the field stays consistent and avoids a data migration when switching over.
-11. Implement Keycloak security and accounts
+10. **DONE** Real auth system (pre-Keycloak stepping stone) — `jsonwebtoken` + `bcryptjs` installed on server. `server/src/models/User.ts` stores `sub` (UUID), `email`, `name`, `passwordHash`. `POST /api/auth/register` and `POST /api/auth/login` sign 7-day JWTs. `server/src/middleware/auth.ts` verifies tokens via an isolated `verifyToken()` function (easy Keycloak swap point). All 5 API route groups protected via `requireAuth` in `index.ts`. Frontend `src/lib/mockAuth.ts` deleted; replaced by `src/lib/auth.ts` with real API calls. `sub` (UUID) used as user identifier — not MongoDB ObjectId — for zero-migration Keycloak compatibility.
+11. **DONE** Ownership + sharing data model — Trips, Loadouts, and GearItems now carry `ownerSub` (JWT sub string). Trips also carry `sharedWith: string[]` (array of subs). Access rules: `GET /api/trips` returns only trips the caller owns or is in `sharedWith`. Read access to a trip's journal days is gated the same way. All write/delete operations on trips, journal days, loadouts, and gear items are owner-only. `ownerSub` is set server-side on create and cannot be overwritten via PUT.
+12. Trip sharing UI — send a share invite from the Share dialog in the trip hero:
+    - Add a new `POST /api/trips/:id/share` endpoint that accepts `{ email: string }`, looks up the target user by email, and adds their `sub` to `trip.sharedWith`. Return 404 if no account with that email exists.
+    - In `ShareDialog.tsx`, add an "Invite by email" input below the copy-link button. On submit, call the new endpoint and show confirmation or error inline.
+    - Shared trips should appear in the recipient's trip list with a visual indicator (e.g. a small avatar or "Shared by X" label) so they're distinguishable from owned trips.
+    - Add a `DELETE /api/trips/:id/share/:sub` endpoint so the owner can revoke access.
+13. Shared trip acceptance flow — for a future invite-token model (email link):
+    - Generate a signed, expiring invite token (`crypto.randomUUID()` stored on the trip + expiry timestamp) when the owner shares.
+    - Email the token to the invitee (requires a mail integration — Sendgrid, Resend, etc.).
+    - Add a `POST /api/trips/:id/accept?token=` endpoint: verify token, verify not expired, add caller's `sub` to `sharedWith`, clear the token.
+    - Frontend: a `/accept-invite` route that reads the token from the URL, calls the endpoint, and redirects to the trip on success.
+14. Implement Keycloak security — steps to migrate from the current JWT system:
+    1. **Stand up Keycloak** — run via Docker (`quay.io/keycloak/keycloak`). Create a realm (e.g. `ridgeline`), a client (e.g. `ridgeline-app`, public, PKCE), and configure redirect URIs to `http://localhost:5173/*`.
+    2. **Add `jwks-rsa` to server** — `npm install jwks-rsa` in `/server`. Update the `verifyToken()` function in `server/src/middleware/auth.ts` to fetch Keycloak's public key via JWKS instead of using `JWT_SECRET`. Add `KEYCLOAK_JWKS_URI` and `KEYCLOAK_ISSUER` to `server/.env`. No other server files change.
+    3. **Swap frontend auth flow** — replace `src/lib/auth.ts` (direct API login/register) with the Keycloak JS adapter (`keycloak-js`) or an OIDC library (`oidc-client-ts`). On app init, check Keycloak session; on login, redirect to Keycloak's login page. On return, extract the access token and store it in the Zustand auth store as before (the Axios interceptor already attaches it).
+    4. **Remove local auth routes** — delete `server/src/routes/auth.ts` and the `POST /api/auth` entries in `index.ts`. Keycloak owns login/register/password-reset.
+    5. **Migrate existing users** — for each `User` doc in MongoDB, create a matching user in Keycloak (via the Admin REST API) and update the `sub` field in all their documents to the Keycloak-issued UUID. This is the only data migration step; it's a one-time script.
+    6. **Drop the `User` model** — once migrated, `server/src/models/User.ts` is no longer needed. User identity comes from the Keycloak token; store only app-specific profile data if needed.
 
 ##### Todo Sidebar nav — planned page contents
 - **Map** (`/map`) — Global map showing all GPX tracks and planned routes across every trip. Clicking a track opens the associated trip or plan detail.
@@ -127,7 +134,7 @@ server/
 ### Notes
 - GET /api/loadouts/:id — automatically populates the full GearItem documents so the frontend doesn't need a second request
 - GET /api/trips/:id — populates the full Loadout (but not the loadout's items — you'd need a second populate for that; we can address it when you hook up the frontend)
-- Auth middleware isn't wired in yet — that's the next natural step once you connect the frontend data layer
+- Auth middleware is wired in — all API routes except `/api/auth` require a valid Bearer JWT. `req.user.sub` is available in every route handler.
 - Find out if OnX Backcountry offer any integrations for personal app projects to import data and items from them, brainstorm ideas to integrate this app into theirs
 
 

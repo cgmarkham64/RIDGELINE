@@ -23,6 +23,7 @@ const GearItemSchema = new Schema(
     isWorn: Boolean,
     notes: String,
     link: String,
+    ownerSub: { type: String, required: true, index: true },
   },
   { timestamps: true }
 )

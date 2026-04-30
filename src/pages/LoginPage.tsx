@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, Link } from '@tanstack/react-router'
-import { mockLogin } from '../lib/mockAuth'
+import { login } from '../lib/auth'
 import { useAuthStore } from '../store/auth'
 
 const schema = z.object({
@@ -25,7 +25,7 @@ export function LoginPage() {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      const { token, user } = await mockLogin(values)
+      const { token, user } = await login(values)
       setAuth(token, user)
       navigate({ to: '/' })
     } catch (err) {

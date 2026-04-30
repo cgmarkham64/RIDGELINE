@@ -15,6 +15,8 @@ const TripSchema = new Schema(
     waypoints: Schema.Types.Mixed,
     coverPhotoId: String,
     loadoutId: { type: Schema.Types.ObjectId, ref: 'Loadout' },
+    ownerSub: { type: String, required: true, index: true },
+    sharedWith: { type: [String], default: [] },
   },
   { timestamps: true }
 )

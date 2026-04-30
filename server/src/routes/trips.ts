@@ -4,9 +4,19 @@ import { JournalDay } from '../models/JournalDay'
 
 const router = Router()
 
-router.get('/', async (_req, res) => {
+// Returns true if the requesting user can read this trip (owner or shared)
+function canRead(trip: { ownerSub: string; sharedWith: string[] }, sub: string) {
+  return trip.ownerSub === sub || trip.sharedWith.includes(sub)
+}
+
+router.get('/', async (req, res) => {
   try {
-    const trips = await Trip.find().populate('loadoutId').lean()
+    const sub = req.user.sub
+    const trips = await Trip.find({
+      $or: [{ ownerSub: sub }, { sharedWith: sub }],
+    })
+      .populate('loadoutId')
+      .lean()
     res.json(trips)
   } catch (err) {
     console.error('GET /trips error:', err)
@@ -18,6 +28,7 @@ router.get('/:id', async (req, res) => {
   try {
     const trip = await Trip.findById(req.params.id).populate('loadoutId').lean()
     if (!trip) return res.status(404).json({ error: 'Not found' })
+    if (!canRead(trip as any, req.user.sub)) return res.status(403).json({ error: 'Forbidden' })
     res.json(trip)
   } catch (err) {
     console.error('GET /trips/:id error:', err)
@@ -27,7 +38,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const trip = await Trip.create(req.body)
+    const trip = await Trip.create({ ...req.body, ownerSub: req.user.sub, sharedWith: [] })
     res.status(201).json(trip)
   } catch (err) {
     console.error('POST /trips error:', err)
@@ -39,18 +50,20 @@ router.put('/:id', async (req, res) => {
   try {
     const trip = await Trip.findById(req.params.id)
     if (!trip) return res.status(404).json({ error: 'Not found' })
+    if (trip.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
 
     // Separate Mixed array fields — Mongoose's set() recursively casts array
     // elements and mangles nested GeoJSON { type } keys. Write them directly
     // via the MongoDB driver instead.
     const { gpxTracks, waypoints, ...rest } = req.body as Record<string, unknown>
 
-    // Use doc.set() for all scalar / non-array-Mixed fields.
+    // Never allow ownerSub to be overwritten via PUT
+    delete (rest as any).ownerSub
+
     trip.set(rest)
     if ('gpxPlanned' in rest) trip.markModified('gpxPlanned')
     await trip.save()
 
-    // Write Mixed arrays directly, bypassing Mongoose casting.
     const directUpdate: Record<string, unknown> = {}
     if ('gpxTracks' in req.body) directUpdate.gpxTracks = gpxTracks
     if ('waypoints' in req.body) directUpdate.waypoints = waypoints
@@ -68,8 +81,10 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    const trip = await Trip.findByIdAndDelete(req.params.id)
+    const trip = await Trip.findById(req.params.id)
     if (!trip) return res.status(404).json({ error: 'Not found' })
+    if (trip.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
+    await trip.deleteOne()
     await JournalDay.deleteMany({ tripId: req.params.id })
     res.status(204).send()
   } catch (err) {

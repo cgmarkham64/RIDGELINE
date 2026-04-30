@@ -2,11 +2,13 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import mongoose from 'mongoose'
+import authRouter from './routes/auth'
 import gearItemsRouter from './routes/gearItems'
 import journalDaysRouter from './routes/journalDays'
 import journalScanRouter from './routes/journalScan'
 import loadoutsRouter from './routes/loadouts'
 import tripsRouter from './routes/trips'
+import { requireAuth } from './middleware/auth'
 
 const app = express()
 const PORT = process.env.PORT ?? 8000
@@ -15,11 +17,15 @@ const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/ridgel
 app.use(cors({ origin: 'http://localhost:5173' }))
 app.use(express.json({ limit: '10mb' }))
 
-app.use('/api/gear-items', gearItemsRouter)
-app.use('/api/journal-days', journalDaysRouter)
-app.use('/api/journal-scan', journalScanRouter)
-app.use('/api/loadouts', loadoutsRouter)
-app.use('/api/trips', tripsRouter)
+// Public routes
+app.use('/api/auth', authRouter)
+
+// Protected routes — all require a valid JWT
+app.use('/api/gear-items', requireAuth, gearItemsRouter)
+app.use('/api/journal-days', requireAuth, journalDaysRouter)
+app.use('/api/journal-scan', requireAuth, journalScanRouter)
+app.use('/api/loadouts', requireAuth, loadoutsRouter)
+app.use('/api/trips', requireAuth, tripsRouter)
 
 app.get('/health', (_req, res) => res.json({ ok: true }))
 
