@@ -170,7 +170,7 @@ export function AccountDialog({ onClose }: Props) {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-surface z-1">
-          <span className="font-heading text-[14px] font-extrabold text-text">
+          <span className="font-heading text-sm font-extrabold text-text">
             Account
           </span>
           <button onClick={onClose} className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-2 border border-border cursor-pointer text-text-dim">

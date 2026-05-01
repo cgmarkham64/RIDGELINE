@@ -29,7 +29,7 @@ export function ShareDialog({ trip, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
-            <div className="font-heading text-[14px] font-extrabold text-text">
+            <div className="font-heading text-sm font-extrabold text-text">
               Share trip
             </div>
             <div className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim mt-[3px]">
@@ -53,10 +53,10 @@ export function ShareDialog({ trip, onClose }: Props) {
         </div>
 
         {/* Options */}
-        <div className="px-5 py-4 flex flex-col gap-[10px]">
+        <div className="px-5 py-4 flex flex-col gap-2.5">
           {/* Copy link */}
           <div
-            className="rounded-md px-4 py-[14px] transition-all duration-200"
+            className="rounded-md px-4 py-3.5 transition-all duration-200"
             style={{
               border: `1px solid ${copied ? 'var(--pine-border)' : 'var(--border)'}`,
               background: copied ? 'var(--pine-dim)' : 'var(--surface2)',
@@ -108,7 +108,7 @@ export function ShareDialog({ trip, onClose }: Props) {
           </div>
 
           {/* Export PDF */}
-          <div className="border border-border rounded-md px-4 py-[14px] bg-surface-2 opacity-60">
+          <div className="border border-border rounded-md px-4 py-3.5 bg-surface-2 opacity-60">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="font-heading text-[12px] font-bold text-text mb-[3px]">

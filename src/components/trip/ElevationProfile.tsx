@@ -234,7 +234,7 @@ export function ElevationProfile({
   const TOOLTIP_PAD_X = 5
 
   return (
-    <div className="flex flex-col gap-[10px]">
+    <div className="flex flex-col gap-2.5">
       <span className={`${monoCls} text-[7px]`}>{heading}</span>
 
       <svg
@@ -356,7 +356,7 @@ export function ElevationProfile({
           { key: 'Max', value: `${Math.round(maxEle).toLocaleString()} ft` },
           { key: 'Dist', value: `${totalDist.toFixed(1)} mi` },
         ].map(({ key, value }) => (
-          <div key={key} className="bg-surface-2 rounded-sm px-1 py-[5px]">
+          <div key={key} className="bg-surface-2 rounded-sm px-1 py-1.25">
             <span className={monoCls}>{key}</span>
             <span className="font-mono text-[11px] tracking-[0.04em] text-amber block mt-[2px]">{value}</span>
           </div>

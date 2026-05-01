@@ -55,16 +55,16 @@ export function TripHero({ trip, days, onEdit, onDelete, onShare }: Props) {
       />
 
       {/* Content */}
-      <div className="absolute bottom-0 left-0 right-0 px-[26px] py-5 flex items-end justify-between gap-[14px]">
+      <div className="absolute bottom-0 left-0 right-0 px-[26px] py-5 flex items-end justify-between gap-3.5">
         {/* Left: location, title, dates */}
         <div>
-          <div className="font-mono text-[9px] tracking-[0.14em] uppercase text-amber mb-[6px] flex items-center gap-[7px]">
+          <div className="font-mono text-[9px] tracking-[0.14em] uppercase text-amber mb-1.5 flex items-center gap-1.75">
             <span
               className="inline-block w-3 h-px bg-amber opacity-50"
             />
             {trip.location}
           </div>
-          <h1 className="font-heading text-[34px] font-extrabold text-text leading-[1.05] tracking-[-0.01em] mb-[5px]">
+          <h1 className="font-heading text-[34px] font-extrabold text-text leading-[1.05] tracking-[-0.01em] mb-1.25">
             {trip.title}
           </h1>
           <div className="text-[13px] font-light italic text-text-mid">
@@ -75,7 +75,7 @@ export function TripHero({ trip, days, onEdit, onDelete, onShare }: Props) {
 
         {/* Right: action buttons + stat strip */}
         <div className="flex flex-col items-end gap-2 shrink-0">
-          <div className="flex gap-[6px]">
+          <div className="flex gap-1.5">
             <button onClick={onShare} className="btn btn-pine btn-sm">
               <svg
                 viewBox="0 0 24 24"
@@ -116,7 +116,7 @@ export function TripHero({ trip, days, onEdit, onDelete, onShare }: Props) {
           </div>
 
           {/* Stat pill strip */}
-          <div className="flex gap-[1px] rounded-md overflow-hidden">
+          <div className="flex gap-px rounded-md overflow-hidden">
             <StatBlock value={String(days)} label={days === 1 ? 'day' : 'days'} />
             {trip.distanceMiles != null && (
               <StatBlock value={String(trip.distanceMiles)} label="miles" />
@@ -134,7 +134,7 @@ export function TripHero({ trip, days, onEdit, onDelete, onShare }: Props) {
 function StatBlock({ value, label }: { value: string; label: string }) {
   return (
     <div
-      className="border border-border px-[14px] py-[9px] text-center"
+      className="border border-border px-3.5 py-[9px] text-center"
       style={{ background: 'rgba(15,13,11,0.82)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
     >
       <div className="font-heading text-[17px] font-extrabold text-amber leading-none mb-[3px]">

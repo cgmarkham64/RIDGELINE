@@ -220,7 +220,7 @@ export function GpxMapSection({
   return (
     <div>
       {/* Import area — single card, stacked */}
-      <div className="border border-border rounded-md px-[14px] py-[10px] bg-surface mb-3">
+      <div className="border border-border rounded-md px-3.5 py-2.5 bg-surface mb-3">
         {/* Planned Route row */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
@@ -280,7 +280,7 @@ export function GpxMapSection({
         </div>
 
         {/* Divider */}
-        <div className="border-t border-border my-[10px]" />
+        <div className="border-t border-border my-2.5" />
 
         {/* GPS Tracks section */}
         <div>
@@ -310,7 +310,7 @@ export function GpxMapSection({
           {gpxTracks.length === 0 ? (
             <div className="font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim">Import after each day</div>
           ) : (
-            <div className="flex flex-col gap-[5px]">
+            <div className="flex flex-col gap-1.25">
               {gpxTracks.map((entry, i) => {
                 const color = trackColor(i)
                 const isImporting = importing === entry.id
@@ -320,9 +320,9 @@ export function GpxMapSection({
                 return (
                   <div
                     key={entry.id}
-                    className="flex items-center justify-between gap-[6px]"
+                    className="flex items-center justify-between gap-1.5"
                   >
-                    <div className="flex items-center gap-[6px] min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0">
                       <svg width="14" height="6" className="shrink-0">
                         <line x1="0" y1="3" x2="14" y2="3" stroke={color} strokeWidth="2.5" />
                       </svg>
@@ -441,7 +441,7 @@ export function GpxMapSection({
           {/* Legend — shown when at least one polyline is visible */}
           <div className="flex gap-4 px-3 py-2 bg-surface border-t border-border flex-wrap">
             {plannedLatLngs.length > 1 && (
-              <div className="flex items-center gap-[6px]">
+              <div className="flex items-center gap-1.5">
                 <svg width="20" height="6">
                   <line
                     x1="0"
@@ -459,7 +459,7 @@ export function GpxMapSection({
             {tracksWithLatLngs
               .filter((t) => t.positions.length > 1)
               .map(({ entry, color }) => (
-                <div key={entry.id} className="flex items-center gap-[6px]">
+                <div key={entry.id} className="flex items-center gap-1.5">
                   <svg width="20" height="6">
                     <line x1="0" y1="3" x2="20" y2="3" stroke={color} strokeWidth="2.5" />
                   </svg>
@@ -470,7 +470,7 @@ export function GpxMapSection({
         </div>
       ) : showMap ? (
         <div className="border border-dashed border-border rounded-md px-5 py-7 text-center">
-          <div className="text-[24px] opacity-20 mb-[6px]">🗺</div>
+          <div className="text-2xl opacity-20 mb-1.5">🗺</div>
           <p className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim">Import a planned route or GPS track above to render the map</p>
         </div>
       ) : null}

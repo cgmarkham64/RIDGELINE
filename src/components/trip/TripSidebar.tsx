@@ -25,7 +25,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
   return (
     <aside className="w-[258px] shrink-0 bg-surface border-r border-border flex flex-col h-full">
       {/* Header */}
-      <div className="px-[14px] pt-4 pb-3 border-b border-border shrink-0 flex flex-col gap-[10px]">
+      <div className="px-3.5 pt-4 pb-3 border-b border-border shrink-0 flex flex-col gap-2.5">
         <span className="font-heading text-[9px] font-extrabold tracking-[0.22em] uppercase text-text-dim">
           Trips
         </span>
@@ -38,19 +38,19 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
       {/* Trip list */}
       <div className="flex-1 overflow-y-auto min-h-0 py-2 pb-4">
         {isLoading && (
-          <p className="px-[14px] pt-6 pb-6 font-mono text-[9px] text-text-dim tracking-[0.1em] uppercase">
+          <p className="px-3.5 pt-6 pb-6 font-mono text-[9px] text-text-dim tracking-[0.1em] uppercase">
             Loading…
           </p>
         )}
 
         {isError && (
-          <p className="px-[14px] pt-6 pb-6 font-mono text-[9px] text-red tracking-[0.1em] uppercase">
+          <p className="px-3.5 pt-6 pb-6 font-mono text-[9px] text-red tracking-[0.1em] uppercase">
             Could not load trips
           </p>
         )}
 
         {!isLoading && !isError && sorted.length === 0 && (
-          <p className="px-[14px] pt-6 pb-6 font-mono text-[9px] text-text-dim tracking-[0.1em] uppercase leading-[1.8]">
+          <p className="px-3.5 pt-6 pb-6 font-mono text-[9px] text-text-dim tracking-[0.1em] uppercase leading-[1.8]">
             No trips yet.
             <br />
             Create one above.

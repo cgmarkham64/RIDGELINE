@@ -104,9 +104,9 @@ export function TripModal({ trip, onClose, onSaved }: Props) {
 
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="p-5 flex flex-col gap-[14px]"
+          className="p-5 flex flex-col gap-3.5"
         >
-          <div className="flex flex-col gap-[5px]">
+          <div className="flex flex-col gap-1.25">
             <label className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim">Title *</label>
             <input
               {...register('title')}
@@ -118,7 +118,7 @@ export function TripModal({ trip, onClose, onSaved }: Props) {
             )}
           </div>
 
-          <div className="flex flex-col gap-[5px]">
+          <div className="flex flex-col gap-1.25">
             <label className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim">Location *</label>
             <input
               {...register('location')}
@@ -131,7 +131,7 @@ export function TripModal({ trip, onClose, onSaved }: Props) {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-[5px]">
+            <div className="flex flex-col gap-1.25">
               <label className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim">Start date *</label>
               <input
                 type="date"
@@ -144,7 +144,7 @@ export function TripModal({ trip, onClose, onSaved }: Props) {
                 <span className="text-[11px] text-red">{errors.startDate.message}</span>
               )}
             </div>
-            <div className="flex flex-col gap-[5px]">
+            <div className="flex flex-col gap-1.25">
               <label className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim">End date *</label>
               <input
                 type="date"
@@ -160,7 +160,7 @@ export function TripModal({ trip, onClose, onSaved }: Props) {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-[5px]">
+            <div className="flex flex-col gap-1.25">
               <label className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim">Distance (mi)</label>
               <input
                 type="number"
@@ -173,7 +173,7 @@ export function TripModal({ trip, onClose, onSaved }: Props) {
                 onBlur={(e) => { e.target.style.borderColor = 'var(--border)' }}
               />
             </div>
-            <div className="flex flex-col gap-[5px]">
+            <div className="flex flex-col gap-1.25">
               <label className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim">Elevation gain (ft)</label>
               <input
                 type="number"
@@ -188,7 +188,7 @@ export function TripModal({ trip, onClose, onSaved }: Props) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-[5px]">
+          <div className="flex flex-col gap-1.25">
             <label className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim">Description</label>
             <textarea
               {...register('description')}

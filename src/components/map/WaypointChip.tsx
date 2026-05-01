@@ -17,7 +17,7 @@ export function WaypointChip({
     <div
       onClick={onSelect}
       title={isEditing ? undefined : wp.notes ?? 'Click to edit'}
-      className="inline-flex items-center gap-[6px] px-[10px] py-[5px] pr-2 rounded-[20px] cursor-pointer max-w-[240px]"
+      className="inline-flex items-center gap-1.5 px-2.5 py-1.25 pr-2 rounded-full cursor-pointer max-w-[240px]"
       style={{
         background: isEditing ? `${WAYPOINT_COLOR[wp.type]}18` : 'var(--surface2)',
         border: `1px solid ${isEditing ? WAYPOINT_COLOR[wp.type] : `${WAYPOINT_COLOR[wp.type]}44`}`,
@@ -40,7 +40,7 @@ export function WaypointChip({
           onDelete()
         }}
         title="Remove"
-        className="bg-transparent border-0 cursor-pointer text-text-dim text-[14px] leading-none p-0 shrink-0"
+        className="bg-transparent border-0 cursor-pointer text-text-dim text-sm leading-none p-0 shrink-0"
       >
         ×
       </button>

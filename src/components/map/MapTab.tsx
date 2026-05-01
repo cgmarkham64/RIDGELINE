@@ -257,7 +257,7 @@ function ControlsBar({
   return (
     <div className="shrink-0 border-b border-border flex items-stretch">
       {/* Routes & Tracks */}
-      <div className="w-[40%] shrink-0 border-r border-border bg-surface px-[18px] py-[14px] overflow-y-auto max-h-[200px]">
+      <div className="w-[40%] shrink-0 border-r border-border bg-surface px-[18px] py-3.5 overflow-y-auto max-h-[200px]">
         <div className="sec-label mb-3">
           Routes &amp; Tracks
         </div>
@@ -265,7 +265,7 @@ function ControlsBar({
       </div>
 
       {/* Waypoints */}
-      <div className="flex-1 min-w-0 bg-surface overflow-y-auto max-h-[200px] px-[18px] pt-[6px] pb-[14px]">
+      <div className="flex-1 min-w-0 bg-surface overflow-y-auto max-h-[200px] px-[18px] pt-[6px] pb-3.5">
         <div
           className="flex items-center justify-between"
           style={{ marginBottom: isAdding || editingId || waypoints.length > 0 ? 12 : 0 }}
@@ -321,7 +321,7 @@ function ControlsBar({
             No waypoints yet — mark campsites, wildlife sightings, viewpoints, and more.
           </p>
         ) : waypoints.length > 0 ? (
-          <div className="flex flex-wrap gap-[6px]">
+          <div className="flex flex-wrap gap-1.5">
             {sortedWaypoints.map((wp) => (
               <WaypointChip
                 key={wp.id}
@@ -495,7 +495,7 @@ function ZoomControls({
 function AddModeHint() {
   return (
     <div
-      className="absolute bottom-4 z-[1000] border border-amber-border rounded-sm px-[14px] py-[6px] font-mono text-[10px] tracking-[0.12em] uppercase text-amber pointer-events-none whitespace-nowrap"
+      className="absolute bottom-4 z-[1000] border border-amber-border rounded-sm px-3.5 py-[6px] font-mono text-[10px] tracking-[0.12em] uppercase text-amber pointer-events-none whitespace-nowrap"
       style={{
         left: '50%',
         transform: 'translateX(-50%)',
@@ -519,11 +519,11 @@ function TrackLegend({
 
   return (
     <div
-      className="absolute bottom-3 right-3 z-[1000] border border-border rounded-md px-3 py-2 flex flex-col gap-[5px]"
+      className="absolute bottom-3 right-3 z-[1000] border border-border rounded-md px-3 py-2 flex flex-col gap-1.25"
       style={{ background: 'rgba(15,13,11,0.82)' }}
     >
       {plannedLatLngs.length > 1 && (
-        <div className="flex items-center gap-[7px]">
+        <div className="flex items-center gap-1.75">
           <svg width="20" height="6">
             <line x1="0" y1="3" x2="20" y2="3" stroke={PLANNED_COLOR} strokeWidth="2.5" strokeDasharray="5 3" />
           </svg>
@@ -531,7 +531,7 @@ function TrackLegend({
         </div>
       )}
       {visibleTracks.map(({ entry, color }) => (
-        <div key={entry.id} className="flex items-center gap-[7px]">
+        <div key={entry.id} className="flex items-center gap-1.75">
           <svg width="20" height="6">
             <line x1="0" y1="3" x2="20" y2="3" stroke={color} strokeWidth="2.5" />
           </svg>
@@ -546,7 +546,7 @@ function TrackLegend({
 
 function AttributionStrip() {
   return (
-    <div className="shrink-0 px-[14px] py-[5px] border-t border-border bg-surface font-mono text-[8px] tracking-[0.06em] text-text-dim">
+    <div className="shrink-0 px-3.5 py-1.25 border-t border-border bg-surface font-mono text-[8px] tracking-[0.06em] text-text-dim">
       Map data &copy;{' '}
       <a
         href="https://www.openstreetmap.org/copyright"

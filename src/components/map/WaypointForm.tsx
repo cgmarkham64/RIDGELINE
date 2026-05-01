@@ -22,7 +22,7 @@ function TypePills({
           key={t}
           type="button"
           onClick={() => onChange(t)}
-          className="inline-flex items-center gap-[5px] px-2 py-[3px] rounded-sm font-mono text-[9px] tracking-[0.08em] uppercase cursor-pointer"
+          className="inline-flex items-center gap-1.25 px-2 py-[3px] rounded-sm font-mono text-[9px] tracking-[0.08em] uppercase cursor-pointer"
           style={{
             border: `1px solid ${value === t ? WAYPOINT_COLOR[t] : 'var(--border)'}`,
             background: value === t ? `${WAYPOINT_COLOR[t]}22` : 'transparent',

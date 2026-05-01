@@ -20,7 +20,7 @@ export function TripRightPanel({ trip, onTripUpdated, activeTab }: Props) {
   }
 
   return (
-    <div className="w-[300px] shrink-0 border-l border-border bg-surface overflow-y-auto flex flex-col px-[14px] py-[18px]">
+    <div className="w-[300px] shrink-0 border-l border-border bg-surface overflow-y-auto flex flex-col px-3.5 py-[18px]">
       {!isMapTab && (
         <RpSection label="Route Map">
           <GpxMapSection
@@ -118,7 +118,7 @@ function WaypointList({
   const sorted = waypoints.slice().sort((a, b) => b.lon - a.lon || b.lat - a.lat)
 
   return (
-    <div className="flex flex-col gap-[6px]">
+    <div className="flex flex-col gap-1.5">
       {sorted.map((wp) => {
         const isActive = wp.id === activeWaypointId
         const color = WAYPOINT_COLOR[wp.type]
@@ -127,7 +127,7 @@ function WaypointList({
             key={wp.id}
             ref={isActive ? activeRef : null}
             onClick={() => onWaypointClick?.(wp.id)}
-            className="flex flex-col gap-0 px-[10px] py-[7px] rounded-md cursor-pointer transition-[background,border-color] duration-150"
+            className="flex flex-col gap-0 px-2.5 py-[7px] rounded-md cursor-pointer transition-[background,border-color] duration-150"
             style={{
               background: isActive ? `${color}12` : 'var(--surface2)',
               border: `1px solid ${isActive ? color + '66' : color + '33'}`,
@@ -139,7 +139,7 @@ function WaypointList({
                 <div className="font-sans text-[12px] text-text overflow-hidden text-ellipsis whitespace-nowrap">
                   {wp.label}
                 </div>
-                <div className="flex items-center gap-[6px] mt-[2px]">
+                <div className="flex items-center gap-1.5 mt-[2px]">
                   <span
                     className="font-mono text-[7px] tracking-[0.08em] uppercase"
                     style={{ color }}
@@ -154,7 +154,7 @@ function WaypointList({
             </div>
             {isActive && wp.notes && (
               <div
-                className="mt-[7px] pt-[7px] font-sans text-[11px] text-text-dim leading-[1.5]"
+                className="mt-[7px] pt-[7px] font-sans text-[11px] text-text-dim leading-normal"
                 style={{ borderTop: `1px solid ${color}33` }}
               >
                 {wp.notes}

@@ -21,7 +21,7 @@ export function DeleteConfirm({ trip, onClose, onDeleted }: Props) {
       style={{ background: 'rgba(0,0,0,0.7)' }}
     >
       <div className="bg-surface border border-border rounded-lg w-full max-w-[360px] mx-4 p-6">
-        <h2 className="font-heading text-[16px] font-bold text-text mb-2">
+        <h2 className="font-heading text-base font-bold text-text mb-2">
           Delete trip?
         </h2>
         <p className="text-[13px] text-text-mid mb-[6px]">

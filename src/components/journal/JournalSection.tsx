@@ -204,21 +204,21 @@ export function JournalSection({ trip }: Props) {
           />
 
           {/* Entry header: "Day N" + title input + scan button */}
-          <div className="flex items-baseline gap-[10px] flex-wrap pb-[14px] mb-[18px] border-b border-border">
+          <div className="flex items-baseline gap-2.5 flex-wrap pb-3.5 mb-[18px] border-b border-border">
             <span className="font-heading text-[28px] font-extrabold text-amber leading-none tracking-[-0.01em] shrink-0">
               Day {dayNumber}
             </span>
             <input
               {...register('title')}
               placeholder="Add a title…"
-              className="font-heading text-[18px] font-semibold text-text bg-transparent border-0 outline-none flex-1 min-w-[120px] p-0"
+              className="font-heading text-lg font-semibold text-text bg-transparent border-0 outline-none flex-1 min-w-[120px] p-0"
             />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={scanning}
               title="Scan a photo of your journal page to auto-fill this entry"
-              className="flex items-center gap-[5px] font-mono text-[9px] tracking-[0.1em] uppercase bg-transparent border border-current rounded-sm px-2 py-1 shrink-0"
+              className="flex items-center gap-1.25 font-mono text-[9px] tracking-[0.1em] uppercase bg-transparent border border-current rounded-sm px-2 py-1 shrink-0"
               style={{
                 color: scanning ? 'var(--text-dim)' : 'var(--amber)',
                 cursor: scanning ? 'default' : 'pointer',
@@ -233,7 +233,7 @@ export function JournalSection({ trip }: Props) {
           )}
 
           {/* Conditions — 5 columns */}
-          <div className="grid grid-cols-5 gap-[6px] mb-[22px]">
+          <div className="grid grid-cols-5 gap-1.5 mb-[22px]">
             <CondCell label="Miles">
               <input
                 type="number"
@@ -296,7 +296,7 @@ export function JournalSection({ trip }: Props) {
               {...register('body')}
               rows={12}
               placeholder="Write about your day — the terrain, how you felt, what you saw…"
-              className="w-full bg-transparent border-0 outline-none resize-none font-sans italic text-[14px] leading-[1.82] text-text-mid p-0"
+              className="w-full bg-transparent border-0 outline-none resize-none font-sans italic text-sm leading-[1.82] text-text-mid p-0"
             />
           </div>
 
@@ -332,7 +332,7 @@ export function JournalSection({ trip }: Props) {
 function CondCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="bg-surface-2 border border-border rounded-md px-[11px] py-[9px]">
-      <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-mid mb-[5px]">
+      <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-mid mb-1.25">
         {label}
       </div>
       {children}
