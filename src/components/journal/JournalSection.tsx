@@ -51,7 +51,7 @@ interface Props {
 
 // Shared className for condition inputs
 const condInputCls =
-  'w-full px-2 py-[6px] border border-border rounded-sm text-[12px] bg-surface text-text outline-none transition-[border-color] duration-[140ms]'
+  'w-full px-2 py-[6px] border border-border focus:border-border-mid rounded-sm text-[12px] bg-surface text-text outline-none transition-[border-color] duration-[140ms]'
 
 export function JournalSection({ trip }: Props) {
   const [selectedDate, setSelectedDate] = useState(trip.startDate.slice(0, 10))
@@ -241,8 +241,6 @@ export function JournalSection({ trip }: Props) {
                 {...register('milesCovered')}
                 placeholder="—"
                 className={condInputCls}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--border-mid)' }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--border)' }}
               />
             </CondCell>
             <CondCell label="Elev. gain (ft)">
@@ -252,8 +250,6 @@ export function JournalSection({ trip }: Props) {
                 {...register('elevationGainFt')}
                 placeholder="—"
                 className={condInputCls}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--border-mid)' }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--border)' }}
               />
             </CondCell>
             <CondCell label="Temp Low (°F)">
@@ -263,8 +259,6 @@ export function JournalSection({ trip }: Props) {
                 {...register('tempLowF')}
                 placeholder="—"
                 className={condInputCls}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--border-mid)' }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--border)' }}
               />
             </CondCell>
             <CondCell label="Temp High (°F)">
@@ -274,8 +268,6 @@ export function JournalSection({ trip }: Props) {
                 {...register('tempHighF')}
                 placeholder="—"
                 className={condInputCls}
-                onFocus={(e) => { e.target.style.borderColor = 'var(--border-mid)' }}
-                onBlur={(e) => { e.target.style.borderColor = 'var(--border)' }}
               />
             </CondCell>
             <CondCell label="Weather">

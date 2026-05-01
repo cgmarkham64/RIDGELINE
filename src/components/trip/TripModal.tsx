@@ -30,7 +30,7 @@ function toDateInput(iso: string) {
 
 // Shared input className — matches the original `input` style object
 const inputCls =
-  'w-full px-[10px] py-2 border border-border rounded-sm text-[13px] bg-surface-2 text-text outline-none transition-[border-color] duration-[140ms]'
+  'w-full px-2.5 py-2 border border-border focus:border-border-mid rounded-sm text-[13px] bg-surface-2 text-text outline-none transition-[border-color] duration-[140ms]'
 
 export function TripModal({ trip, onClose, onSaved }: Props) {
   const isEdit = !!trip
@@ -112,8 +112,6 @@ export function TripModal({ trip, onClose, onSaved }: Props) {
               {...register('title')}
               placeholder="e.g. Lost Coast Trail"
               className={inputCls}
-              onFocus={(e) => { e.target.style.borderColor = 'var(--border-mid)' }}
-              onBlur={(e) => { e.target.style.borderColor = 'var(--border)' }}
             />
             {errors.title && (
               <span className="text-[11px] text-red">{errors.title.message}</span>
@@ -126,8 +124,6 @@ export function TripModal({ trip, onClose, onSaved }: Props) {
               {...register('location')}
               placeholder="e.g. Kings Range, CA"
               className={inputCls}
-              onFocus={(e) => { e.target.style.borderColor = 'var(--border-mid)' }}
-              onBlur={(e) => { e.target.style.borderColor = 'var(--border)' }}
             />
             {errors.location && (
               <span className="text-[11px] text-red">{errors.location.message}</span>
@@ -199,8 +195,6 @@ export function TripModal({ trip, onClose, onSaved }: Props) {
               rows={3}
               placeholder="A brief overview of the trip…"
               className={`${inputCls} resize-none leading-[1.6]`}
-              onFocus={(e) => { e.target.style.borderColor = 'var(--border-mid)' }}
-              onBlur={(e) => { e.target.style.borderColor = 'var(--border)' }}
             />
           </div>
 
