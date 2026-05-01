@@ -64,8 +64,7 @@ export function AccountDialog({ onClose }: Props) {
   // Avatar
   const [avatarSaving, setAvatarSaving] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
-  const [avatarHovered, setAvatarHovered] = useState(false)
-  const [removeHovered, setRemoveHovered] = useState(false)
+
 
   if (!user) return null
 
@@ -189,10 +188,7 @@ export function AccountDialog({ onClose }: Props) {
             <button
               title="Change photo"
               onClick={() => fileRef.current?.click()}
-              onMouseEnter={() => setAvatarHovered(true)}
-              onMouseLeave={() => setAvatarHovered(false)}
-              className="w-20 h-20 rounded-full overflow-hidden cursor-pointer bg-surface-3 flex items-center justify-center relative shrink-0 p-0 transition-[border-color] duration-30"
-              style={{ border: `2px solid ${avatarHovered ? 'var(--amber)' : 'var(--border-mid)'}` }}
+              className="group w-20 h-20 rounded-full overflow-hidden cursor-pointer bg-surface-3 flex items-center justify-center relative shrink-0 p-0 border-2 border-border-mid hover:border-amber transition-[border-color] duration-30"
             >
               {user.avatarUrl ? (
                 <img src={user.avatarUrl} alt={user.name}
@@ -203,8 +199,8 @@ export function AccountDialog({ onClose }: Props) {
                 </span>
               )}
               <div
-                className="absolute inset-0 flex items-center justify-center rounded-full pointer-events-none transition-opacity duration-80"
-                style={{ background: 'rgba(0,0,0,0.5)', opacity: avatarHovered ? 1 : 0 }}
+                className="absolute inset-0 flex items-center justify-center rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-80"
+                style={{ background: 'rgba(0,0,0,0.5)' }}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="white" className="w-5 h-5" style={{ strokeWidth: 1.8 }}>
                   <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
@@ -220,11 +216,8 @@ export function AccountDialog({ onClose }: Props) {
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={avatarSaving}
-                className="bg-transparent border-0 font-mono text-[11px] p-0 transition-colors duration-80"
-                style={{
-                  cursor: avatarSaving ? 'default' : 'pointer',
-                  color: avatarHovered ? 'var(--amber)' : 'var(--text-mid)',
-                }}
+                className="bg-transparent border-0 font-mono text-[11px] p-0 transition-colors duration-80 text-text-mid hover:text-amber"
+                style={{ cursor: avatarSaving ? 'default' : 'pointer' }}
               >
                 {avatarSaving ? 'Saving…' : 'Change photo'}
               </button>
@@ -233,10 +226,7 @@ export function AccountDialog({ onClose }: Props) {
                   <span className="text-border-mid text-[10px]">·</span>
                   <button
                     onClick={handleRemoveAvatar}
-                    onMouseEnter={() => setRemoveHovered(true)}
-                    onMouseLeave={() => setRemoveHovered(false)}
-                    className="bg-transparent border-0 cursor-pointer p-0 font-mono text-[11px] transition-colors duration-30"
-                    style={{ color: removeHovered ? 'var(--red)' : 'var(--text-dim)' }}
+                    className="bg-transparent border-0 cursor-pointer p-0 font-mono text-[11px] transition-colors duration-30 text-text-dim hover:text-red"
                   >
                     Remove
                   </button>

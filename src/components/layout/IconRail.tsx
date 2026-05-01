@@ -96,13 +96,7 @@ export function IconRail() {
           <div className="rail-tip-wrap shrink-0">
           <button
             onClick={() => setAccountOpen(true)}
-            className="w-9 h-9 rounded-full overflow-hidden border-[1.5px] border-border-mid cursor-pointer bg-surface-3 flex items-center justify-center p-0 shrink-0 transition-[border-color] duration-[150ms]"
-            onMouseEnter={(e) =>
-              ((e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--amber)')
-            }
-            onMouseLeave={(e) =>
-              ((e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-mid)')
-            }
+            className="w-9 h-9 rounded-full overflow-hidden border-[1.5px] border-border-mid hover:border-amber cursor-pointer bg-surface-3 flex items-center justify-center p-0 shrink-0 transition-[border-color] duration-150"
           >
             {user.avatarUrl ? (
               <img
