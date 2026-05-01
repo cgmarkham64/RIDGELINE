@@ -13,26 +13,28 @@ function NavLink({
   children: React.ReactNode
 }) {
   return (
-    <Link
-      to={to}
-      title={title}
-      className="rail-btn"
-      activeProps={{ className: 'rail-btn active' }}
-      activeOptions={to === '/' ? { exact: true } : undefined}
-    >
-      <svg
-        width="17"
-        height="17"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+    <div className="rail-tip-wrap">
+      <Link
+        to={to}
+        className="rail-btn"
+        activeProps={{ className: 'rail-btn active' }}
+        activeOptions={to === '/' ? { exact: true } : undefined}
       >
-        {children}
-      </svg>
-    </Link>
+        <svg
+          width="17"
+          height="17"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          {children}
+        </svg>
+      </Link>
+      <span className="rail-tip">{title}</span>
+    </div>
   )
 }
 
@@ -69,7 +71,6 @@ export function IconRail() {
           padding: '16px 0 20px',
           gap: 2,
           height: '100%',
-          overflowY: 'auto',
         }}
       >
         <div
@@ -114,8 +115,8 @@ export function IconRail() {
 
         {/* Account + sign out */}
         {user && (
+          <div className="rail-tip-wrap" style={{ flexShrink: 0 }}>
           <button
-            title={user.name}
             onClick={() => setAccountOpen(true)}
             style={{
               width: 36,
@@ -159,36 +160,25 @@ export function IconRail() {
               </span>
             )}
           </button>
+          <span className="rail-tip">Account</span>
+          </div>
         )}
 
         {/* Sign out */}
         {user && (
-          <button
-            title="Sign out"
-            onClick={handleSignOut}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 'var(--r-sm)',
-              border: 'none',
-              cursor: 'pointer',
-              background: 'transparent',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--text-dim)',
-              transition: 'color 0.15s',
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--red)')}
-            onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = 'var(--text-dim)')}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
+          <div className="rail-tip-wrap" style={{ flexShrink: 0 }}>
+            <button
+              onClick={handleSignOut}
+              className="rail-logout-btn"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+            <span className="rail-tip">Logout</span>
+          </div>
         )}
       </nav>
 

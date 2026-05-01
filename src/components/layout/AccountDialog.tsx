@@ -247,7 +247,7 @@ export function AccountDialog({ onClose }: Props) {
                 cursor: 'pointer', background: 'var(--surface3)',
                 display: 'flex', alignItems: 'center',
                 justifyContent: 'center', position: 'relative', flexShrink: 0, padding: 0,
-                transition: 'border-color 0.08s',
+                transition: 'border-color 0.03s',
               }}
             >
               {user.avatarUrl ? (
@@ -300,7 +300,7 @@ export function AccountDialog({ onClose }: Props) {
                       background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                       fontFamily: 'var(--font-mono)', fontSize: 11,
                       color: removeHovered ? 'var(--red)' : 'var(--text-dim)',
-                      transition: 'color 0.08s',
+                      transition: 'color 0.03s',
                     }}
                   >
                     Remove

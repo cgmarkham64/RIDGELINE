@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate, Link } from '@tanstack/react-router'
 import { register as registerUser } from '../lib/auth'
 import { useAuthStore } from '../store/auth'
+import { AuthLayout } from '../components/layout/AuthLayout'
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -35,7 +36,7 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="auth-page">
+    <AuthLayout>
       <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
         <h1>Create account</h1>
 
@@ -72,6 +73,6 @@ export function RegisterPage() {
           Already have an account? <Link to="/login">Sign in</Link>
         </p>
       </form>
-    </div>
+    </AuthLayout>
   )
 }
