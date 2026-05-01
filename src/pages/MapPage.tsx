@@ -4,39 +4,11 @@ export function MapPage() {
 
 function ComingSoon({ label }: { label: string }) {
   return (
-    <div
-      style={{
-        flex: 1,
-        minWidth: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100%',
-        background: 'var(--bg)',
-        gap: 12,
-      }}
-    >
-      <div
-        style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 9,
-          letterSpacing: '0.2em',
-          textTransform: 'uppercase',
-          color: 'var(--text-dim)',
-        }}
-      >
+    <div className="flex-1 min-w-0 flex flex-col items-center justify-center h-full bg-bg gap-3">
+      <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-text-dim">
         Coming soon
       </div>
-      <div
-        style={{
-          fontFamily: 'var(--font-heading)',
-          fontSize: 28,
-          fontWeight: 800,
-          color: 'var(--text)',
-          letterSpacing: '-0.01em',
-        }}
-      >
+      <div className="font-heading text-[28px] font-extrabold text-text tracking-[-0.01em]">
         {label}
       </div>
     </div>

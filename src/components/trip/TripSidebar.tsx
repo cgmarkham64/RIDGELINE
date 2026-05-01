@@ -23,38 +23,10 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
     : []
 
   return (
-    <aside
-      style={{
-        width: 258,
-        flexShrink: 0,
-        background: 'var(--surface)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-      }}
-    >
+    <aside className="w-[258px] shrink-0 bg-surface border-r border-border flex flex-col h-full">
       {/* Header */}
-      <div
-        style={{
-          padding: '16px 14px 12px',
-          borderBottom: '1px solid var(--border)',
-          flexShrink: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-        }}
-      >
-        <span
-          style={{
-            fontFamily: 'var(--font-heading)',
-            fontSize: 9,
-            fontWeight: 800,
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            color: 'var(--text-dim)',
-          }}
-        >
+      <div className="px-[14px] pt-4 pb-3 border-b border-border shrink-0 flex flex-col gap-[10px]">
+        <span className="font-heading text-[9px] font-extrabold tracking-[0.22em] uppercase text-text-dim">
           Trips
         </span>
 
@@ -64,49 +36,21 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
       </div>
 
       {/* Trip list */}
-      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '8px 0 16px' }}>
+      <div className="flex-1 overflow-y-auto min-h-0 py-2 pb-4">
         {isLoading && (
-          <p
-            style={{
-              padding: '24px 14px',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 9,
-              color: 'var(--text-dim)',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-            }}
-          >
+          <p className="px-[14px] pt-6 pb-6 font-mono text-[9px] text-text-dim tracking-[0.1em] uppercase">
             Loading…
           </p>
         )}
 
         {isError && (
-          <p
-            style={{
-              padding: '24px 14px',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 9,
-              color: 'var(--red)',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-            }}
-          >
+          <p className="px-[14px] pt-6 pb-6 font-mono text-[9px] text-red tracking-[0.1em] uppercase">
             Could not load trips
           </p>
         )}
 
         {!isLoading && !isError && sorted.length === 0 && (
-          <p
-            style={{
-              padding: '24px 14px',
-              fontFamily: 'var(--font-mono)',
-              fontSize: 9,
-              color: 'var(--text-dim)',
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              lineHeight: 1.8,
-            }}
-          >
+          <p className="px-[14px] pt-6 pb-6 font-mono text-[9px] text-text-dim tracking-[0.1em] uppercase leading-[1.8]">
             No trips yet.
             <br />
             Create one above.
@@ -132,64 +76,28 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                 transition: 'background 0.12s, border-color 0.12s',
               }}
             >
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="flex-1 min-w-0">
                 <div
-                  style={{
-                    fontFamily: 'var(--font-heading)',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: isSelected ? 'var(--amber)' : 'var(--text)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    marginBottom: 2,
-                  }}
+                  className="font-heading text-[12px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis mb-[2px]"
+                  style={{ color: isSelected ? 'var(--amber)' : 'var(--text)' }}
                 >
                   {trip.title}
                 </div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 9,
-                    color: 'var(--text-dim)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
+                <div className="font-mono text-[9px] text-text-dim whitespace-nowrap overflow-hidden text-ellipsis">
                   {trip.location}
                 </div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 9,
-                    color: 'var(--text-dim)',
-                    marginTop: 1,
-                  }}
-                >
+                <div className="font-mono text-[9px] text-text-dim mt-[1px]">
                   {formatDateRange(trip.startDate, trip.endDate)}
                 </div>
                 {(trip.distanceMiles || trip.elevationGainFt) && (
-                  <div style={{ display: 'flex', gap: 8, marginTop: 3 }}>
+                  <div className="flex gap-2 mt-[3px]">
                     {trip.distanceMiles && (
-                      <span
-                        style={{
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: 8,
-                          color: 'var(--text-dim)',
-                        }}
-                      >
+                      <span className="font-mono text-[8px] text-text-dim">
                         {trip.distanceMiles} mi
                       </span>
                     )}
                     {trip.elevationGainFt && (
-                      <span
-                        style={{
-                          fontFamily: 'var(--font-mono)',
-                          fontSize: 8,
-                          color: 'var(--text-dim)',
-                        }}
-                      >
+                      <span className="font-mono text-[8px] text-text-dim">
                         +{trip.elevationGainFt.toLocaleString()} ft
                       </span>
                     )}
@@ -224,7 +132,7 @@ function TripActions({
   onDelete: (e: React.MouseEvent) => void
 }) {
   return (
-    <div className="trip-actions" style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+    <div className="trip-actions flex gap-[3px] shrink-0">
       <button onClick={onEdit} title="Edit" className="btn-icon-action edit">
         <svg
           width="12"

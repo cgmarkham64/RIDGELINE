@@ -16,26 +16,17 @@ function TypePills({
   onChange: (t: WaypointType) => void
 }) {
   return (
-    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+    <div className="flex gap-1 flex-wrap">
       {WAYPOINT_TYPES.map((t) => (
         <button
           key={t}
           type="button"
           onClick={() => onChange(t)}
+          className="inline-flex items-center gap-[5px] px-2 py-[3px] rounded-sm font-mono text-[9px] tracking-[0.08em] uppercase cursor-pointer"
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 5,
-            padding: '3px 8px',
             border: `1px solid ${value === t ? WAYPOINT_COLOR[t] : 'var(--border)'}`,
-            borderRadius: 'var(--r-sm)',
             background: value === t ? `${WAYPOINT_COLOR[t]}22` : 'transparent',
             color: value === t ? WAYPOINT_COLOR[t] : 'var(--text-dim)',
-            fontFamily: 'var(--font-mono)',
-            fontSize: 9,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            cursor: 'pointer',
           }}
         >
           <WaypointIcon type={t} size={11} />
@@ -60,9 +51,9 @@ export function WaypointForm({
   onChange: (patch: Partial<WaypointFormState>) => void
 }) {
   return (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+    <div className="flex gap-2 flex-wrap items-center">
       {coords && (
-        <span style={{ ...mono, fontSize: 8, color: 'var(--amber)', flexShrink: 0 }}>
+        <span className="font-mono text-[8px] tracking-[0.1em] uppercase text-amber shrink-0">
           {coords.lat.toFixed(5)}, {coords.lon.toFixed(5)}
         </span>
       )}
@@ -84,8 +75,7 @@ export function WaypointForm({
       <button
         type="submit"
         disabled={saving || !form.label.trim()}
-        className="btn btn-primary btn-sm"
-        style={{ flexShrink: 0 }}
+        className="btn btn-primary btn-sm shrink-0"
       >
         {saving ? 'Saving…' : submitLabel}
       </button>

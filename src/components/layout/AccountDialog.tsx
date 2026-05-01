@@ -42,36 +42,6 @@ function initials(name: string) {
   return name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()
 }
 
-const fieldStyle: React.CSSProperties = {
-  width: '100%',
-  background: 'var(--surface2)',
-  border: '1px solid var(--border)',
-  borderRadius: 'var(--r-sm)',
-  padding: '8px 10px',
-  color: 'var(--text)',
-  fontFamily: 'var(--font-sans)',
-  fontSize: 13,
-  outline: 'none',
-}
-
-const labelStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)',
-  fontSize: 9,
-  letterSpacing: '0.12em',
-  textTransform: 'uppercase' as const,
-  color: 'var(--text-dim)',
-  marginBottom: 5,
-  display: 'block',
-}
-
-const sectionStyle: React.CSSProperties = {
-  borderTop: '1px solid var(--border)',
-  paddingTop: 16,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 12,
-}
-
 export function AccountDialog({ onClose }: Props) {
   const { user, updateUser, setAuth } = useAuthStore()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -191,82 +161,52 @@ export function AccountDialog({ onClose }: Props) {
 
   return (
     <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 50,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
-      }}
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
       <div
-        style={{
-          background: 'var(--surface)',
-          border: '1px solid var(--border-mid)',
-          borderRadius: 'var(--r-lg)',
-          width: '100%', maxWidth: 380,
-          margin: '0 16px',
-          overflow: 'hidden',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-        }}
+        className="bg-surface border border-border-mid rounded-lg w-full max-w-95 mx-4 overflow-hidden max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '16px 20px', borderBottom: '1px solid var(--border)',
-          position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 1,
-        }}>
-          <span style={{ fontFamily: 'var(--font-heading)', fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-surface z-1">
+          <span className="font-heading text-[14px] font-extrabold text-text">
             Account
           </span>
-          <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: 'var(--r-sm)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--surface2)', border: '1px solid var(--border)',
-            cursor: 'pointer', color: 'var(--text-dim)',
-          }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style={{ width: 14, height: 14, strokeWidth: 2 }}>
+          <button onClick={onClose} className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-2 border border-border cursor-pointer text-text-dim">
+
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5" style={{ strokeWidth: 2 }}>
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="px-5 py-6 flex flex-col gap-5">
 
           {/* ── Avatar ─────────────────────────────────────────────────────── */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+          <div className="flex flex-col items-center gap-2.5">
             <button
               title="Change photo"
               onClick={() => fileRef.current?.click()}
               onMouseEnter={() => setAvatarHovered(true)}
               onMouseLeave={() => setAvatarHovered(false)}
-              style={{
-                width: 80, height: 80, borderRadius: '50%', overflow: 'hidden',
-                border: `2px solid ${avatarHovered ? 'var(--amber)' : 'var(--border-mid)'}`,
-                cursor: 'pointer', background: 'var(--surface3)',
-                display: 'flex', alignItems: 'center',
-                justifyContent: 'center', position: 'relative', flexShrink: 0, padding: 0,
-                transition: 'border-color 0.03s',
-              }}
+              className="w-20 h-20 rounded-full overflow-hidden cursor-pointer bg-surface-3 flex items-center justify-center relative shrink-0 p-0 transition-[border-color] duration-30"
+              style={{ border: `2px solid ${avatarHovered ? 'var(--amber)' : 'var(--border-mid)'}` }}
             >
               {user.avatarUrl ? (
                 <img src={user.avatarUrl} alt={user.name}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  className="w-full h-full object-cover block" />
               ) : (
-                <span style={{ fontFamily: 'var(--font-heading)', fontSize: 26, fontWeight: 800, color: 'var(--amber)', lineHeight: 1 }}>
+                <span className="font-heading text-[26px] font-extrabold text-amber leading-none">
                   {initials(user.name)}
                 </span>
               )}
-              <div style={{
-                position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                opacity: avatarHovered ? 1 : 0,
-                transition: 'opacity 0.08s',
-                borderRadius: '50%',
-                pointerEvents: 'none',
-              }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="white" style={{ width: 20, height: 20, strokeWidth: 1.8 }}>
+              <div
+                className="absolute inset-0 flex items-center justify-center rounded-full pointer-events-none transition-opacity duration-80"
+                style={{ background: 'rgba(0,0,0,0.5)', opacity: avatarHovered ? 1 : 0 }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" className="w-5 h-5" style={{ strokeWidth: 1.8 }}>
                   <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
                   <circle cx="12" cy="13" r="4" />
                 </svg>
@@ -274,34 +214,29 @@ export function AccountDialog({ onClose }: Props) {
             </button>
 
             <input ref={fileRef} type="file" accept="image/*"
-              style={{ display: 'none' }} onChange={handleAvatarChange} />
+              className="hidden" onChange={handleAvatarChange} />
 
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div className="flex gap-3 items-center">
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={avatarSaving}
+                className="bg-transparent border-0 font-mono text-[11px] p-0 transition-colors duration-80"
                 style={{
-                  background: 'none', border: 'none', cursor: avatarSaving ? 'default' : 'pointer',
-                  fontFamily: 'var(--font-mono)', fontSize: 11, padding: 0,
+                  cursor: avatarSaving ? 'default' : 'pointer',
                   color: avatarHovered ? 'var(--amber)' : 'var(--text-mid)',
-                  transition: 'color 0.08s',
                 }}
               >
                 {avatarSaving ? 'Saving…' : 'Change photo'}
               </button>
               {user.avatarUrl && !avatarSaving && (
                 <>
-                  <span style={{ color: 'var(--border-mid)', fontSize: 10 }}>·</span>
+                  <span className="text-border-mid text-[10px]">·</span>
                   <button
                     onClick={handleRemoveAvatar}
                     onMouseEnter={() => setRemoveHovered(true)}
                     onMouseLeave={() => setRemoveHovered(false)}
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                      fontFamily: 'var(--font-mono)', fontSize: 11,
-                      color: removeHovered ? 'var(--red)' : 'var(--text-dim)',
-                      transition: 'color 0.03s',
-                    }}
+                    className="bg-transparent border-0 cursor-pointer p-0 font-mono text-[11px] transition-colors duration-30"
+                    style={{ color: removeHovered ? 'var(--red)' : 'var(--text-dim)' }}
                   >
                     Remove
                   </button>
@@ -309,48 +244,42 @@ export function AccountDialog({ onClose }: Props) {
               )}
             </div>
             {avatarError && (
-              <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--red)', margin: 0 }}>
+              <p className="font-mono text-[10px] text-red m-0">
                 {avatarError}
               </p>
             )}
           </div>
 
           {/* ── Profile ────────────────────────────────────────────────────── */}
-          <div style={sectionStyle}>
-            <form onSubmit={handleSaveName} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="border-t border-border pt-4 flex flex-col gap-3">
+            <form onSubmit={handleSaveName} className="flex flex-col gap-3">
               <div>
-                <label style={labelStyle}>Name</label>
+                <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1.25 block">Name</label>
                 <input
                   value={name}
                   onChange={(e) => { setName(e.target.value); setNameError(null); setNameSuccess(false) }}
-                  style={fieldStyle}
+                  className="w-full bg-surface-2 border border-border rounded-sm px-2.5 py-2 text-text font-sans text-[13px] outline-none"
                   placeholder="Your name"
                 />
               </div>
               <div>
-                <label style={labelStyle}>Email</label>
-                <input value={user.email} readOnly style={{ ...fieldStyle, color: 'var(--text-dim)', cursor: 'default' }} />
+                <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1.25 block">Email</label>
+                <input value={user.email} readOnly className="w-full bg-surface-2 border border-border rounded-sm px-2.5 py-2 text-text-dim font-sans text-[13px] outline-none cursor-default" />
               </div>
               {nameError && (
-                <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--red)', margin: 0 }}>
+                <p className="font-mono text-[10px] text-red m-0">
                   {nameError}
                 </p>
               )}
               <button
                 type="submit"
                 disabled={!nameDirty || nameSaving}
+                className="self-end px-4 py-1.75 rounded-md font-heading text-[12px] font-bold transition-all duration-150"
                 style={{
-                  alignSelf: 'flex-end',
-                  padding: '7px 16px',
-                  borderRadius: 'var(--r-md)',
-                  fontFamily: 'var(--font-heading)',
-                  fontSize: 12,
-                  fontWeight: 700,
                   cursor: nameDirty ? 'pointer' : 'default',
                   background: nameSuccess ? 'var(--pine-dim)' : nameDirty ? 'var(--amber)' : 'var(--surface3)',
                   color: nameSuccess ? 'var(--pine)' : nameDirty ? '#000' : 'var(--text-dim)',
                   border: nameSuccess ? '1px solid var(--pine-border)' : nameDirty ? '1px solid transparent' : '1px solid var(--border)',
-                  transition: 'all 0.15s',
                 }}
               >
                 {nameSaving ? 'Saving…' : nameSuccess ? 'Saved' : 'Save name'}
@@ -359,63 +288,55 @@ export function AccountDialog({ onClose }: Props) {
           </div>
 
           {/* ── Password ───────────────────────────────────────────────────── */}
-          <div style={sectionStyle}>
+          <div className="border-t border-border pt-4 flex flex-col gap-3">
             <button
               onClick={() => { setPwOpen((o) => !o); setPwError(null) }}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '100%',
-              }}
+              className="flex items-center justify-between bg-transparent border-0 cursor-pointer p-0 w-full"
             >
-              <span style={{ fontFamily: 'var(--font-heading)', fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>
+              <span className="font-heading text-[12px] font-bold text-text">
                 Change password
               </span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                className="w-3.5 h-3.5 text-text-dim transition-transform duration-200"
                 style={{
-                  width: 14, height: 14, strokeWidth: 2, color: 'var(--text-dim)',
-                  transform: pwOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s',
+                  strokeWidth: 2,
+                  transform: pwOpen ? 'rotate(180deg)' : 'none',
                 }}>
                 <polyline points="6 9 12 15 18 9" />
               </svg>
             </button>
 
             {pwOpen && (
-              <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
                 <div>
-                  <label style={labelStyle}>Current password</label>
+                  <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1.25 block">Current password</label>
                   <input type="password" value={currentPw} onChange={(e) => { setCurrentPw(e.target.value); setPwError(null) }}
-                    style={fieldStyle} autoComplete="current-password" />
+                    className="w-full bg-surface-2 border border-border rounded-sm px-2.5 py-2 text-text font-sans text-[13px] outline-none" autoComplete="current-password" />
                 </div>
                 <div>
-                  <label style={labelStyle}>New password</label>
+                  <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1.25 block">New password</label>
                   <input type="password" value={newPw} onChange={(e) => { setNewPw(e.target.value); setPwError(null) }}
-                    style={fieldStyle} autoComplete="new-password" />
+                    className="w-full bg-surface-2 border border-border rounded-sm px-2.5 py-2 text-text font-sans text-[13px] outline-none" autoComplete="new-password" />
                 </div>
                 <div>
-                  <label style={labelStyle}>Confirm new password</label>
+                  <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1.25 block">Confirm new password</label>
                   <input type="password" value={confirmPw} onChange={(e) => { setConfirmPw(e.target.value); setPwError(null) }}
-                    style={fieldStyle} autoComplete="new-password" />
+                    className="w-full bg-surface-2 border border-border rounded-sm px-2.5 py-2 text-text font-sans text-[13px] outline-none" autoComplete="new-password" />
                 </div>
                 {pwError && (
-                  <p style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--red)', margin: 0 }}>
+                  <p className="font-mono text-[10px] text-red m-0">
                     {pwError}
                   </p>
                 )}
                 <button
                   type="submit"
                   disabled={pwSaving || !currentPw || !newPw || !confirmPw}
+                  className="self-end px-4 py-1.75 rounded-md font-heading text-[12px] font-bold transition-all duration-150"
                   style={{
-                    alignSelf: 'flex-end',
-                    padding: '7px 16px',
-                    borderRadius: 'var(--r-md)',
-                    fontFamily: 'var(--font-heading)',
-                    fontSize: 12,
-                    fontWeight: 700,
                     cursor: pwSaving || !currentPw || !newPw || !confirmPw ? 'default' : 'pointer',
                     background: pwSuccess ? 'var(--pine-dim)' : 'var(--surface3)',
                     color: pwSuccess ? 'var(--pine)' : 'var(--text)',
                     border: pwSuccess ? '1px solid var(--pine-border)' : '1px solid var(--border)',
-                    transition: 'all 0.15s',
                   }}
                 >
                   {pwSaving ? 'Updating…' : pwSuccess ? 'Password updated' : 'Update password'}

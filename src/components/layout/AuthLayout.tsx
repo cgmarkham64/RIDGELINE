@@ -7,7 +7,7 @@ function MountainsSvg() {
       viewBox="0 0 1440 220"
       preserveAspectRatio="xMidYMid slice"
       aria-hidden="true"
-      style={{ display: 'block', width: '100%', height: '100%' }}
+      className="block w-full h-full"
     >
       <defs>
         <linearGradient id="auth-sky" x1="0" y1="0" x2="0" y2="1">
@@ -66,7 +66,7 @@ function RiverSvg() {
       viewBox="0 0 1440 110"
       preserveAspectRatio="xMidYMid slice"
       aria-hidden="true"
-      style={{ display: 'block', width: '100%', height: '100%' }}
+      className="block w-full h-full"
     >
       {/* Background */}
       <rect width="1440" height="110" fill="#0f0d0b" />

@@ -142,6 +142,11 @@ server/
     5. **Migrate existing users** — for each `User` doc in MongoDB, create a matching user in Keycloak (via the Admin REST API) and update the `sub` field in all their documents to the Keycloak-issued UUID. This is the only data migration step; it's a one-time script.
     6. **Drop the `User` model** — once migrated, `server/src/models/User.ts` is no longer needed. User identity comes from the Keycloak token; store only app-specific profile data if needed.
 
+13. Replace `onMouseEnter/Leave` hover handlers with Tailwind `hover:` classes — many components still use JS event handlers to mutate border/color styles on hover (e.g. avatar button in `IconRail.tsx`, `AccountDialog.tsx`). These should be static `hover:border-amber` etc. in `className`.
+14. Replace `onFocus/onBlur` border mutations with Tailwind `focus:` classes — input borders that change on focus via JS handlers (e.g. in `TripModal.tsx`, `JournalSection.tsx`) should use `focus:border-border-mid` instead.
+15. Fix bracket-notation Tailwind classes across all components — the Tailwind v4 migration used `gap-[10px]`, `duration-[80ms]` etc. in many files where shorthand equivalents exist (e.g. `gap-2.5`, `duration-80`). Run a lint pass to catch them all.
+16. Fix `FormEvent` deprecation in `AccountDialog.tsx` — React 19 deprecated the re-export of `FormEvent` from `react` (TS6385 warnings on lines 119 and 138). Import from `react` using `React.FormEvent` or switch to the native `SubmitEvent` type.
+
 #### Todo Sidebar nav — planned page contents
 - **Map** (`/map`) — Global map showing all GPX tracks and planned routes across every trip. Clicking a track opens the associated trip or plan detail.
 - **Photos** (`/photos`) — Collage/grid of all photos across all trips, with basic metadata (trip name, date, GPS coords). Clicking a photo navigates to its trip or shows full EXIF metadata.

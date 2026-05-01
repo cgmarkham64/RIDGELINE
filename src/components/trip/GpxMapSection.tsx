@@ -26,30 +26,6 @@ function FitBounds({ positions }: { positions: [number, number][] }) {
   return null
 }
 
-// ─── Styles ──────────────────────────────────────────────────────────────────
-
-const mono: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)',
-  fontSize: 9,
-  letterSpacing: '0.1em',
-  textTransform: 'uppercase',
-  color: 'var(--text-dim)',
-}
-
-const menuItemStyle: React.CSSProperties = {
-  display: 'block',
-  width: '100%',
-  textAlign: 'left',
-  padding: '8px 12px',
-  fontSize: 11,
-  fontFamily: 'var(--font-mono)',
-  letterSpacing: '0.06em',
-  textTransform: 'uppercase',
-  background: 'none',
-  border: 'none',
-  cursor: 'pointer',
-}
-
 // ─── Color palette ───────────────────────────────────────────────────────────
 
 const PLANNED_COLOR = '#38bdf8' // sky blue — dashed, reads as "future"
@@ -91,30 +67,19 @@ function KabobMenu({
 }) {
   return (
     <div
-      style={{
-        position: 'absolute',
-        right: 0,
-        top: 'calc(100% + 4px)',
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--r-md)',
-        zIndex: 10,
-        minWidth: 148,
-        overflow: 'hidden',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.35)',
-      }}
+      className="absolute right-0 top-[calc(100%+4px)] bg-surface border border-border rounded-md z-10 min-w-[148px] overflow-hidden"
+      style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.35)' }}
       onClick={(e) => e.stopPropagation()}
     >
-      <button style={{ ...menuItemStyle, color: 'var(--text)' }} onClick={onImport}>
+      <button
+        className="block w-full text-left px-3 py-2 text-[11px] font-mono tracking-[0.06em] uppercase bg-transparent border-0 cursor-pointer text-text"
+        onClick={onImport}
+      >
         {importLabel}
       </button>
       {hasTrack && (
         <button
-          style={{
-            ...menuItemStyle,
-            color: 'var(--red, #ef4444)',
-            borderTop: '1px solid var(--border)',
-          }}
+          className="block w-full text-left px-3 py-2 text-[11px] font-mono tracking-[0.06em] uppercase bg-transparent border-0 cursor-pointer text-red border-t border-border"
           onClick={onRemove}
         >
           Remove
@@ -252,23 +217,14 @@ export function GpxMapSection({
   const bounds = allPoints.length > 1 ? L.latLngBounds(allPoints) : null
   const hasAny = allPoints.length > 1
 
-  const cardStyle: React.CSSProperties = {
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--r-md)',
-    padding: '10px 14px',
-    background: 'var(--surface)',
-  }
-
   return (
     <div>
       {/* Import area — single card, stacked */}
-      <div style={{ ...cardStyle, marginBottom: 12 }}>
+      <div className="border border-border rounded-md px-[14px] py-[10px] bg-surface mb-3">
         {/* Planned Route row */}
-        <div
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-            <svg width="18" height="6" style={{ flexShrink: 0 }}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <svg width="18" height="6" className="shrink-0">
               <line
                 x1="0"
                 y1="3"
@@ -279,19 +235,11 @@ export function GpxMapSection({
                 strokeDasharray="5 3"
               />
             </svg>
-            <div style={{ minWidth: 0 }}>
-              <div
-                style={{
-                  fontFamily: 'var(--font-heading)',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: 'var(--text)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
+            <div className="min-w-0">
+              <div className="font-heading text-[12px] font-bold text-text whitespace-nowrap">
                 Planned Route
               </div>
-              <div style={{ ...mono, fontSize: 8 }}>
+              <div className="font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim">
                 {importing === 'planned'
                   ? 'Importing…'
                   : removing === 'planned'
@@ -302,7 +250,7 @@ export function GpxMapSection({
               </div>
             </div>
           </div>
-          <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div className="relative shrink-0">
             <button
               className="btn btn-ghost btn-sm"
               style={{ fontSize: 16, lineHeight: 1, padding: '2px 7px', letterSpacing: '0.05em' }}
@@ -332,38 +280,25 @@ export function GpxMapSection({
         </div>
 
         {/* Divider */}
-        <div style={{ borderTop: '1px solid var(--border)', margin: '10px 0' }} />
+        <div className="border-t border-border my-[10px]" />
 
         {/* GPS Tracks section */}
         <div>
           <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8,
-              marginBottom: gpxTracks.length > 0 ? 8 : 0,
-            }}
+            className="flex items-center justify-between gap-2"
+            style={{ marginBottom: gpxTracks.length > 0 ? 8 : 0 }}
           >
-            <div
-              style={{
-                fontFamily: 'var(--font-heading)',
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--text)',
-              }}
-            >
+            <div className="font-heading text-[12px] font-bold text-text">
               GPS Tracks
             </div>
             <button
-              className="btn btn-ghost btn-sm"
+              className="btn btn-ghost btn-sm shrink-0"
               style={{
                 fontSize: 10,
                 fontFamily: 'var(--font-mono)',
                 letterSpacing: '0.06em',
                 textTransform: 'uppercase',
                 padding: '2px 8px',
-                flexShrink: 0,
               }}
               disabled={importing === 'new-track'}
               onClick={() => openPicker({ type: 'track-new' })}
@@ -373,9 +308,9 @@ export function GpxMapSection({
           </div>
 
           {gpxTracks.length === 0 ? (
-            <div style={{ ...mono, fontSize: 8 }}>Import after each day</div>
+            <div className="font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim">Import after each day</div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div className="flex flex-col gap-[5px]">
               {gpxTracks.map((entry, i) => {
                 const color = trackColor(i)
                 const isImporting = importing === entry.id
@@ -385,31 +320,19 @@ export function GpxMapSection({
                 return (
                   <div
                     key={entry.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: 6,
-                    }}
+                    className="flex items-center justify-between gap-[6px]"
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                      <svg width="14" height="6" style={{ flexShrink: 0 }}>
+                    <div className="flex items-center gap-[6px] min-w-0">
+                      <svg width="14" height="6" className="shrink-0">
                         <line x1="0" y1="3" x2="14" y2="3" stroke={color} strokeWidth="2.5" />
                       </svg>
                       <span
-                        style={{
-                          ...mono,
-                          fontSize: 8,
-                          color: 'var(--text)',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
+                        className="font-mono text-[8px] tracking-[0.1em] uppercase text-text overflow-hidden text-ellipsis whitespace-nowrap"
                       >
                         {isImporting ? 'Importing…' : isRemoving ? 'Removing…' : entry.label}
                       </span>
                     </div>
-                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <div className="relative shrink-0">
                       <button
                         className="btn btn-ghost btn-sm"
                         style={{
@@ -450,20 +373,12 @@ export function GpxMapSection({
       </div>
 
       {error && (
-        <p style={{ fontSize: 11, color: 'var(--red, #ef4444)', marginBottom: 8 }}>{error}</p>
+        <p className="text-[11px] text-red mb-2">{error}</p>
       )}
 
       {/* Map — hidden when showMap={false} (e.g. map tab renders its own full-size map) */}
       {showMap && hasAny && bounds ? (
-        <div
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            borderRadius: 'var(--r-md)',
-            overflow: 'hidden',
-            border: '1px solid var(--border)',
-          }}
-        >
+        <div className="relative z-[1] rounded-md overflow-hidden border border-border">
           <MapContainer
             bounds={bounds}
             boundsOptions={{ padding: [24, 24] }}
@@ -524,18 +439,9 @@ export function GpxMapSection({
           </MapContainer>
 
           {/* Legend — shown when at least one polyline is visible */}
-          <div
-            style={{
-              display: 'flex',
-              gap: 16,
-              padding: '8px 12px',
-              background: 'var(--surface)',
-              borderTop: '1px solid var(--border)',
-              flexWrap: 'wrap',
-            }}
-          >
+          <div className="flex gap-4 px-3 py-2 bg-surface border-t border-border flex-wrap">
             {plannedLatLngs.length > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div className="flex items-center gap-[6px]">
                 <svg width="20" height="6">
                   <line
                     x1="0"
@@ -547,32 +453,25 @@ export function GpxMapSection({
                     strokeDasharray="5 3"
                   />
                 </svg>
-                <span style={{ ...mono, fontSize: 8 }}>Planned Route</span>
+                <span className="font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim">Planned Route</span>
               </div>
             )}
             {tracksWithLatLngs
               .filter((t) => t.positions.length > 1)
               .map(({ entry, color }) => (
-                <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div key={entry.id} className="flex items-center gap-[6px]">
                   <svg width="20" height="6">
                     <line x1="0" y1="3" x2="20" y2="3" stroke={color} strokeWidth="2.5" />
                   </svg>
-                  <span style={{ ...mono, fontSize: 8 }}>{entry.label}</span>
+                  <span className="font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim">{entry.label}</span>
                 </div>
               ))}
           </div>
         </div>
       ) : showMap ? (
-        <div
-          style={{
-            border: '1px dashed var(--border)',
-            borderRadius: 'var(--r-md)',
-            padding: '28px 20px',
-            textAlign: 'center',
-          }}
-        >
-          <div style={{ fontSize: 24, opacity: 0.2, marginBottom: 6 }}>🗺</div>
-          <p style={mono}>Import a planned route or GPS track above to render the map</p>
+        <div className="border border-dashed border-border rounded-md px-5 py-7 text-center">
+          <div className="text-[24px] opacity-20 mb-[6px]">🗺</div>
+          <p className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim">Import a planned route or GPS track above to render the map</p>
         </div>
       ) : null}
 
@@ -580,7 +479,7 @@ export function GpxMapSection({
         ref={fileInputRef}
         type="file"
         accept=".gpx"
-        style={{ display: 'none' }}
+        className="hidden"
         onChange={handleFileChange}
       />
     </div>

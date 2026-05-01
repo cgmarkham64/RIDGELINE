@@ -163,7 +163,7 @@ export function MapTab({ trip, onTripUpdated }: Props) {
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="flex flex-col h-full">
       <ControlsBar
         trip={trip}
         onTripUpdated={onTripUpdated}
@@ -255,52 +255,22 @@ function ControlsBar({
   const sortedWaypoints = waypoints.slice().sort((a, b) => b.lon - a.lon || b.lat - a.lat)
 
   return (
-    <div
-      style={{
-        flexShrink: 0,
-        borderBottom: '1px solid var(--border)',
-        display: 'flex',
-        alignItems: 'stretch',
-      }}
-    >
+    <div className="shrink-0 border-b border-border flex items-stretch">
       {/* Routes & Tracks */}
-      <div
-        style={{
-          width: '40%',
-          flexShrink: 0,
-          borderRight: '1px solid var(--border)',
-          background: 'var(--surface)',
-          padding: '14px 18px',
-          overflowY: 'auto',
-          maxHeight: 200,
-        }}
-      >
-        <div className="sec-label" style={{ marginBottom: 12 }}>
+      <div className="w-[40%] shrink-0 border-r border-border bg-surface px-[18px] py-[14px] overflow-y-auto max-h-[200px]">
+        <div className="sec-label mb-3">
           Routes &amp; Tracks
         </div>
         <GpxMapSection trip={trip} onTripUpdated={onTripUpdated} showMap={false} />
       </div>
 
       {/* Waypoints */}
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          background: 'var(--surface)',
-          overflowY: 'auto',
-          maxHeight: 200,
-          padding: '6px 18px 14px',
-        }}
-      >
+      <div className="flex-1 min-w-0 bg-surface overflow-y-auto max-h-[200px] px-[18px] pt-[6px] pb-[14px]">
         <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: isAdding || editingId || waypoints.length > 0 ? 12 : 0,
-          }}
+          className="flex items-center justify-between"
+          style={{ marginBottom: isAdding || editingId || waypoints.length > 0 ? 12 : 0 }}
         >
-          <div className="sec-label" style={{ margin: 0, flex: 1 }}>
+          <div className="sec-label m-0 flex-1">
             Waypoints
           </div>
           {!isAdding && !editingId && (
@@ -316,7 +286,7 @@ function ControlsBar({
         </div>
 
         {addMode && !pendingLatLon && (
-          <p style={{ ...mono, color: 'var(--amber)', lineHeight: 1.7 }}>
+          <p style={mono} className="text-amber leading-[1.7]">
             Click anywhere on the map below to place a waypoint
           </p>
         )}
@@ -344,14 +314,14 @@ function ControlsBar({
           </form>
         )}
 
-        {error && <p style={{ fontSize: 11, color: 'var(--red)', marginBottom: 8 }}>{error}</p>}
+        {error && <p className="text-[11px] text-red mb-2">{error}</p>}
 
         {waypoints.length === 0 && !isAdding && !editingId ? (
-          <p style={{ ...mono, fontSize: 9, lineHeight: 1.7 }}>
+          <p style={mono} className="text-[9px] leading-[1.7]">
             No waypoints yet — mark campsites, wildlife sightings, viewpoints, and more.
           </p>
         ) : waypoints.length > 0 ? (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div className="flex flex-wrap gap-[6px]">
             {sortedWaypoints.map((wp) => (
               <WaypointChip
                 key={wp.id}
@@ -405,13 +375,8 @@ function MapArea({
 }) {
   return (
     <div
-      style={{
-        flex: 1,
-        minHeight: 0,
-        position: 'relative',
-        cursor: addMode ? 'crosshair' : 'default',
-        background: 'var(--bg)',
-      }}
+      className="flex-1 min-h-0 relative bg-bg"
+      style={{ cursor: addMode ? 'crosshair' : 'default' }}
     >
       {bounds ? (
         <MapContainer
@@ -484,19 +449,7 @@ function ZoomControls({
   allPoints: [number, number][]
 }) {
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 12,
-        left: 12,
-        zIndex: 1000,
-        display: 'flex',
-        flexDirection: 'column',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--r-sm)',
-        overflow: 'hidden',
-      }}
-    >
+    <div className="absolute top-3 left-3 z-[1000] flex flex-col border border-border rounded-sm overflow-hidden">
       {(['in', 'out', 'fit'] as const).map((action, i) => (
         <button
           key={action}
@@ -509,16 +462,10 @@ function ZoomControls({
             else if (allPoints.length > 1)
               mapRef.current?.fitBounds(allPoints as LatLngBoundsExpression, { padding: [32, 32], animate: true })
           }}
+          className="w-[30px] h-[30px] flex items-center justify-center border-0 text-text-dim"
           style={{
-            width: 30,
-            height: 30,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
             background: 'rgba(15,13,11,0.82)',
-            border: 'none',
             borderTop: i > 0 ? '1px solid var(--border)' : 'none',
-            color: 'var(--text-dim)',
             cursor: action === 'fit' && allPoints.length < 2 ? 'default' : 'pointer',
             opacity: action === 'fit' && allPoints.length < 2 ? 0.4 : 1,
           }}
@@ -548,23 +495,11 @@ function ZoomControls({
 function AddModeHint() {
   return (
     <div
+      className="absolute bottom-4 z-[1000] border border-amber-border rounded-sm px-[14px] py-[6px] font-mono text-[10px] tracking-[0.12em] uppercase text-amber pointer-events-none whitespace-nowrap"
       style={{
-        position: 'absolute',
-        bottom: 16,
         left: '50%',
         transform: 'translateX(-50%)',
-        zIndex: 1000,
         background: 'rgba(15,13,11,0.85)',
-        border: '1px solid var(--amber-border)',
-        borderRadius: 'var(--r-sm)',
-        padding: '6px 14px',
-        fontFamily: 'var(--font-mono)',
-        fontSize: 10,
-        letterSpacing: '0.12em',
-        textTransform: 'uppercase',
-        color: 'var(--amber)',
-        pointerEvents: 'none',
-        whiteSpace: 'nowrap',
       }}
     >
       Click to place waypoint · Esc to cancel
@@ -584,22 +519,11 @@ function TrackLegend({
 
   return (
     <div
-      style={{
-        position: 'absolute',
-        bottom: 12,
-        right: 12,
-        zIndex: 1000,
-        background: 'rgba(15,13,11,0.82)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--r-md)',
-        padding: '8px 12px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 5,
-      }}
+      className="absolute bottom-3 right-3 z-[1000] border border-border rounded-md px-3 py-2 flex flex-col gap-[5px]"
+      style={{ background: 'rgba(15,13,11,0.82)' }}
     >
       {plannedLatLngs.length > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <div className="flex items-center gap-[7px]">
           <svg width="20" height="6">
             <line x1="0" y1="3" x2="20" y2="3" stroke={PLANNED_COLOR} strokeWidth="2.5" strokeDasharray="5 3" />
           </svg>
@@ -607,7 +531,7 @@ function TrackLegend({
         </div>
       )}
       {visibleTracks.map(({ entry, color }) => (
-        <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <div key={entry.id} className="flex items-center gap-[7px]">
           <svg width="20" height="6">
             <line x1="0" y1="3" x2="20" y2="3" stroke={color} strokeWidth="2.5" />
           </svg>
@@ -622,24 +546,13 @@ function TrackLegend({
 
 function AttributionStrip() {
   return (
-    <div
-      style={{
-        flexShrink: 0,
-        padding: '5px 14px',
-        borderTop: '1px solid var(--border)',
-        background: 'var(--surface)',
-        fontFamily: 'var(--font-mono)',
-        fontSize: 8,
-        letterSpacing: '0.06em',
-        color: 'var(--text-dim)',
-      }}
-    >
+    <div className="shrink-0 px-[14px] py-[5px] border-t border-border bg-surface font-mono text-[8px] tracking-[0.06em] text-text-dim">
       Map data &copy;{' '}
       <a
         href="https://www.openstreetmap.org/copyright"
         target="_blank"
         rel="noreferrer"
-        style={{ color: 'var(--text-dim)', textDecoration: 'underline', textUnderlineOffset: 2 }}
+        className="text-text-dim underline underline-offset-[2px]"
       >
         OpenStreetMap
       </a>{' '}
@@ -648,7 +561,7 @@ function AttributionStrip() {
         href="https://carto.com/attributions"
         target="_blank"
         rel="noreferrer"
-        style={{ color: 'var(--text-dim)', textDecoration: 'underline', textUnderlineOffset: 2 }}
+        className="text-text-dim underline underline-offset-[2px]"
       >
         CARTO
       </a>

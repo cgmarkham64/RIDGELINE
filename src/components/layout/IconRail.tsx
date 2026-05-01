@@ -59,32 +59,10 @@ export function IconRail() {
 
   return (
     <>
-      <nav
-        style={{
-          width: 64,
-          flexShrink: 0,
-          background: 'var(--surface)',
-          borderRight: '1px solid var(--border)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          padding: '16px 0 20px',
-          gap: 2,
-          height: '100%',
-        }}
-      >
+      <nav className="w-16 shrink-0 bg-surface border-r border-border flex flex-col items-center py-4 pb-5 gap-[2px] h-full">
         <div
-          style={{
-            fontFamily: 'var(--font-heading)',
-            fontSize: 11,
-            fontWeight: 800,
-            letterSpacing: '0.22em',
-            color: 'var(--amber)',
-            writingMode: 'vertical-lr',
-            transform: 'rotate(180deg)',
-            marginBottom: 20,
-            userSelect: 'none',
-          }}
+          className="font-heading text-[11px] font-extrabold tracking-[0.22em] text-amber mb-5 select-none"
+          style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
         >
           RDGLN
         </div>
@@ -111,28 +89,14 @@ export function IconRail() {
           <line x1="5" y1="12" x2="19" y2="12" />
         </NavLink>
 
-        <div style={{ flex: 1 }} />
+        <div className="flex-1" />
 
         {/* Account + sign out */}
         {user && (
-          <div className="rail-tip-wrap" style={{ flexShrink: 0 }}>
+          <div className="rail-tip-wrap shrink-0">
           <button
             onClick={() => setAccountOpen(true)}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: '50%',
-              overflow: 'hidden',
-              border: '1.5px solid var(--border-mid)',
-              cursor: 'pointer',
-              background: 'var(--surface3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 0,
-              flexShrink: 0,
-              transition: 'border-color 0.15s',
-            }}
+            className="w-9 h-9 rounded-full overflow-hidden border-[1.5px] border-border-mid cursor-pointer bg-surface-3 flex items-center justify-center p-0 shrink-0 transition-[border-color] duration-[150ms]"
             onMouseEnter={(e) =>
               ((e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--amber)')
             }
@@ -144,18 +108,10 @@ export function IconRail() {
               <img
                 src={user.avatarUrl}
                 alt={user.name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                className="w-full h-full object-cover block"
               />
             ) : (
-              <span
-                style={{
-                  fontFamily: 'var(--font-heading)',
-                  fontSize: 12,
-                  fontWeight: 800,
-                  color: 'var(--amber)',
-                  lineHeight: 1,
-                }}
-              >
+              <span className="font-heading text-[12px] font-extrabold text-amber leading-none">
                 {initials(user.name)}
               </span>
             )}
@@ -166,7 +122,7 @@ export function IconRail() {
 
         {/* Sign out */}
         {user && (
-          <div className="rail-tip-wrap" style={{ flexShrink: 0 }}>
+          <div className="rail-tip-wrap shrink-0">
             <button
               onClick={handleSignOut}
               className="rail-logout-btn"

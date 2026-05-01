@@ -13,7 +13,7 @@ export const Route = createRoute({
     }
   },
   component: () => (
-    <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+    <div className="flex h-full overflow-hidden">
       <IconRail />
       <Outlet />
     </div>

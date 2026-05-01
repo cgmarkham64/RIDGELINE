@@ -18,84 +18,34 @@ export function ShareDialog({ trip, onClose }: Props) {
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 50,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0,0,0,0.7)',
-        backdropFilter: 'blur(4px)',
-      }}
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
     >
       <div
-        style={{
-          background: 'var(--surface)',
-          border: '1px solid var(--border-mid)',
-          borderRadius: 'var(--r-lg)',
-          width: '100%',
-          maxWidth: 420,
-          margin: '0 16px',
-          overflow: 'hidden',
-        }}
+        className="bg-surface border border-border-mid rounded-lg w-full max-w-[420px] mx-4 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '16px 20px',
-            borderBottom: '1px solid var(--border)',
-          }}
-        >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
-            <div
-              style={{
-                fontFamily: 'var(--font-heading)',
-                fontSize: 14,
-                fontWeight: 800,
-                color: 'var(--text)',
-              }}
-            >
+            <div className="font-heading text-[14px] font-extrabold text-text">
               Share trip
             </div>
-            <div
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 9,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                color: 'var(--text-dim)',
-                marginTop: 3,
-              }}
-            >
+            <div className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim mt-[3px]">
               {trip.title}
             </div>
           </div>
           <button
             onClick={onClose}
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 'var(--r-sm)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'var(--surface2)',
-              border: '1px solid var(--border)',
-              cursor: 'pointer',
-              color: 'var(--text-dim)',
-            }}
+            className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-2 border border-border cursor-pointer text-text-dim"
           >
             <svg
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              style={{ width: 14, height: 14, strokeWidth: 2 }}
+              className="w-[14px] h-[14px]"
+              style={{ strokeWidth: 2 }}
             >
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
@@ -103,52 +53,27 @@ export function ShareDialog({ trip, onClose }: Props) {
         </div>
 
         {/* Options */}
-        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="px-5 py-4 flex flex-col gap-[10px]">
           {/* Copy link */}
           <div
+            className="rounded-md px-4 py-[14px] transition-all duration-200"
             style={{
               border: `1px solid ${copied ? 'var(--pine-border)' : 'var(--border)'}`,
-              borderRadius: 'var(--r-md)',
-              padding: '14px 16px',
               background: copied ? 'var(--pine-dim)' : 'var(--surface2)',
-              transition: 'all 0.2s',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-              }}
-            >
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-heading)',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--text)',
-                    marginBottom: 3,
-                  }}
-                >
+                <div className="font-heading text-[12px] font-bold text-text mb-[3px]">
                   Copy link
                 </div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 9,
-                    letterSpacing: '0.08em',
-                    color: 'var(--text-dim)',
-                  }}
-                >
+                <div className="font-mono text-[9px] tracking-[0.08em] text-text-dim">
                   Share a direct link to this trip
                 </div>
               </div>
               <button
                 onClick={copyLink}
-                className={`btn btn-sm ${copied ? 'btn-ghost' : 'btn-sky'}`}
-                style={{ flexShrink: 0 }}
+                className={`btn btn-sm shrink-0 ${copied ? 'btn-ghost' : 'btn-sky'}`}
               >
                 {copied ? (
                   <>
@@ -156,11 +81,12 @@ export function ShareDialog({ trip, onClose }: Props) {
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      style={{ width: 12, height: 12, strokeWidth: 2.5, color: 'var(--pine)' }}
+                      className="w-3 h-3 text-pine"
+                      style={{ strokeWidth: 2.5 }}
                     >
                       <path d="M20 6L9 17l-5-5" />
                     </svg>
-                    <span style={{ color: 'var(--pine)' }}>Copied</span>
+                    <span className="text-pine">Copied</span>
                   </>
                 ) : (
                   <>
@@ -168,7 +94,8 @@ export function ShareDialog({ trip, onClose }: Props) {
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      style={{ width: 12, height: 12, strokeWidth: 2 }}
+                      className="w-3 h-3"
+                      style={{ strokeWidth: 2 }}
                     >
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                       <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
@@ -181,59 +108,17 @@ export function ShareDialog({ trip, onClose }: Props) {
           </div>
 
           {/* Export PDF */}
-          <div
-            style={{
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--r-md)',
-              padding: '14px 16px',
-              background: 'var(--surface2)',
-              opacity: 0.6,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-              }}
-            >
+          <div className="border border-border rounded-md px-4 py-[14px] bg-surface-2 opacity-60">
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-heading)',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: 'var(--text)',
-                    marginBottom: 3,
-                  }}
-                >
+                <div className="font-heading text-[12px] font-bold text-text mb-[3px]">
                   Export as PDF
                 </div>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 9,
-                    letterSpacing: '0.08em',
-                    color: 'var(--text-dim)',
-                  }}
-                >
+                <div className="font-mono text-[9px] tracking-[0.08em] text-text-dim">
                   Styled trip report with journal, map &amp; stats
                 </div>
               </div>
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 8,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  color: 'var(--text-dim)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 3,
-                  padding: '3px 7px',
-                  flexShrink: 0,
-                }}
-              >
+              <span className="font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim border border-border rounded-[3px] px-[7px] py-[3px] shrink-0">
                 Coming soon
               </span>
             </div>

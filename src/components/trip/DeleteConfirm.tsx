@@ -17,45 +17,20 @@ export function DeleteConfirm({ trip, onClose, onDeleted }: Props) {
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 50,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0,0,0,0.7)',
-      }}
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.7)' }}
     >
-      <div
-        style={{
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--r-lg)',
-          width: '100%',
-          maxWidth: 360,
-          margin: '0 16px',
-          padding: 24,
-        }}
-      >
-        <h2
-          style={{
-            fontFamily: 'var(--font-heading)',
-            fontSize: 16,
-            fontWeight: 700,
-            color: 'var(--text)',
-            marginBottom: 8,
-          }}
-        >
+      <div className="bg-surface border border-border rounded-lg w-full max-w-[360px] mx-4 p-6">
+        <h2 className="font-heading text-[16px] font-bold text-text mb-2">
           Delete trip?
         </h2>
-        <p style={{ fontSize: 13, color: 'var(--text-mid)', marginBottom: 6 }}>
-          <span style={{ color: 'var(--text)' }}>{trip.title}</span> will be permanently deleted.
+        <p className="text-[13px] text-text-mid mb-[6px]">
+          <span className="text-text">{trip.title}</span> will be permanently deleted.
         </p>
-        <p style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 24 }}>
+        <p className="text-[12px] text-text-dim mb-6">
           This action cannot be undone.
         </p>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <div className="flex gap-2 justify-end">
           <button onClick={onClose} disabled={isPending} className="btn btn-ghost">
             Cancel
           </button>

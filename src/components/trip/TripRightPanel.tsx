@@ -20,18 +20,7 @@ export function TripRightPanel({ trip, onTripUpdated, activeTab }: Props) {
   }
 
   return (
-    <div
-      style={{
-        width: 300,
-        flexShrink: 0,
-        borderLeft: '1px solid var(--border)',
-        background: 'var(--surface)',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '18px 14px',
-      }}
-    >
+    <div className="w-[300px] shrink-0 border-l border-border bg-surface overflow-y-auto flex flex-col px-[14px] py-[18px]">
       {!isMapTab && (
         <RpSection label="Route Map">
           <GpxMapSection
@@ -65,23 +54,13 @@ export function TripRightPanel({ trip, onTripUpdated, activeTab }: Props) {
         <ComingSoon />
       </RpSection>
       {!isMapTab && (
-        <div
-          style={{
-            marginTop: 'auto',
-            paddingTop: 16,
-            fontFamily: 'var(--font-mono)',
-            fontSize: 8,
-            letterSpacing: '0.06em',
-            color: 'var(--text-dim)',
-            lineHeight: 1.8,
-          }}
-        >
+        <div className="mt-auto pt-4 font-mono text-[8px] tracking-[0.06em] text-text-dim leading-[1.8]">
           Map data &copy;{' '}
           <a
             href="https://www.openstreetmap.org/copyright"
             target="_blank"
             rel="noreferrer"
-            style={{ color: 'var(--text-dim)', textDecoration: 'underline', textUnderlineOffset: 2 }}
+            className="text-text-dim underline underline-offset-[2px]"
           >
             OpenStreetMap
           </a>{' '}
@@ -90,7 +69,7 @@ export function TripRightPanel({ trip, onTripUpdated, activeTab }: Props) {
             href="https://carto.com/attributions"
             target="_blank"
             rel="noreferrer"
-            style={{ color: 'var(--text-dim)', textDecoration: 'underline', textUnderlineOffset: 2 }}
+            className="text-text-dim underline underline-offset-[2px]"
           >
             CARTO
           </a>
@@ -102,20 +81,8 @@ export function TripRightPanel({ trip, onTripUpdated, activeTab }: Props) {
 
 function RpSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 24 }}>
-      <div
-        style={{
-          fontFamily: 'var(--font-heading)',
-          fontSize: 9,
-          fontWeight: 700,
-          letterSpacing: '0.2em',
-          textTransform: 'uppercase',
-          color: 'var(--text-dim)',
-          paddingBottom: 8,
-          marginBottom: 12,
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
+    <div className="mb-6">
+      <div className="font-heading text-[9px] font-bold tracking-[0.2em] uppercase text-text-dim pb-2 mb-3 border-b border-border">
         {label}
       </div>
       {children}
@@ -142,16 +109,7 @@ function WaypointList({
 
   if (waypoints.length === 0) {
     return (
-      <p
-        style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 9,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          color: 'var(--text-dim)',
-          lineHeight: 1.7,
-        }}
-      >
+      <p className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim leading-[1.7]">
         No waypoints yet — add them from the Map tab
       </p>
     )
@@ -160,7 +118,7 @@ function WaypointList({
   const sorted = waypoints.slice().sort((a, b) => b.lon - a.lon || b.lat - a.lat)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div className="flex flex-col gap-[6px]">
       {sorted.map((wp) => {
         const isActive = wp.id === activeWaypointId
         const color = WAYPOINT_COLOR[wp.type]
@@ -169,53 +127,26 @@ function WaypointList({
             key={wp.id}
             ref={isActive ? activeRef : null}
             onClick={() => onWaypointClick?.(wp.id)}
+            className="flex flex-col gap-0 px-[10px] py-[7px] rounded-md cursor-pointer transition-[background,border-color] duration-150"
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 0,
-              padding: '7px 10px',
               background: isActive ? `${color}12` : 'var(--surface2)',
               border: `1px solid ${isActive ? color + '66' : color + '33'}`,
-              borderRadius: 'var(--r-md)',
-              cursor: 'pointer',
-              transition: 'background 0.15s, border-color 0.15s',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="flex items-center gap-2">
               <WaypointIcon type={wp.type} size={16} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 12,
-                    color: 'var(--text)',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
+              <div className="flex-1 min-w-0">
+                <div className="font-sans text-[12px] text-text overflow-hidden text-ellipsis whitespace-nowrap">
                   {wp.label}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                <div className="flex items-center gap-[6px] mt-[2px]">
                   <span
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: 7,
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                      color,
-                    }}
+                    className="font-mono text-[7px] tracking-[0.08em] uppercase"
+                    style={{ color }}
                   >
                     {WAYPOINT_LABEL[wp.type]}
                   </span>
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: 7,
-                      letterSpacing: '0.04em',
-                      color: 'var(--text-dim)',
-                    }}
-                  >
+                  <span className="font-mono text-[7px] tracking-[0.04em] text-text-dim">
                     {wp.lat.toFixed(4)}, {wp.lon.toFixed(4)}
                   </span>
                 </div>
@@ -223,15 +154,8 @@ function WaypointList({
             </div>
             {isActive && wp.notes && (
               <div
-                style={{
-                  marginTop: 7,
-                  paddingTop: 7,
-                  borderTop: `1px solid ${color}33`,
-                  fontFamily: 'var(--font-sans)',
-                  fontSize: 11,
-                  color: 'var(--text-dim)',
-                  lineHeight: 1.5,
-                }}
+                className="mt-[7px] pt-[7px] font-sans text-[11px] text-text-dim leading-[1.5]"
+                style={{ borderTop: `1px solid ${color}33` }}
               >
                 {wp.notes}
               </div>
@@ -245,24 +169,8 @@ function WaypointList({
 
 function ComingSoon() {
   return (
-    <div
-      style={{
-        background: 'var(--surface2)',
-        border: '1px dashed var(--border)',
-        borderRadius: 'var(--r-md)',
-        padding: '22px 16px',
-        textAlign: 'center',
-      }}
-    >
-      <p
-        style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 8,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          color: 'var(--text-dim)',
-        }}
-      >
+    <div className="bg-surface-2 border border-dashed border-border rounded-md px-4 py-[22px] text-center">
+      <p className="font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim">
         Coming soon
       </p>
     </div>

@@ -1,29 +1,8 @@
 export function MapEmptyState() {
   return (
-    <div
-      style={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-        background: 'var(--bg)',
-      }}
-    >
-      <div style={{ fontSize: 32, opacity: 0.15 }}>🗺</div>
-      <p
-        style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 9,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          color: 'var(--text-dim)',
-          textAlign: 'center',
-          maxWidth: 220,
-          lineHeight: 1.8,
-        }}
-      >
+    <div className="h-full flex flex-col items-center justify-center gap-[10px] bg-bg">
+      <div className="text-[32px] opacity-[0.15]">🗺</div>
+      <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim text-center max-w-[220px] leading-[1.8]">
         Import a planned route or GPS track in the right panel, or add a waypoint below to render
         the map
       </p>

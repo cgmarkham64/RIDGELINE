@@ -173,25 +173,10 @@ function toSvg(
   return { lineD, areaD, gridLines, distTicks, dividers }
 }
 
+// ─── Shared mono class string for non-SVG usage ───────────────────────────────
+const monoCls = 'font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim text-center'
+
 // ─── Component ────────────────────────────────────────────────────────────────
-
-const monoStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)',
-  fontSize: 8,
-  letterSpacing: '0.1em',
-  textTransform: 'uppercase',
-  color: 'var(--text-dim)',
-  textAlign: 'center' as const,
-}
-
-const statValueStyle: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)',
-  fontSize: 11,
-  letterSpacing: '0.04em',
-  color: 'var(--amber)',
-  display: 'block',
-  marginTop: 2,
-}
 
 export function ElevationProfile({
   planned,
@@ -211,7 +196,7 @@ export function ElevationProfile({
   if (!source) {
     const hasAnyTrack = !!planned || gpxTracks.length > 0
     return (
-      <p style={{ ...monoStyle, lineHeight: 1.8, textAlign: 'left' }}>
+      <p className={`${monoCls} leading-[1.8] text-left`}>
         {hasAnyTrack
           ? 'No elevation data found — try importing a recorded GPS track'
           : 'Import a planned route or GPS track to see the elevation profile'}
@@ -249,8 +234,8 @@ export function ElevationProfile({
   const TOOLTIP_PAD_X = 5
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <span style={{ ...monoStyle, fontSize: 7 }}>{heading}</span>
+    <div className="flex flex-col gap-[10px]">
+      <span className={`${monoCls} text-[7px]`}>{heading}</span>
 
       <svg
         viewBox={`0 0 ${VB_W} ${VB_H}`}
@@ -364,19 +349,16 @@ export function ElevationProfile({
       </svg>
 
       {/* Stats row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
+      <div className="grid grid-cols-4 gap-1">
         {[
           { key: 'Gain', value: `+${gain.toLocaleString()} ft` },
           { key: 'Loss', value: `-${loss.toLocaleString()} ft` },
           { key: 'Max', value: `${Math.round(maxEle).toLocaleString()} ft` },
           { key: 'Dist', value: `${totalDist.toFixed(1)} mi` },
         ].map(({ key, value }) => (
-          <div
-            key={key}
-            style={{ background: 'var(--surface2)', borderRadius: 'var(--r-sm)', padding: '5px 4px' }}
-          >
-            <span style={monoStyle}>{key}</span>
-            <span style={statValueStyle}>{value}</span>
+          <div key={key} className="bg-surface-2 rounded-sm px-1 py-[5px]">
+            <span className={monoCls}>{key}</span>
+            <span className="font-mono text-[11px] tracking-[0.04em] text-amber block mt-[2px]">{value}</span>
           </div>
         ))}
       </div>

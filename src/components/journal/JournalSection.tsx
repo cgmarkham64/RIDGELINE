@@ -49,17 +49,9 @@ interface Props {
   trip: Trip
 }
 
-const condInput: React.CSSProperties = {
-  width: '100%',
-  padding: '6px 8px',
-  border: '1px solid var(--border)',
-  borderRadius: 'var(--r-sm)',
-  fontSize: 12,
-  background: 'var(--surface)',
-  color: 'var(--text)',
-  outline: 'none',
-  transition: 'border-color 0.14s',
-}
+// Shared className for condition inputs
+const condInputCls =
+  'w-full px-2 py-[6px] border border-border rounded-sm text-[12px] bg-surface text-text outline-none transition-[border-color] duration-[140ms]'
 
 export function JournalSection({ trip }: Props) {
   const [selectedDate, setSelectedDate] = useState(trip.startDate.slice(0, 10))
@@ -197,15 +189,7 @@ export function JournalSection({ trip }: Props) {
       />
 
       {isLoading ? (
-        <p
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: 9,
-            color: 'var(--text-dim)',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-          }}
-        >
+        <p className="font-mono text-[9px] text-text-dim tracking-[0.1em] uppercase">
           Loading…
         </p>
       ) : (
@@ -215,71 +199,29 @@ export function JournalSection({ trip }: Props) {
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            style={{ display: 'none' }}
+            className="hidden"
             onChange={handleScanFile}
           />
 
           {/* Entry header: "Day N" + title input + scan button */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              gap: 10,
-              flexWrap: 'wrap',
-              paddingBottom: 14,
-              marginBottom: 18,
-              borderBottom: '1px solid var(--border)',
-            }}
-          >
-            <span
-              style={{
-                fontFamily: 'var(--font-heading)',
-                fontSize: 28,
-                fontWeight: 800,
-                color: 'var(--amber)',
-                lineHeight: 1,
-                letterSpacing: '-0.01em',
-                flexShrink: 0,
-              }}
-            >
+          <div className="flex items-baseline gap-[10px] flex-wrap pb-[14px] mb-[18px] border-b border-border">
+            <span className="font-heading text-[28px] font-extrabold text-amber leading-none tracking-[-0.01em] shrink-0">
               Day {dayNumber}
             </span>
             <input
               {...register('title')}
               placeholder="Add a title…"
-              style={{
-                fontFamily: 'var(--font-heading)',
-                fontSize: 18,
-                fontWeight: 600,
-                color: 'var(--text)',
-                background: 'none',
-                border: 'none',
-                outline: 'none',
-                flex: 1,
-                minWidth: 120,
-                padding: 0,
-              }}
+              className="font-heading text-[18px] font-semibold text-text bg-transparent border-0 outline-none flex-1 min-w-[120px] p-0"
             />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={scanning}
               title="Scan a photo of your journal page to auto-fill this entry"
+              className="flex items-center gap-[5px] font-mono text-[9px] tracking-[0.1em] uppercase bg-transparent border border-current rounded-sm px-2 py-1 shrink-0"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                fontFamily: 'var(--font-mono)',
-                fontSize: 9,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
                 color: scanning ? 'var(--text-dim)' : 'var(--amber)',
-                background: 'none',
-                border: '1px solid currentColor',
-                borderRadius: 'var(--r-sm)',
-                padding: '4px 8px',
                 cursor: scanning ? 'default' : 'pointer',
-                flexShrink: 0,
               }}
             >
               {scanning ? 'Scanning…' : '⊕ Scan page'}
@@ -287,31 +229,20 @@ export function JournalSection({ trip }: Props) {
           </div>
 
           {scanError && (
-            <p style={{ fontSize: 11, color: 'var(--red)', marginBottom: 12 }}>{scanError}</p>
+            <p className="text-[11px] text-red mb-3">{scanError}</p>
           )}
 
           {/* Conditions — 5 columns */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(5, 1fr)',
-              gap: 6,
-              marginBottom: 22,
-            }}
-          >
+          <div className="grid grid-cols-5 gap-[6px] mb-[22px]">
             <CondCell label="Miles">
               <input
                 type="number"
                 step="0.1"
                 {...register('milesCovered')}
                 placeholder="—"
-                style={condInput}
-                onFocus={(e) => {
-                  e.target.style.borderColor = 'var(--border-mid)'
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'var(--border)'
-                }}
+                className={condInputCls}
+                onFocus={(e) => { e.target.style.borderColor = 'var(--border-mid)' }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--border)' }}
               />
             </CondCell>
             <CondCell label="Elev. gain (ft)">
@@ -320,13 +251,9 @@ export function JournalSection({ trip }: Props) {
                 step="1"
                 {...register('elevationGainFt')}
                 placeholder="—"
-                style={condInput}
-                onFocus={(e) => {
-                  e.target.style.borderColor = 'var(--border-mid)'
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'var(--border)'
-                }}
+                className={condInputCls}
+                onFocus={(e) => { e.target.style.borderColor = 'var(--border-mid)' }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--border)' }}
               />
             </CondCell>
             <CondCell label="Temp Low (°F)">
@@ -335,13 +262,9 @@ export function JournalSection({ trip }: Props) {
                 step="1"
                 {...register('tempLowF')}
                 placeholder="—"
-                style={condInput}
-                onFocus={(e) => {
-                  e.target.style.borderColor = 'var(--border-mid)'
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'var(--border)'
-                }}
+                className={condInputCls}
+                onFocus={(e) => { e.target.style.borderColor = 'var(--border-mid)' }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--border)' }}
               />
             </CondCell>
             <CondCell label="Temp High (°F)">
@@ -350,13 +273,9 @@ export function JournalSection({ trip }: Props) {
                 step="1"
                 {...register('tempHighF')}
                 placeholder="—"
-                style={condInput}
-                onFocus={(e) => {
-                  e.target.style.borderColor = 'var(--border-mid)'
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'var(--border)'
-                }}
+                className={condInputCls}
+                onFocus={(e) => { e.target.style.borderColor = 'var(--border-mid)' }}
+                onBlur={(e) => { e.target.style.borderColor = 'var(--border)' }}
               />
             </CondCell>
             <CondCell label="Weather">
@@ -366,13 +285,9 @@ export function JournalSection({ trip }: Props) {
                   list="weather-options"
                   placeholder="Clear, Rain…"
                   autoComplete="off"
-                  style={condInput}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--border-mid)'
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'var(--border)'
-                  }}
+                  className={condInputCls}
+                  onFocus={(e) => { e.target.style.borderColor = 'var(--border-mid)' }}
+                  onBlur={(e) => { e.target.style.borderColor = 'var(--border)' }}
                 />
                 <datalist id="weather-options">
                   {WEATHER_OPTIONS.map((opt) => (
@@ -384,53 +299,25 @@ export function JournalSection({ trip }: Props) {
           </div>
 
           {/* Narrative */}
-          <div
-            style={{
-              borderLeft: '2px solid var(--amber-border)',
-              paddingLeft: 16,
-              marginBottom: 20,
-            }}
-          >
+          <div className="border-l-2 border-amber-border pl-4 mb-5">
             <textarea
               {...register('body')}
               rows={12}
               placeholder="Write about your day — the terrain, how you felt, what you saw…"
-              style={{
-                width: '100%',
-                background: 'none',
-                border: 'none',
-                outline: 'none',
-                resize: 'none',
-                fontFamily: 'var(--font-sans)',
-                fontStyle: 'italic',
-                fontSize: 14,
-                lineHeight: 1.82,
-                color: 'var(--text-mid)',
-                padding: 0,
-              }}
+              className="w-full bg-transparent border-0 outline-none resize-none font-sans italic text-[14px] leading-[1.82] text-text-mid p-0"
             />
           </div>
 
           {errors.body && (
-            <p style={{ fontSize: 11, color: 'var(--red)', marginBottom: 12 }}>
+            <p className="text-[11px] text-red mb-3">
               {errors.body.message}
             </p>
           )}
 
-          <div
-            style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end' }}
-          >
-            {save.isError && <span style={{ fontSize: 11, color: 'var(--red)' }}>Save failed</span>}
+          <div className="flex items-center gap-3 justify-end">
+            {save.isError && <span className="text-[11px] text-red">Save failed</span>}
             {savedFeedback && (
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 9,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  color: 'var(--pine)',
-                }}
-              >
+              <span className="font-mono text-[9px] tracking-[0.1em] uppercase text-pine">
                 Saved ✓
               </span>
             )}
@@ -452,24 +339,8 @@ export function JournalSection({ trip }: Props) {
 
 function CondCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        background: 'var(--surface2)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--r-md)',
-        padding: '9px 11px',
-      }}
-    >
-      <div
-        style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: 9,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          color: 'var(--text-mid)',
-          marginBottom: 5,
-        }}
-      >
+    <div className="bg-surface-2 border border-border rounded-md px-[11px] py-[9px]">
+      <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-mid mb-[5px]">
         {label}
       </div>
       {children}
