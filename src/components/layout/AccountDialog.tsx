@@ -115,7 +115,7 @@ export function AccountDialog({ onClose }: Props) {
   }
 
   // ── Name save ───────────────────────────────────────────────────────────────
-  async function handleSaveName(e: React.FormEvent) {
+  async function handleSaveName(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!nameDirty || !user) return
     const currentUser = user
@@ -134,7 +134,7 @@ export function AccountDialog({ onClose }: Props) {
   }
 
   // ── Password change ──────────────────────────────────────────────────────────
-  async function handleChangePassword(e: React.FormEvent) {
+  async function handleChangePassword(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!user) return
     const currentUser = user

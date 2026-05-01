@@ -129,6 +129,7 @@ server/
     - In `ShareDialog.tsx`, add an "Invite by email" input below the copy-link button. On submit, call the new endpoint and show confirmation or error inline.
     - Shared trips should appear in the recipient's trip list with a visual indicator (e.g. a small avatar or "Shared by X" label) so they're distinguishable from owned trips.
     - Add a `DELETE /api/trips/:id/share/:sub` endpoint so the owner can revoke access.
+    - Add a notification bell icon to the bottom part of IconRail above the account element. Include a popover menu that scrolls with notifications. A notification in this context will be there when another user shares a trip and journal entries with you. The notification should allow you to accept or decline the invite to collaborate. Another notification should be available for the original author of the trip when the invited user accepts or declines the collaboration invitation.
 11. Shared trip acceptance flow — for a future invite-token model (email link):
     - Generate a signed, expiring invite token (`crypto.randomUUID()` stored on the trip + expiry timestamp) when the owner shares.
     - Email the token to the invitee (requires a mail integration — Sendgrid, Resend, etc.).
@@ -141,9 +142,9 @@ server/
     4. **Remove local auth routes** — delete `server/src/routes/auth.ts` and the `POST /api/auth` entries in `index.ts`. Keycloak owns login/register/password-reset.
     5. **Migrate existing users** — for each `User` doc in MongoDB, create a matching user in Keycloak (via the Admin REST API) and update the `sub` field in all their documents to the Keycloak-issued UUID. This is the only data migration step; it's a one-time script.
     6. **Drop the `User` model** — once migrated, `server/src/models/User.ts` is no longer needed. User identity comes from the Keycloak token; store only app-specific profile data if needed.
-13. Fix `FormEvent` deprecation in `AccountDialog.tsx` — React 19 deprecated the re-export of `FormEvent` from `react` (TS6385 warnings on lines 119 and 138). Import from `react` using `React.FormEvent` or switch to the native `SubmitEvent` type.
 
 #### Todo Sidebar nav — planned page contents
+- **Trips** - Share trips to other users leads to collaboration with other registered users. Add a feature to allow for simultaneous and deconflicted/merged edits of a trip and journal entries.
 - **Map** (`/map`) — Global map showing all GPX tracks and planned routes across every trip. Clicking a track opens the associated trip or plan detail.
 - **Photos** (`/photos`) — Collage/grid of all photos across all trips, with basic metadata (trip name, date, GPS coords). Clicking a photo navigates to its trip or shows full EXIF metadata.
 - **Gear** (`/gear`) — Categorized lists of the user's gear inventory. Eventually links to loadouts attached to trips and supports weight calculations.
