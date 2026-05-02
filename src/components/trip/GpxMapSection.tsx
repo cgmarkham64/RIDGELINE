@@ -310,7 +310,7 @@ export function GpxMapSection({
           {gpxTracks.length === 0 ? (
             <div className="font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim">Import after each day</div>
           ) : (
-            <div className="flex flex-col gap-1.25">
+            <div className={"flex flex-col gap-1.25"}>
               {gpxTracks.map((entry, i) => {
                 const color = trackColor(i)
                 const isImporting = importing === entry.id

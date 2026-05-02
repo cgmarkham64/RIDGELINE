@@ -34,6 +34,7 @@ export function MapTab({ trip, onTripUpdated }: Props) {
   const [focusId, setFocusId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [contextMenu, setContextMenu] = useState<{ lat: number; lon: number; x: number; y: number } | null>(null)
+  const [waypointContextMenu, setWaypointContextMenu] = useState<{ wp: Waypoint; x: number; y: number } | null>(null)
   const mapRef = useRef<L.Map | null>(null)
 
   const waypoints = trip.waypoints ?? []
@@ -77,16 +78,26 @@ export function MapTab({ trip, onTripUpdated }: Props) {
     setPendingLatLon({ lat, lon })
     setAddForm(DEFAULT_FORM)
     setContextMenu(null)
+    setWaypointContextMenu(null)
     cancelEdit()
   }
 
   function handleContextMenu(lat: number, lon: number, x: number, y: number) {
     cancelAdd()
     cancelEdit()
+    setWaypointContextMenu(null)
     setContextMenu({ lat, lon, x, y })
   }
 
+  function handleMarkerContextMenu(wp: Waypoint, x: number, y: number) {
+    cancelAdd()
+    setContextMenu(null)
+    setWaypointContextMenu({ wp, x, y })
+  }
+
   function handleMarkerClick(wp: Waypoint) {
+    setContextMenu(null)
+    setWaypointContextMenu(null)
     if (editingId === wp.id) {
       cancelEdit()
     } else {
@@ -101,6 +112,7 @@ export function MapTab({ trip, onTripUpdated }: Props) {
         cancelAdd()
         cancelEdit()
         setContextMenu(null)
+        setWaypointContextMenu(null)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -177,21 +189,12 @@ export function MapTab({ trip, onTripUpdated }: Props) {
         trip={trip}
         onTripUpdated={onTripUpdated}
         waypoints={waypoints}
-        isAdding={isAdding}
         addMode={addMode}
-        pendingLatLon={pendingLatLon}
-        addForm={addForm}
         editingId={editingId}
-        editForm={editForm}
-        saving={saving}
-        error={error}
         onAddModeStart={() => setAddMode(true)}
-        onCancelAll={() => { cancelAdd(); cancelEdit() }}
-        onAddFormChange={(patch) => setAddForm((f) => ({ ...f, ...patch }))}
-        onAddSubmit={handleAddWaypoint}
-        onEditFormChange={(patch) => setEditForm((f) => ({ ...f, ...patch }))}
-        onEditSubmit={handleSaveEdit}
-        onChipSelect={(wp) => { if (editingId === wp.id) { cancelEdit() } else { startEdit(wp); setFocusId(wp.id) } }}
+        onCancelAdd={cancelAdd}
+        onChipSelect={(wp) => setFocusId(wp.id)}
+        onChipEdit={(wp) => startEdit(wp)}
         onChipDelete={handleDeleteWaypoint}
       />
 
@@ -209,12 +212,40 @@ export function MapTab({ trip, onTripUpdated }: Props) {
         mapRef={mapRef}
         startEnd={resolveStartEnd(plannedLatLngs, tracksWithLatLngs)}
         contextMenu={contextMenu}
+        waypointContextMenu={waypointContextMenu}
         onMapClick={handleMapClick}
         onMarkerClick={handleMarkerClick}
+        onMarkerContextMenu={handleMarkerContextMenu}
+        onDeleteWaypoint={handleDeleteWaypoint}
         onFocusDone={() => setFocusId(null)}
         onContextMenu={handleContextMenu}
         onDismissContextMenu={() => setContextMenu(null)}
+        onDismissWaypointContextMenu={() => setWaypointContextMenu(null)}
       />
+
+      {pendingLatLon && (
+        <WaypointAddDialog
+          coords={pendingLatLon}
+          form={addForm}
+          saving={saving}
+          error={error}
+          onChange={(patch) => setAddForm((f) => ({ ...f, ...patch }))}
+          onSubmit={handleAddWaypoint}
+          onClose={cancelAdd}
+        />
+      )}
+
+      {editingId && (
+        <WaypointEditDialog
+          waypoint={waypoints.find((w) => w.id === editingId)!}
+          form={editForm}
+          saving={saving}
+          error={error}
+          onChange={(patch) => setEditForm((f) => ({ ...f, ...patch }))}
+          onSubmit={handleSaveEdit}
+          onClose={cancelEdit}
+        />
+      )}
 
       <AttributionStrip />
     </div>
@@ -227,41 +258,23 @@ function ControlsBar({
   trip,
   onTripUpdated,
   waypoints,
-  isAdding,
   addMode,
-  pendingLatLon,
-  addForm,
   editingId,
-  editForm,
-  saving,
-  error,
   onAddModeStart,
-  onCancelAll,
-  onAddFormChange,
-  onAddSubmit,
-  onEditFormChange,
-  onEditSubmit,
+  onCancelAdd,
   onChipSelect,
+  onChipEdit,
   onChipDelete,
 }: {
   trip: Trip
   onTripUpdated: (t: Trip) => void
   waypoints: Waypoint[]
-  isAdding: boolean
   addMode: boolean
-  pendingLatLon: { lat: number; lon: number } | null
-  addForm: typeof DEFAULT_FORM
   editingId: string | null
-  editForm: typeof DEFAULT_FORM
-  saving: boolean
-  error: string | null
   onAddModeStart: () => void
-  onCancelAll: () => void
-  onAddFormChange: (patch: Partial<typeof DEFAULT_FORM>) => void
-  onAddSubmit: (e: React.FormEvent) => void
-  onEditFormChange: (patch: Partial<typeof DEFAULT_FORM>) => void
-  onEditSubmit: (e: React.FormEvent) => void
+  onCancelAdd: () => void
   onChipSelect: (wp: Waypoint) => void
+  onChipEdit: (wp: Waypoint) => void
   onChipDelete: (id: string) => void
 }) {
   const sortedWaypoints = waypoints.slice().sort((a, b) => b.lon - a.lon || b.lat - a.lat)
@@ -280,55 +293,22 @@ function ControlsBar({
       <div className="flex-1 min-w-0 bg-surface overflow-y-auto max-h-[200px] px-[18px] pt-[6px] pb-3.5">
         <div
           className="flex items-center justify-between"
-          style={{ marginBottom: isAdding || editingId || waypoints.length > 0 ? 12 : 0 }}
+          style={{ marginBottom: editingId || waypoints.length > 0 ? 12 : 0 }}
         >
-          <div className="sec-label m-0 flex-1">
-            Waypoints
-          </div>
-          {!isAdding && !editingId && (
+          <div className="sec-label m-0 flex-1">Waypoints</div>
+          {!addMode && (
             <button type="button" className="btn btn-ghost btn-sm" onClick={onAddModeStart}>
               + Add Waypoint
             </button>
           )}
-          {(isAdding || editingId) && (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={onCancelAll}>
+          {addMode && (
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onCancelAdd}>
               Cancel
             </button>
           )}
         </div>
 
-        {addMode && !pendingLatLon && (
-          <p style={mono} className="text-amber leading-[1.7]">
-            Click anywhere on the map below to place a waypoint
-          </p>
-        )}
-
-        {pendingLatLon && (
-          <form onSubmit={onAddSubmit} style={{ marginBottom: waypoints.length > 0 ? 12 : 0 }}>
-            <WaypointForm
-              coords={pendingLatLon}
-              form={addForm}
-              saving={saving}
-              submitLabel="Add"
-              onChange={onAddFormChange}
-            />
-          </form>
-        )}
-
-        {editingId && (
-          <form onSubmit={onEditSubmit} style={{ marginBottom: waypoints.length > 0 ? 12 : 0 }}>
-            <WaypointForm
-              form={editForm}
-              saving={saving}
-              submitLabel="Save"
-              onChange={onEditFormChange}
-            />
-          </form>
-        )}
-
-        {error && <p className="text-[11px] text-red mb-2">{error}</p>}
-
-        {waypoints.length === 0 && !isAdding && !editingId ? (
+        {waypoints.length === 0 && !addMode && !editingId ? (
           <p style={mono} className="text-[9px] leading-[1.7]">
             No waypoints yet — mark campsites, wildlife sightings, viewpoints, and more.
           </p>
@@ -340,6 +320,7 @@ function ControlsBar({
                 wp={wp}
                 isEditing={editingId === wp.id}
                 onSelect={() => onChipSelect(wp)}
+                onEdit={() => onChipEdit(wp)}
                 onDelete={() => onChipDelete(wp.id)}
               />
             ))}
@@ -366,11 +347,15 @@ function MapArea({
   mapRef,
   startEnd,
   contextMenu,
+  waypointContextMenu,
   onMapClick,
   onMarkerClick,
+  onMarkerContextMenu,
+  onDeleteWaypoint,
   onFocusDone,
   onContextMenu,
   onDismissContextMenu,
+  onDismissWaypointContextMenu,
 }: {
   bounds: L.LatLngBounds | null
   allPoints: [number, number][]
@@ -385,11 +370,15 @@ function MapArea({
   mapRef: React.RefObject<L.Map | null>
   startEnd: { start: [number, number]; end: [number, number] } | null
   contextMenu: { lat: number; lon: number; x: number; y: number } | null
+  waypointContextMenu: { wp: Waypoint; x: number; y: number } | null
   onMapClick: (lat: number, lon: number) => void
   onMarkerClick: (wp: Waypoint) => void
+  onMarkerContextMenu: (wp: Waypoint, x: number, y: number) => void
+  onDeleteWaypoint: (id: string) => void
   onFocusDone: () => void
   onContextMenu: (lat: number, lon: number, x: number, y: number) => void
   onDismissContextMenu: () => void
+  onDismissWaypointContextMenu: () => void
 }) {
   return (
     <div
@@ -425,7 +414,14 @@ function MapArea({
               key={wp.id}
               position={[wp.lat, wp.lon]}
               icon={makeWaypointIcon(wp.type, editingId === wp.id)}
-              eventHandlers={{ click: () => onMarkerClick(wp) }}
+              eventHandlers={{
+                click: () => onMarkerClick(wp),
+                contextmenu: (e) => {
+                  e.originalEvent.preventDefault()
+                  e.originalEvent.stopPropagation()
+                  onMarkerContextMenu(wp, e.containerPoint.x, e.containerPoint.y)
+                },
+              }}
             />
           ))}
           {startEnd && (
@@ -452,21 +448,29 @@ function MapArea({
       )}
 
       {contextMenu && (
-        <div
-          className="absolute z-[1001] bg-surface border border-border rounded-md overflow-hidden py-0.5 shadow-lg"
-          style={{ left: contextMenu.x + 4, top: contextMenu.y + 4, minWidth: 164 }}
-        >
-          <button
+        <ContextMenu x={contextMenu.x} y={contextMenu.y} onDismiss={onDismissContextMenu}>
+          <ContextMenuItem
+            icon={<path d="M12 2C8.686 2 6 4.686 6 8c0 4.5 6 12 6 12s6-7.5 6-12c0-3.314-2.686-6-6-6z" />}
+            label="Add waypoint here"
             onClick={() => onMapClick(contextMenu.lat, contextMenu.lon)}
-            className="w-full flex items-center gap-2 px-3 py-1.75 font-mono text-[10px] tracking-[0.08em] uppercase text-text-mid hover:text-amber hover:bg-surface-2 transition-colors duration-80 cursor-pointer"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5 shrink-0" style={{ strokeWidth: 2 }}>
-              <path d="M12 2C8.686 2 6 4.686 6 8c0 4.5 6 12 6 12s6-7.5 6-12c0-3.314-2.686-6-6-6z" />
-              <circle cx="12" cy="8" r="2" />
-            </svg>
-            Add waypoint here
-          </button>
-        </div>
+          />
+        </ContextMenu>
+      )}
+
+      {waypointContextMenu && (
+        <ContextMenu x={waypointContextMenu.x} y={waypointContextMenu.y} onDismiss={onDismissWaypointContextMenu}>
+          <ContextMenuItem
+            icon={<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />}
+            label="Edit waypoint"
+            onClick={() => { onMarkerClick(waypointContextMenu.wp); onDismissWaypointContextMenu() }}
+          />
+          <ContextMenuItem
+            icon={<><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>}
+            label="Remove waypoint"
+            danger
+            onClick={() => { onDeleteWaypoint(waypointContextMenu.wp.id); onDismissWaypointContextMenu() }}
+          />
+        </ContextMenu>
       )}
       <ZoomControls mapRef={mapRef} allPoints={allPoints} />
       {addMode && <AddModeHint />}
@@ -574,6 +578,153 @@ function TrackLegend({
           <span style={mono}>{entry.label}</span>
         </div>
       ))}
+    </div>
+  )
+}
+
+// ─── Context menu primitives ──────────────────────────────────────────────────
+
+function ContextMenu({ x, y, children }: { x: number; y: number; onDismiss: () => void; children: React.ReactNode }) {
+  return (
+    <div
+      className="absolute z-[1001] bg-surface border border-border rounded-md overflow-hidden py-0.5"
+      style={{ left: x + 4, top: y + 4, minWidth: 172 }}
+    >
+      {children}
+    </div>
+  )
+}
+
+function ContextMenuItem({
+  icon,
+  label,
+  danger = false,
+  onClick,
+}: {
+  icon: React.ReactNode
+  label: string
+  danger?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-2 px-3 py-1.75 font-mono text-[10px] tracking-[0.08em] uppercase transition-colors duration-80 cursor-pointer ${danger ? 'text-text-dim hover:text-red hover:bg-red-dim' : 'text-text-mid hover:text-amber hover:bg-surface-2'}`}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5 shrink-0" style={{ strokeWidth: 2 }}>
+        {icon}
+      </svg>
+      {label}
+    </button>
+  )
+}
+
+// ─── Waypoint add dialog ──────────────────────────────────────────────────────
+
+function WaypointAddDialog({
+  coords,
+  form,
+  saving,
+  error,
+  onChange,
+  onSubmit,
+  onClose,
+}: {
+  coords: { lat: number; lon: number }
+  form: typeof DEFAULT_FORM
+  saving: boolean
+  error: string | null
+  onChange: (patch: Partial<typeof DEFAULT_FORM>) => void
+  onSubmit: (e: React.FormEvent) => void
+  onClose: () => void
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[1002] flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.55)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface border border-border rounded-lg w-full max-w-sm mx-4 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <span className="font-heading text-sm font-extrabold text-text">New Waypoint</span>
+          <button
+            onClick={onClose}
+            className="w-6 h-6 flex items-center justify-center rounded-sm bg-surface-2 border border-border text-text-dim hover:text-text transition-colors cursor-pointer"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5" style={{ strokeWidth: 2 }}>
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <form onSubmit={onSubmit} className="px-4 py-4">
+          <WaypointForm
+            coords={coords}
+            form={form}
+            saving={saving}
+            submitLabel="Add waypoint"
+            onChange={onChange}
+          />
+        </form>
+        {error && <p className="px-4 pb-3 text-[11px] text-red">{error}</p>}
+      </div>
+    </div>
+  )
+}
+
+// ─── Waypoint edit dialog ─────────────────────────────────────────────────────
+
+function WaypointEditDialog({
+  waypoint,
+  form,
+  saving,
+  error,
+  onChange,
+  onSubmit,
+  onClose,
+}: {
+  waypoint: Waypoint
+  form: typeof DEFAULT_FORM
+  saving: boolean
+  error: string | null
+  onChange: (patch: Partial<typeof DEFAULT_FORM>) => void
+  onSubmit: (e: React.FormEvent) => void
+  onClose: () => void
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[1002] flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.55)' }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface border border-border rounded-lg w-full max-w-sm mx-4 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <span className="font-heading text-sm font-extrabold text-text">Edit Waypoint</span>
+          <button
+            onClick={onClose}
+            className="w-6 h-6 flex items-center justify-center rounded-sm bg-surface-2 border border-border text-text-dim hover:text-text transition-colors cursor-pointer"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5" style={{ strokeWidth: 2 }}>
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <form onSubmit={onSubmit} className="px-4 py-4">
+          <WaypointForm
+            coords={{ lat: waypoint.lat, lon: waypoint.lon }}
+            form={form}
+            saving={saving}
+            submitLabel="Save changes"
+            onChange={onChange}
+          />
+        </form>
+        {error && <p className="px-4 pb-3 text-[11px] text-red">{error}</p>}
+      </div>
     </div>
   )
 }
