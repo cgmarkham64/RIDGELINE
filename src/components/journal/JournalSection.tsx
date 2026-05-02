@@ -64,6 +64,10 @@ export function JournalSection({ trip }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const saveStartRef = useRef(0)
 
+  useEffect(() => {
+    setSelectedDate(trip.startDate.slice(0, 10))
+  }, [trip._id, trip.startDate])
+
   const overlayVisible = scanning || saving
 
   const currentEntry = entries.find((e) => e.date.slice(0, 10) === selectedDate)
@@ -291,6 +295,10 @@ export function JournalSection({ trip }: Props) {
           </div>
 
           {/* Narrative */}
+          <div className="flex items-center gap-3 mb-4">
+            <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim shrink-0">Field Notes</span>
+            <hr className="flex-1 border-0 border-t border-border" />
+          </div>
           <div className="border-l-2 border-amber-border pl-4 mb-5">
             <textarea
               {...register('body')}
