@@ -11,7 +11,7 @@ interface Props {
 
 function formatDateRange(start: string, end: string) {
   const fmt = (d: string) =>
-    new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    new Date(d.slice(0, 10) + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   return `${fmt(start)} – ${fmt(end)}`
 }
 

@@ -9,8 +9,8 @@ interface Props {
 }
 
 function formatDateRange(start: string, end: string) {
-  const s = new Date(start)
-  const e = new Date(end)
+  const s = new Date(start.slice(0, 10) + 'T00:00:00')
+  const e = new Date(end.slice(0, 10) + 'T00:00:00')
   const opts: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric' }
   const full: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric' }
   if (s.getFullYear() === e.getFullYear()) {

@@ -193,7 +193,7 @@ export function JournalSection({ trip }: Props) {
       />
 
       {isLoading ? (
-        <p className="font-mono text-[9px] text-text-dim tracking-[0.1em] uppercase">
+        <p className="font-mono text-[9px] text-text-dim tracking-widest uppercase">
           Loading…
         </p>
       ) : (
@@ -208,21 +208,21 @@ export function JournalSection({ trip }: Props) {
           />
 
           {/* Entry header: "Day N" + title input + scan button */}
-          <div className="flex items-baseline gap-2.5 flex-wrap pb-3.5 mb-[18px] border-b border-border">
+          <div className="flex items-baseline gap-2.5 flex-wrap pb-3.5 mb-4.5 border-b border-border">
             <span className="font-heading text-[28px] font-extrabold text-amber leading-none tracking-[-0.01em] shrink-0">
               Day {dayNumber}
             </span>
             <input
               {...register('title')}
               placeholder="Add a title…"
-              className="font-heading text-lg font-semibold text-text bg-transparent border-0 outline-none flex-1 min-w-[120px] p-0"
+              className="font-heading text-lg font-semibold text-text bg-transparent border-0 outline-none flex-1 min-w-30 p-0"
             />
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={scanning}
               title="Scan a photo of your journal page to auto-fill this entry"
-              className="flex items-center gap-1.25 font-mono text-[9px] tracking-[0.1em] uppercase bg-transparent border border-current rounded-sm px-2 py-1 shrink-0"
+              className="flex items-center gap-1.25 font-mono text-[9px] tracking-widest uppercase bg-transparent border border-current rounded-sm px-2 py-1 shrink-0"
               style={{
                 color: scanning ? 'var(--text-dim)' : 'var(--amber)',
                 cursor: scanning ? 'default' : 'pointer',
@@ -237,7 +237,7 @@ export function JournalSection({ trip }: Props) {
           )}
 
           {/* Conditions — 5 columns */}
-          <div className="grid grid-cols-5 gap-1.5 mb-[22px]">
+          <div className="grid grid-cols-5 gap-1.5 mb-5.5">
             <CondCell label="Miles">
               <input
                 type="number"
@@ -317,7 +317,7 @@ export function JournalSection({ trip }: Props) {
           <div className="flex items-center gap-3 justify-end">
             {save.isError && <span className="text-[11px] text-red">Save failed</span>}
             {savedFeedback && (
-              <span className="font-mono text-[9px] tracking-[0.1em] uppercase text-pine">
+              <span className="font-mono text-[9px] tracking-widest uppercase text-pine">
                 Saved ✓
               </span>
             )}
@@ -339,7 +339,7 @@ export function JournalSection({ trip }: Props) {
 
 function CondCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="bg-surface-2 border border-border rounded-md px-[11px] py-[9px]">
+    <div className="bg-surface-2 border border-border rounded-md px-2.75 py-2.25">
       <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-mid mb-1.25">
         {label}
       </div>
