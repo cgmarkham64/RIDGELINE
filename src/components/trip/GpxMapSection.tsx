@@ -67,7 +67,7 @@ function KabobMenu({
 }) {
   return (
     <div
-      className="absolute right-0 top-[calc(100%+4px)] bg-surface border border-border rounded-md z-10 min-w-[148px] overflow-hidden"
+      className="absolute right-0 top-[calc(100%+4px)] bg-surface border border-border rounded-md z-10 min-w-37 overflow-hidden"
       style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.35)' }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -239,7 +239,7 @@ export function GpxMapSection({
               <div className="font-heading text-[12px] font-bold text-text whitespace-nowrap">
                 Planned Route
               </div>
-              <div className="font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim">
+              <div className="font-mono text-[8px] tracking-widest uppercase text-text-dim">
                 {importing === 'planned'
                   ? 'Importing…'
                   : removing === 'planned'
@@ -308,7 +308,7 @@ export function GpxMapSection({
           </div>
 
           {gpxTracks.length === 0 ? (
-            <div className="font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim">Import after each day</div>
+            <div className="font-mono text-[8px] tracking-widest uppercase text-text-dim">Import after each day</div>
           ) : (
             <div className={"flex flex-col gap-1.25"}>
               {gpxTracks.map((entry, i) => {
@@ -327,7 +327,7 @@ export function GpxMapSection({
                         <line x1="0" y1="3" x2="14" y2="3" stroke={color} strokeWidth="2.5" />
                       </svg>
                       <span
-                        className="font-mono text-[8px] tracking-[0.1em] uppercase text-text overflow-hidden text-ellipsis whitespace-nowrap"
+                        className="font-mono text-[8px] tracking-widest uppercase text-text overflow-hidden text-ellipsis whitespace-nowrap"
                       >
                         {isImporting ? 'Importing…' : isRemoving ? 'Removing…' : entry.label}
                       </span>
@@ -378,7 +378,7 @@ export function GpxMapSection({
 
       {/* Map — hidden when showMap={false} (e.g. map tab renders its own full-size map) */}
       {showMap && hasAny && bounds ? (
-        <div className="relative z-[1] rounded-md overflow-hidden border border-border">
+        <div className="relative z-1 rounded-md overflow-hidden border border-border">
           <MapContainer
             bounds={bounds}
             boundsOptions={{ padding: [24, 24] }}
@@ -453,7 +453,7 @@ export function GpxMapSection({
                     strokeDasharray="5 3"
                   />
                 </svg>
-                <span className="font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim">Planned Route</span>
+                <span className="font-mono text-[8px] tracking-widest uppercase text-text-dim">Planned Route</span>
               </div>
             )}
             {tracksWithLatLngs
@@ -463,7 +463,7 @@ export function GpxMapSection({
                   <svg width="20" height="6">
                     <line x1="0" y1="3" x2="20" y2="3" stroke={color} strokeWidth="2.5" />
                   </svg>
-                  <span className="font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim">{entry.label}</span>
+                  <span className="font-mono text-[8px] tracking-widest uppercase text-text-dim">{entry.label}</span>
                 </div>
               ))}
           </div>
@@ -471,7 +471,7 @@ export function GpxMapSection({
       ) : showMap ? (
         <div className="border border-dashed border-border rounded-md px-5 py-7 text-center">
           <div className="text-2xl opacity-20 mb-1.5">🗺</div>
-          <p className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim">Import a planned route or GPS track above to render the map</p>
+          <p className="font-mono text-[9px] tracking-widest uppercase text-text-dim">Import a planned route or GPS track above to render the map</p>
         </div>
       ) : null}
 

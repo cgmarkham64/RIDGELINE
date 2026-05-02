@@ -8,7 +8,7 @@ import { AuthLayout } from '../components/layout/AuthLayout'
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email'),
+  email: z.email('Invalid email'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 })
 
@@ -29,7 +29,7 @@ export function RegisterPage() {
     try {
       const { token, user } = await registerUser(values)
       setAuth(token, user)
-      navigate({ to: '/' })
+      await navigate({to: '/'})
     } catch (err) {
       setError('root', { message: err instanceof Error ? err.message : 'Registration failed' })
     }
