@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import type { GpxTrack, GpxTrackEntry, Waypoint } from '../../types'
 import { WAYPOINT_COLOR } from '../map/constants'
 
@@ -8,7 +8,7 @@ function hasElevationData(track: GpxTrack): boolean {
   return track.coordinates.some((coord) => coord[2] !== 0)
 }
 
-// Sort by firstTimestamp when available; entries without one preserve array order
+// Entries without a timestamp sort to the end, preserving their original order
 function sortedByTimestamp(entries: GpxTrackEntry[]): GpxTrackEntry[] {
   return entries.slice().sort((a, b) => {
     if (!a.firstTimestamp && !b.firstTimestamp) return 0
@@ -20,20 +20,18 @@ function sortedByTimestamp(entries: GpxTrackEntry[]): GpxTrackEntry[] {
 
 interface Source {
   tracks: GpxTrack[]
-  labels: string[] // one label per track, for boundary markers
-  heading: string  // section header label
+  labels: string[]
+  heading: string
 }
 
 function resolveSource(
   planned: GpxTrack | undefined,
   gpxTracks: GpxTrackEntry[]
 ): Source | null {
-  // Planned route takes precedence
   if (planned && planned.coordinates.length >= 2 && hasElevationData(planned)) {
     return { tracks: [planned], labels: ['Planned Route'], heading: 'Planned Route' }
   }
 
-  // Fall back to all GPS tracks that have elevation, sorted chronologically
   const valid = gpxTracks.filter(
     (e) => e.track.coordinates.length >= 2 && hasElevationData(e.track)
   )
@@ -101,7 +99,6 @@ function buildCombinedPoints(tracks: GpxTrack[]): CombinedPoints {
   return { pts, boundaries }
 }
 
-/** Returns the Point on the track nearest to the given coordinates */
 function findNearestPoint(pts: Point[], lat: number, lon: number): Point {
   let nearest = pts[0]
   let minDist = Infinity
@@ -115,17 +112,21 @@ function findNearestPoint(pts: Point[], lat: number, lon: number): Point {
 function computeStats(pts: Point[]) {
   let gain = 0
   let loss = 0
+  let minEle = pts[0].eleFt
+  let maxEle = pts[0].eleFt
   for (let i = 1; i < pts.length; i++) {
-    const delta = pts[i].eleFt - pts[i - 1].eleFt
+    const ele = pts[i].eleFt
+    const delta = ele - pts[i - 1].eleFt
     if (delta > 0) gain += delta
     else loss += Math.abs(delta)
+    if (ele < minEle) minEle = ele
+    if (ele > maxEle) maxEle = ele
   }
-  const eles = pts.map((p) => p.eleFt)
   return {
     gain: Math.round(gain),
     loss: Math.round(loss),
-    minEle: Math.min(...eles),
-    maxEle: Math.max(...eles),
+    minEle,
+    maxEle,
     totalDist: pts[pts.length - 1].distMi,
   }
 }
@@ -137,19 +138,17 @@ const VB_H = 90
 const PAD = { l: 2, r: 2, t: 10, b: 13 }
 const CW = VB_W - PAD.l - PAD.r
 const CH = VB_H - PAD.t - PAD.b
+const TOOLTIP_H = 13
+const TOOLTIP_PAD_X = 5
 
 function toSvg(
   pts: Point[],
-  minEle: number,
-  maxEle: number,
+  px: (distMi: number) => number,
+  py: (eleFt: number) => number,
   totalDist: number,
   boundaries: number[],
   labels: string[],
 ) {
-  const eleRange = maxEle - minEle || 1
-  const px = (distMi: number) => PAD.l + (distMi / totalDist) * CW
-  const py = (eleFt: number) => PAD.t + CH - ((eleFt - minEle) / eleRange) * CH
-
   const lineD = pts
     .map((p, i) => `${i === 0 ? 'M' : 'L'}${px(p.distMi).toFixed(1)},${py(p.eleFt).toFixed(1)}`)
     .join(' ')
@@ -164,7 +163,7 @@ function toSvg(
     distLabel: (frac * totalDist).toFixed(1),
   }))
 
-  // One divider + label per boundary (index 0 = between track 0 and 1, label = labels[1])
+  // Index i = boundary between track i and i+1, so the label is labels[i+1]
   const dividers = boundaries.map((distMi, i) => ({
     x: px(distMi),
     label: labels[i + 1],
@@ -173,8 +172,10 @@ function toSvg(
   return { lineD, areaD, gridLines, distTicks, dividers }
 }
 
-// ─── Shared mono class string for non-SVG usage ───────────────────────────────
+// ─── Shared styles ────────────────────────────────────────────────────────────
+
 const monoCls = 'font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim text-center'
+const svgMonoStyle = { fontFamily: 'var(--font-mono)', fill: 'var(--text-dim)', letterSpacing: '0.05em' }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -191,6 +192,8 @@ export function ElevationProfile({
   activeWaypointId?: string | null
   onWaypointClick?: (id: string) => void
 }) {
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+
   const source = resolveSource(planned, gpxTracks)
 
   if (!source) {
@@ -207,13 +210,14 @@ export function ElevationProfile({
   const { tracks, labels, heading } = source
   const { pts, boundaries } = buildCombinedPoints(tracks)
   const { gain, loss, minEle, maxEle, totalDist } = computeStats(pts)
-  const { lineD, areaD, gridLines, distTicks, dividers } = toSvg(
-    pts, minEle, maxEle, totalDist, boundaries, labels
-  )
 
   const eleRange = maxEle - minEle || 1
   const px = (distMi: number) => PAD.l + (distMi / totalDist) * CW
   const py = (eleFt: number) => PAD.t + CH - ((eleFt - minEle) / eleRange) * CH
+
+  const { lineD, areaD, gridLines, distTicks, dividers } = toSvg(
+    pts, px, py, totalDist, boundaries, labels
+  )
 
   const waypointMarkers = waypoints.map((wp) => {
     const nearest = findNearestPoint(pts, wp.lat, wp.lon)
@@ -226,12 +230,36 @@ export function ElevationProfile({
     }
   })
 
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const hoveredMarker = hoveredId ? waypointMarkers.find((m) => m.id === hoveredId) : null
 
-  // Tooltip dimensions in SVG units
-  const TOOLTIP_H = 13
-  const TOOLTIP_PAD_X = 5
+  let tooltipEl: ReactNode = null
+  if (hoveredMarker) {
+    const { x, y, color, label } = hoveredMarker
+    const tooltipW = label.length * 5.5 + TOOLTIP_PAD_X * 2
+    const tooltipX = Math.max(PAD.l, Math.min(x - tooltipW / 2, PAD.l + CW - tooltipW))
+    const tooltipY = y - TOOLTIP_H - 5
+    tooltipEl = (
+      <g style={{ pointerEvents: 'none' }}>
+        <rect
+          x={tooltipX} y={tooltipY}
+          width={tooltipW} height={TOOLTIP_H}
+          rx="1.5"
+          fill="#1a1814"
+          stroke={color}
+          strokeWidth="0.6"
+          opacity="0.95"
+        />
+        <text
+          x={tooltipX + tooltipW / 2}
+          y={tooltipY + TOOLTIP_H - 3}
+          textAnchor="middle"
+          style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fill: color, letterSpacing: '0.04em' }}
+        >
+          {label}
+        </text>
+      </g>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -244,7 +272,6 @@ export function ElevationProfile({
         overflow="visible"
         style={{ display: 'block', height: 80 }}
       >
-        {/* Grid lines */}
         {gridLines.map(({ y }) => (
           <line
             key={y}
@@ -253,19 +280,14 @@ export function ElevationProfile({
           />
         ))}
 
-        {/* Baseline */}
         <line
           x1={PAD.l} y1={PAD.t + CH} x2={PAD.l + CW} y2={PAD.t + CH}
           stroke="var(--border)" strokeWidth="0.7"
         />
 
-        {/* Area fill */}
         <path d={areaD} fill="var(--amber)" fillOpacity="0.12" />
-
-        {/* Elevation line */}
         <path d={lineD} fill="none" stroke="var(--amber)" strokeWidth="1.2" strokeLinejoin="round" />
 
-        {/* Waypoint markers */}
         {waypointMarkers.map(({ id, x, y, color }) => {
           const isActive = id === activeWaypointId
           return (
@@ -286,38 +308,8 @@ export function ElevationProfile({
           )
         })}
 
-        {/* Instant tooltip for hovered waypoint */}
-        {hoveredMarker && (() => {
-          const { x, y, color, label } = hoveredMarker
-          const approxCharW = 5.5
-          const tooltipW = label.length * approxCharW + TOOLTIP_PAD_X * 2
-          const rawX = x - tooltipW / 2
-          const tooltipX = Math.max(PAD.l, Math.min(rawX, PAD.l + CW - tooltipW))
-          const tooltipY = y - TOOLTIP_H - 5
-          return (
-            <g style={{ pointerEvents: 'none' }}>
-              <rect
-                x={tooltipX} y={tooltipY}
-                width={tooltipW} height={TOOLTIP_H}
-                rx="1.5"
-                fill="#1a1814"
-                stroke={color}
-                strokeWidth="0.6"
-                opacity="0.95"
-              />
-              <text
-                x={tooltipX + tooltipW / 2}
-                y={tooltipY + TOOLTIP_H - 3}
-                textAnchor="middle"
-                style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fill: color, letterSpacing: '0.04em' }}
-              >
-                {label}
-              </text>
-            </g>
-          )
-        })()}
+        {tooltipEl}
 
-        {/* Day boundary dividers */}
         {dividers.map(({ x, label }) => (
           <g key={x}>
             <line
@@ -327,28 +319,26 @@ export function ElevationProfile({
             <text
               x={x + 2}
               y={PAD.t + 5}
-              style={{ fontFamily: 'var(--font-mono)', fontSize: 4.5, fill: 'var(--text-dim)', letterSpacing: '0.05em' }}
+              style={{ ...svgMonoStyle, fontSize: 4.5 }}
             >
               {label}
             </text>
           </g>
         ))}
 
-        {/* Distance labels */}
         {distTicks.map(({ x, distLabel }) => (
           <text
             key={x}
             x={x}
             y={VB_H - 0.5}
             textAnchor={x <= PAD.l ? 'start' : x >= PAD.l + CW - 1 ? 'end' : 'middle'}
-            style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fill: 'var(--text-dim)', letterSpacing: '0.05em' }}
+            style={{ ...svgMonoStyle, fontSize: 9 }}
           >
             {distLabel} mi
           </text>
         ))}
       </svg>
 
-      {/* Stats row */}
       <div className="grid grid-cols-4 gap-1">
         {[
           { key: 'Gain', value: `+${gain.toLocaleString()} ft` },
@@ -358,7 +348,7 @@ export function ElevationProfile({
         ].map(({ key, value }) => (
           <div key={key} className="bg-surface-2 rounded-sm px-1 py-1.25">
             <span className={monoCls}>{key}</span>
-            <span className="font-mono text-[11px] tracking-[0.04em] text-amber block mt-[2px]">{value}</span>
+            <span className="font-mono text-[11px] tracking-[0.04em] text-amber block mt-0.5">{value}</span>
           </div>
         ))}
       </div>

@@ -1,5 +1,5 @@
 import type { WaypointType } from '../../types'
-import { WAYPOINT_COLOR, WAYPOINT_LABEL, WAYPOINT_TYPES, inputStyle, mono } from './constants'
+import { WAYPOINT_COLOR, WAYPOINT_LABEL, WAYPOINT_TYPES, inputStyle } from './constants'
 import { WaypointIcon } from './WaypointIcon'
 
 export interface WaypointFormState {

@@ -53,8 +53,6 @@ export function MapTab({ trip, onTripUpdated }: Props) {
   ]
   const bounds = allPoints.length > 0 ? L.latLngBounds(allPoints) : null
 
-  const isAdding = addMode || !!pendingLatLon
-
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
   function startEdit(wp: Waypoint) {
