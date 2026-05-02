@@ -26,13 +26,35 @@ export function MapRefCapture({ mapRef }: { mapRef: RefObject<L.Map | null> }) {
 export function MapClickHandler({
   active,
   onMapClick,
+  onDismiss,
 }: {
   active: boolean
   onMapClick: (lat: number, lon: number) => void
+  onDismiss?: () => void
 }) {
   useMapEvents({
     click(e) {
+      onDismiss?.()
       if (active) onMapClick(e.latlng.lat, e.latlng.lng)
+    },
+  })
+  return null
+}
+
+export function MapContextMenuHandler({
+  onContextMenu,
+  onDismiss,
+}: {
+  onContextMenu: (lat: number, lon: number, x: number, y: number) => void
+  onDismiss: () => void
+}) {
+  useMapEvents({
+    contextmenu(e) {
+      e.originalEvent.preventDefault()
+      onContextMenu(e.latlng.lat, e.latlng.lng, e.containerPoint.x, e.containerPoint.y)
+    },
+    movestart() {
+      onDismiss()
     },
   })
   return null

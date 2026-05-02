@@ -7,7 +7,7 @@ import { api } from '../../lib/api'
 import { GpxMapSection } from '../trip/GpxMapSection'
 import { DEFAULT_FORM, PLANNED_COLOR, mono, trackColor, resolveStartEnd } from './constants'
 import { makeWaypointIcon, makePendingIcon, makeStartIcon, makeEndIcon } from './WaypointIcon'
-import { FitBounds, MapClickHandler, MapFocuser, MapRefCapture } from './MapHelpers'
+import { FitBounds, MapClickHandler, MapContextMenuHandler, MapFocuser, MapRefCapture } from './MapHelpers'
 import { WaypointForm } from './WaypointForm'
 import { WaypointChip } from './WaypointChip'
 import { MapEmptyState } from './MapEmptyState'
@@ -33,6 +33,7 @@ export function MapTab({ trip, onTripUpdated }: Props) {
   const [saving, setSaving] = useState(false)
   const [focusId, setFocusId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [contextMenu, setContextMenu] = useState<{ lat: number; lon: number; x: number; y: number } | null>(null)
   const mapRef = useRef<L.Map | null>(null)
 
   const waypoints = trip.waypoints ?? []
@@ -75,7 +76,14 @@ export function MapTab({ trip, onTripUpdated }: Props) {
     setAddMode(false)
     setPendingLatLon({ lat, lon })
     setAddForm(DEFAULT_FORM)
+    setContextMenu(null)
     cancelEdit()
+  }
+
+  function handleContextMenu(lat: number, lon: number, x: number, y: number) {
+    cancelAdd()
+    cancelEdit()
+    setContextMenu({ lat, lon, x, y })
   }
 
   function handleMarkerClick(wp: Waypoint) {
@@ -92,6 +100,7 @@ export function MapTab({ trip, onTripUpdated }: Props) {
       if (e.key === 'Escape') {
         cancelAdd()
         cancelEdit()
+        setContextMenu(null)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -199,9 +208,12 @@ export function MapTab({ trip, onTripUpdated }: Props) {
         focusId={focusId}
         mapRef={mapRef}
         startEnd={resolveStartEnd(plannedLatLngs, tracksWithLatLngs)}
+        contextMenu={contextMenu}
         onMapClick={handleMapClick}
         onMarkerClick={handleMarkerClick}
         onFocusDone={() => setFocusId(null)}
+        onContextMenu={handleContextMenu}
+        onDismissContextMenu={() => setContextMenu(null)}
       />
 
       <AttributionStrip />
@@ -353,9 +365,12 @@ function MapArea({
   focusId,
   mapRef,
   startEnd,
+  contextMenu,
   onMapClick,
   onMarkerClick,
   onFocusDone,
+  onContextMenu,
+  onDismissContextMenu,
 }: {
   bounds: L.LatLngBounds | null
   allPoints: [number, number][]
@@ -369,9 +384,12 @@ function MapArea({
   focusId: string | null
   mapRef: React.RefObject<L.Map | null>
   startEnd: { start: [number, number]; end: [number, number] } | null
+  contextMenu: { lat: number; lon: number; x: number; y: number } | null
   onMapClick: (lat: number, lon: number) => void
   onMarkerClick: (wp: Waypoint) => void
   onFocusDone: () => void
+  onContextMenu: (lat: number, lon: number, x: number, y: number) => void
+  onDismissContextMenu: () => void
 }) {
   return (
     <div
@@ -423,7 +441,8 @@ function MapArea({
               interactive={false}
             />
           )}
-          <MapClickHandler active={addMode} onMapClick={onMapClick} />
+          <MapClickHandler active={addMode} onMapClick={onMapClick} onDismiss={onDismissContextMenu} />
+          <MapContextMenuHandler onContextMenu={onContextMenu} onDismiss={onDismissContextMenu} />
           {allPoints.length > 1 && <FitBounds positions={allPoints} />}
           <MapRefCapture mapRef={mapRef} />
           <MapFocuser waypoints={waypoints} focusId={focusId} onDone={onFocusDone} />
@@ -432,6 +451,23 @@ function MapArea({
         <MapEmptyState />
       )}
 
+      {contextMenu && (
+        <div
+          className="absolute z-[1001] bg-surface border border-border rounded-md overflow-hidden py-0.5 shadow-lg"
+          style={{ left: contextMenu.x + 4, top: contextMenu.y + 4, minWidth: 164 }}
+        >
+          <button
+            onClick={() => onMapClick(contextMenu.lat, contextMenu.lon)}
+            className="w-full flex items-center gap-2 px-3 py-1.75 font-mono text-[10px] tracking-[0.08em] uppercase text-text-mid hover:text-amber hover:bg-surface-2 transition-colors duration-80 cursor-pointer"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5 shrink-0" style={{ strokeWidth: 2 }}>
+              <path d="M12 2C8.686 2 6 4.686 6 8c0 4.5 6 12 6 12s6-7.5 6-12c0-3.314-2.686-6-6-6z" />
+              <circle cx="12" cy="8" r="2" />
+            </svg>
+            Add waypoint here
+          </button>
+        </div>
+      )}
       <ZoomControls mapRef={mapRef} allPoints={allPoints} />
       {addMode && <AddModeHint />}
       <TrackLegend plannedLatLngs={plannedLatLngs} tracksWithLatLngs={tracksWithLatLngs} />
