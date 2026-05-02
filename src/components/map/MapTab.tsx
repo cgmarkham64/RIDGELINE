@@ -280,7 +280,7 @@ function ControlsBar({
   return (
     <div className="shrink-0 border-b border-border flex items-stretch">
       {/* Routes & Tracks */}
-      <div className="w-[40%] shrink-0 border-r border-border bg-surface px-[18px] py-3.5 overflow-y-auto max-h-[200px]">
+      <div className="w-[40%] shrink-0 border-r border-border bg-surface px-4.5 py-3.5 overflow-y-auto max-h-50">
         <div className="sec-label mb-3">
           Routes &amp; Tracks
         </div>
@@ -288,7 +288,7 @@ function ControlsBar({
       </div>
 
       {/* Waypoints */}
-      <div className="flex-1 min-w-0 bg-surface overflow-y-auto max-h-[200px] px-[18px] pt-[6px] pb-3.5">
+      <div className="flex-1 min-w-0 bg-surface overflow-y-auto max-h-50 px-4.5 pt-1.5 pb-3.5">
         <div
           className="flex items-center justify-between"
           style={{ marginBottom: editingId || waypoints.length > 0 ? 12 : 0 }}
@@ -487,7 +487,7 @@ function ZoomControls({
   allPoints: [number, number][]
 }) {
   return (
-    <div className="absolute top-3 left-3 z-[1000] flex flex-col border border-border rounded-sm overflow-hidden">
+    <div className="absolute top-3 left-3 z-1000 flex flex-col border border-border rounded-sm overflow-hidden">
       {(['in', 'out', 'fit'] as const).map((action, i) => (
         <button
           key={action}
@@ -500,7 +500,7 @@ function ZoomControls({
             else if (allPoints.length > 1)
               mapRef.current?.fitBounds(allPoints as LatLngBoundsExpression, { padding: [32, 32], animate: true })
           }}
-          className="w-[30px] h-[30px] flex items-center justify-center border-0 text-text-dim"
+          className="w-7.5 h-7.5 flex items-center justify-center border-0 text-text-dim"
           style={{
             background: 'rgba(15,13,11,0.82)',
             borderTop: i > 0 ? '1px solid var(--border)' : 'none',
@@ -533,7 +533,7 @@ function ZoomControls({
 function AddModeHint() {
   return (
     <div
-      className="absolute bottom-4 z-[1000] border border-amber-border rounded-sm px-3.5 py-[6px] font-mono text-[10px] tracking-[0.12em] uppercase text-amber pointer-events-none whitespace-nowrap"
+      className="absolute bottom-4 z-1000 border border-amber-border rounded-sm px-3.5 py-1.5 font-mono text-[10px] tracking-[0.12em] uppercase text-amber pointer-events-none whitespace-nowrap"
       style={{
         left: '50%',
         transform: 'translateX(-50%)',
@@ -557,7 +557,7 @@ function TrackLegend({
 
   return (
     <div
-      className="absolute bottom-3 right-3 z-[1000] border border-border rounded-md px-3 py-2 flex flex-col gap-1.25"
+      className="absolute bottom-3 right-3 z-1000 border border-border rounded-md px-3 py-2 flex flex-col gap-1.25"
       style={{ background: 'rgba(15,13,11,0.82)' }}
     >
       {plannedLatLngs.length > 1 && (
@@ -585,7 +585,7 @@ function TrackLegend({
 function ContextMenu({ x, y, children }: { x: number; y: number; onDismiss: () => void; children: React.ReactNode }) {
   return (
     <div
-      className="absolute z-[1001] bg-surface border border-border rounded-md overflow-hidden py-0.5"
+      className="absolute z-1001 bg-surface border border-border rounded-md overflow-hidden py-0.5"
       style={{ left: x + 4, top: y + 4, minWidth: 172 }}
     >
       {children}
@@ -638,7 +638,7 @@ function WaypointAddDialog({
 }) {
   return (
     <div
-      className="fixed inset-0 z-[1002] flex items-center justify-center"
+      className="fixed inset-0 z-1002 flex items-center justify-center"
       style={{ background: 'rgba(0,0,0,0.55)' }}
       onClick={onClose}
     >
@@ -693,7 +693,7 @@ function WaypointEditDialog({
 }) {
   return (
     <div
-      className="fixed inset-0 z-[1002] flex items-center justify-center"
+      className="fixed inset-0 z-1002 flex items-center justify-center"
       style={{ background: 'rgba(0,0,0,0.55)' }}
       onClick={onClose}
     >
@@ -737,7 +737,7 @@ function AttributionStrip() {
         href="https://www.openstreetmap.org/copyright"
         target="_blank"
         rel="noreferrer"
-        className="text-text-dim underline underline-offset-[2px]"
+        className="text-text-dim underline underline-offset-2"
       >
         OpenStreetMap
       </a>{' '}
@@ -746,7 +746,7 @@ function AttributionStrip() {
         href="https://carto.com/attributions"
         target="_blank"
         rel="noreferrer"
-        className="text-text-dim underline underline-offset-[2px]"
+        className="text-text-dim underline underline-offset-2"
       >
         CARTO
       </a>

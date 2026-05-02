@@ -1,15 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 
-// Augment Express Request so route handlers can read req.user.sub
-declare global {
-  namespace Express {
-    interface Request {
-      user: { sub: string; email: string; name: string }
-    }
-  }
-}
-
 // verifyToken is isolated here so swapping to Keycloak's JWKS verification
 // only requires changing this one function — route handlers and middleware
 // signature stay identical.

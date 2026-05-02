@@ -22,7 +22,7 @@ function TypePills({
           key={t}
           type="button"
           onClick={() => onChange(t)}
-          className="inline-flex items-center gap-1.25 px-2 py-[3px] rounded-sm font-mono text-[9px] tracking-[0.08em] uppercase cursor-pointer"
+          className="inline-flex items-center gap-1.25 px-2 py-0.75 rounded-sm font-mono text-[9px] tracking-[0.08em] uppercase cursor-pointer"
           style={{
             border: `1px solid ${value === t ? WAYPOINT_COLOR[t] : 'var(--border)'}`,
             background: value === t ? `${WAYPOINT_COLOR[t]}22` : 'transparent',
@@ -53,7 +53,7 @@ export function WaypointForm({
   return (
     <div className="flex gap-2 flex-wrap items-center">
       {coords && (
-        <span className="font-mono text-[8px] tracking-[0.1em] uppercase text-amber shrink-0">
+        <span className="font-mono text-[8px] tracking-widest uppercase text-amber shrink-0">
           {coords.lat.toFixed(5)}, {coords.lon.toFixed(5)}
         </span>
       )}
