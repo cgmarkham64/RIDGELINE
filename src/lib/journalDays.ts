@@ -12,6 +12,8 @@ export interface JournalDayInput {
   weatherNotes?: string
   tempLowF?: number
   tempHighF?: number
+  wildlife?: string[]
+  companions?: string[]
 }
 
 export async function fetchJournalDays(tripId: string): Promise<JournalDay[]> {

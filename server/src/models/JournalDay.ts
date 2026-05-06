@@ -12,6 +12,8 @@ const JournalDaySchema = new Schema(
     weatherNotes: String,
     tempLowF: Number,
     tempHighF: Number,
+    wildlife: [String],
+    companions: [String],
   },
   { timestamps: true }
 )

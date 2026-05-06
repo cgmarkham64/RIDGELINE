@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git status)",
+      "Bash(find * -name *)",
+      "Bash(grep -r * *)",
+      "Bash(grep * *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if ! output=$(npm run build 2>&1); then echo \"$output\" | tail -20 | jq -Rs '{hookSpecificOutput: {hookEventName: \"PostToolUse\", additionalContext: (\"Build errors:\\n\" + .)}}'; fi",
+            "timeout": 60,
+            "statusMessage": "Type-checking..."
+          }
+        ]
+      }
+    ]
+  }
+}

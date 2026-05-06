@@ -67,6 +67,8 @@ export interface JournalDay {
   weatherNotes?: string
   tempLowF?: number
   tempHighF?: number
+  wildlife?: string[]
+  companions?: string[]
   photos?: Photo[]
 }
 

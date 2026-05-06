@@ -115,27 +115,25 @@ server/
 ### Todo
 1. Photo upload + EXIF — Use the exif-js or exifr library to parse EXIF in the browser before uploading. Extract GPS coordinates, camera settings, and timestamp client-side, store them alongside the photo reference in MongoDB.
 2. Gear loadouts — Straightforward CRUD once the pattern is established from trips. Weight calculations are pure frontend math in Zustand.
-3. Add WILDLIFE, COMPANIONS panels to Journal.
-4. Add "FIELD NOTES" label on horizontal rule above the description section.
-5. Add hover text for each day button that says the title of the entry if it exists, or some prompt if it doesn't.
-6. Share / Export PDF — The Share button in the trip hero opens a dialog with two options:
+3. Add hover text for each day button that says the title of the entry if it exists, or some prompt if it doesn't.
+4. Share / Export PDF — The Share button in the trip hero opens a dialog with two options:
     - **Copy link** — copies the current page URL to clipboard (implemented, shows a "Copied" confirmation).
     - **Export as PDF** — generates a styled PDF trip report matching the app's visual design. TODO: implement using a headless print stylesheet or a library like `@react-pdf/renderer`. The PDF should include: trip hero (title, location, dates, stats), journal entries (each day with conditions grid and narrative), GPX map screenshot or SVG export, gear loadout weight summary, and photos with EXIF metadata. Style it to match the dark amber/mono aesthetic of the app.
-7. Add summary stats to the Hero banner stats for total Weight Carried, and Max Elevation. These should be included as manual entries when the trip is created for now with a plan to link the fields to map and loadout data later.
-8. Add search function to Trips list (by name OR state (acronym or long, CA or California))
-9. Add filter function to Trips list (finite by state, distance, elevation gain, etc.)
-10. Trip sharing UI — send a share invite from the Share dialog in the trip hero:
-    - Add a new `POST /api/trips/:id/share` endpoint that accepts `{ email: string }`, looks up the target user by email, and adds their `sub` to `trip.sharedWith`. Return 404 if no account with that email exists.
-    - In `ShareDialog.tsx`, add an "Invite by email" input below the copy-link button. On submit, call the new endpoint and show confirmation or error inline.
-    - Shared trips should appear in the recipient's trip list with a visual indicator (e.g. a small avatar or "Shared by X" label) so they're distinguishable from owned trips.
-    - Add a `DELETE /api/trips/:id/share/:sub` endpoint so the owner can revoke access.
-    - Add a notification bell icon to the bottom part of IconRail above the account element. Include a popover menu that scrolls with notifications. A notification in this context will be there when another user shares a trip and journal entries with you. The notification should allow you to accept or decline the invite to collaborate. Another notification should be available for the original author of the trip when the invited user accepts or declines the collaboration invitation.
-11. Shared trip acceptance flow — for a future invite-token model (email link):
-    - Generate a signed, expiring invite token (`crypto.randomUUID()` stored on the trip + expiry timestamp) when the owner shares.
-    - Email the token to the invitee (requires a mail integration — Sendgrid, Resend, etc.).
-    - Add a `POST /api/trips/:id/accept?token=` endpoint: verify token, verify not expired, add caller's `sub` to `sharedWith`, clear the token.
-    - Frontend: a `/accept-invite` route that reads the token from the URL, calls the endpoint, and redirects to the trip on success.
-12. Implement Keycloak security — steps to migrate from the current JWT system:
+5. Add summary stats to the Hero banner stats for total Weight Carried, and Max Elevation. These should be included as manual entries when the trip is created for now with a plan to link the fields to map and loadout data later.
+6. Add search function to Trips list (by name OR state (acronym or long, CA or California))
+7. Add filter function to Trips list (finite by state, distance, elevation gain, etc.)
+8. Trip sharing UI — send a share invite from the Share dialog in the trip hero:
+   - Add a new `POST /api/trips/:id/share` endpoint that accepts `{ email: string }`, looks up the target user by email, and adds their `sub` to `trip.sharedWith`. Return 404 if no account with that email exists.
+   - In `ShareDialog.tsx`, add an "Invite by email" input below the copy-link button. On submit, call the new endpoint and show confirmation or error inline.
+   - Shared trips should appear in the recipient's trip list with a visual indicator (e.g. a small avatar or "Shared by X" label) so they're distinguishable from owned trips.
+   - Add a `DELETE /api/trips/:id/share/:sub` endpoint so the owner can revoke access.
+   - Add a notification bell icon to the bottom part of IconRail above the account element. Include a popover menu that scrolls with notifications. A notification in this context will be there when another user shares a trip and journal entries with you. The notification should allow you to accept or decline the invite to collaborate. Another notification should be available for the original author of the trip when the invited user accepts or declines the collaboration invitation.
+9. Shared trip acceptance flow — for a future invite-token model (email link):
+   - Generate a signed, expiring invite token (`crypto.randomUUID()` stored on the trip + expiry timestamp) when the owner shares.
+   - Email the token to the invitee (requires a mail integration — Sendgrid, Resend, etc.).
+   - Add a `POST /api/trips/:id/accept?token=` endpoint: verify token, verify not expired, add caller's `sub` to `sharedWith`, clear the token.
+   - Frontend: a `/accept-invite` route that reads the token from the URL, calls the endpoint, and redirects to the trip on success.
+10. Implement Keycloak security — steps to migrate from the current JWT system:
     1. **Stand up Keycloak** — run via Docker (`quay.io/keycloak/keycloak`). Create a realm (e.g. `ridgeline`), a client (e.g. `ridgeline-app`, public, PKCE), and configure redirect URIs to `http://localhost:5173/*`.
     2. **Add `jwks-rsa` to server** — `npm install jwks-rsa` in `/server`. Update the `verifyToken()` function in `server/src/middleware/auth.ts` to fetch Keycloak's public key via JWKS instead of using `JWT_SECRET`. Add `KEYCLOAK_JWKS_URI` and `KEYCLOAK_ISSUER` to `server/.env`. No other server files change.
     3. **Swap frontend auth flow** — replace `src/lib/auth.ts` (direct API login/register) with the Keycloak JS adapter (`keycloak-js`) or an OIDC library (`oidc-client-ts`). On app init, check Keycloak session; on login, redirect to Keycloak's login page. On return, extract the access token and store it in the Zustand auth store as before (the Axios interceptor already attaches it).
