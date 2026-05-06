@@ -1,4 +1,5 @@
 import type { Trip } from '../../types'
+import { useAuthStore } from '../../store/auth'
 
 interface Props {
   trip: Trip
@@ -20,6 +21,9 @@ function formatDateRange(start: string, end: string) {
 }
 
 export function TripHero({ trip, days, onEdit, onDelete, onShare }: Props) {
+  const userId = useAuthStore((s) => s.user?.id)
+  const isOwner = !!userId && trip.ownerSub === userId
+
   return (
     <div className="h-[240px] relative overflow-hidden shrink-0">
       {/* Gradient background */}
@@ -75,44 +79,35 @@ export function TripHero({ trip, days, onEdit, onDelete, onShare }: Props) {
 
         {/* Right: action buttons + stat strip */}
         <div className="flex flex-col items-end gap-2 shrink-0">
-          <div className="flex gap-1.5">
-            <button onClick={onShare} className="btn btn-pine btn-sm">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                className="w-[13px] h-[13px] shrink-0"
-                style={{ strokeWidth: 2 }}
-              >
-                <path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
-              Share
-            </button>
+          <div className="flex gap-1.5 items-center">
+            {!isOwner && (
+              <span className="font-mono text-[8px] tracking-[0.12em] uppercase border rounded px-2 py-[3px]" style={{ color: 'var(--amber)', borderColor: 'var(--amber-border)' }}>
+                Shared trip
+              </span>
+            )}
+            {isOwner && (
+              <button onClick={onShare} className="btn btn-pine btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-[13px] h-[13px] shrink-0" style={{ strokeWidth: 2 }}>
+                  <path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Share
+              </button>
+            )}
             <button onClick={onEdit} className="btn btn-sky btn-sm">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                className="w-[13px] h-[13px] shrink-0"
-                style={{ strokeWidth: 2 }}
-              >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-[13px] h-[13px] shrink-0" style={{ strokeWidth: 2 }}>
                 <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
               Edit Trip
             </button>
-            <button onClick={onDelete} className="btn btn-danger btn-sm">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                className="w-[13px] h-[13px] shrink-0"
-                style={{ strokeWidth: 2 }}
-              >
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6" />
-              </svg>
-              Delete
-            </button>
+            {isOwner && (
+              <button onClick={onDelete} className="btn btn-danger btn-sm">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-[13px] h-[13px] shrink-0" style={{ strokeWidth: 2 }}>
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6" />
+                </svg>
+                Delete
+              </button>
+            )}
           </div>
 
           {/* Stat pill strip */}

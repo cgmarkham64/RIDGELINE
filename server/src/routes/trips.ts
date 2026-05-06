@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { Trip } from '../models/Trip'
 import { User } from '../models/User'
 import { JournalDay } from '../models/JournalDay'
+import { Notification } from '../models/Notification'
 
 const router = Router()
 
@@ -51,15 +52,16 @@ router.put('/:id', async (req, res) => {
   try {
     const trip = await Trip.findById(req.params.id)
     if (!trip) return res.status(404).json({ error: 'Not found' })
-    if (trip.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
+    if (!canRead(trip as any, req.user.sub)) return res.status(403).json({ error: 'Forbidden' })
 
     // Separate Mixed array fields — Mongoose's set() recursively casts array
     // elements and mangles nested GeoJSON { type } keys. Write them directly
     // via the MongoDB driver instead.
     const { gpxTracks, waypoints, ...rest } = req.body as Record<string, unknown>
 
-    // Never allow ownerSub to be overwritten via PUT
+    // Only the owner may change ownership or collaborator list
     delete (rest as any).ownerSub
+    if (trip.ownerSub !== req.user.sub) delete (rest as any).sharedWith
 
     trip.set(rest)
     if ('gpxPlanned' in rest) trip.markModified('gpxPlanned')
@@ -93,10 +95,25 @@ router.post('/:id/share', async (req, res) => {
     const target = await User.findOne({ sub }).lean()
     if (!target) return res.status(404).json({ error: 'User not found' })
 
-    if (!trip.sharedWith.includes(sub)) {
-      trip.sharedWith.push(sub)
-      await trip.save()
+    // Already has access — no-op
+    if (trip.sharedWith.includes(sub)) return res.json({ ok: true, name: target.name })
+
+    // Avoid duplicate pending invites
+    const existing = await Notification.findOne({
+      toSub: sub, fromSub: req.user.sub, tripId: trip._id.toString(),
+      type: 'trip_share_invite', status: 'pending',
+    })
+    if (!existing) {
+      await Notification.create({
+        toSub: sub,
+        fromSub: req.user.sub,
+        fromName: req.user.name,
+        type: 'trip_share_invite',
+        tripId: trip._id.toString(),
+        tripTitle: trip.title,
+      })
     }
+
     res.json({ ok: true, name: target.name })
   } catch (err) {
     console.error('POST /trips/:id/share error:', err)

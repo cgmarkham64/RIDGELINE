@@ -72,6 +72,25 @@ export interface JournalDay {
   photos?: Photo[]
 }
 
+// ─── Notifications ───────────────────────────────────────────────────────────
+
+export type NotificationType = 'trip_share_invite' | 'invite_accepted' | 'invite_declined'
+export type NotificationStatus = 'pending' | 'accepted' | 'declined'
+
+export interface AppNotification {
+  _id: string
+  toSub: string
+  fromSub: string
+  fromName: string
+  type: NotificationType
+  tripId: string
+  tripTitle: string
+  read: boolean
+  status: NotificationStatus
+  createdAt: string
+  updatedAt: string
+}
+
 // ─── GPX ─────────────────────────────────────────────────────────────────────
 
 export interface GpxTrack {
@@ -124,6 +143,7 @@ export interface Trip {
   waypoints?: Waypoint[]
   coverPhotoId?: string
   loadoutId?: string
+  ownerSub?: string
   journalDays?: JournalDay[]
   photos?: Photo[]
   createdAt: string

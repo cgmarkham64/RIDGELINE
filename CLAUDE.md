@@ -137,9 +137,14 @@ server/
    - ✅ `POST /api/trips/:id/share` — adds user to `sharedWith` by sub; validates user exists
    - ✅ `ShareDialog.tsx` — "Invite to collaborate" card with debounced name/email search and inline feedback
    - ✅ Journal companions — typing `@` triggers user search; selecting a user auto-shares the trip on save
-   - Shared trips should appear in the recipient's trip list with a visual indicator (e.g. a small avatar or "Shared by X" label) so they're distinguishable from owned trips.
-   - Add a `DELETE /api/trips/:id/share/:sub` endpoint so the owner can revoke access.
-   - Add a notification bell icon to the bottom part of IconRail above the account element. Include a popover menu that scrolls with notifications. A notification in this context will be there when another user shares a trip and journal entries with you. The notification should allow you to accept or decline the invite to collaborate. Another notification should be available for the original author of the trip when the invited user accepts or declines the collaboration invitation.
+   - ✅ Shared trips appear in the recipient's list with a "Shared" label in the sidebar and "Shared trip" badge in the hero
+   - ✅ Notification bell in IconRail — popover with invite accept/decline and outcome notifications; polls every 30s
+   - ✅ Shared trip UI restrictions — non-owners see "Shared trip" badge, no Delete or Share button, edit allowed
+   - **Unshare (revoke access):**
+     - Add `DELETE /api/trips/:id/share/:sub` endpoint (owner-only) — removes sub from `sharedWith`
+     - Update `GET /api/trips` and `GET /api/trips/:id` to populate `sharedWith` subs into `{ sub, name, avatarUrl }` objects so names are available client-side
+     - Update frontend `Trip` type: change `sharedWith?: string[]` → `sharedWith?: { sub: string; name: string; avatarUrl?: string }[]`
+     - Add a "Collaborators" list to `ShareDialog.tsx` (above the invite input, owner-only) showing each shared user with a remove `×` button that calls the delete endpoint
 9. Shared trip acceptance flow — for a future invite-token model (email link):
    - Generate a signed, expiring invite token (`crypto.randomUUID()` stored on the trip + expiry timestamp) when the owner shares.
    - Email the token to the invitee (requires a mail integration — Sendgrid, Resend, etc.).

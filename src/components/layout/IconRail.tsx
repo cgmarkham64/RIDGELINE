@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useAuthStore } from '../../store/auth'
 import { AccountDialog } from './AccountDialog'
+import { NotificationBell } from './NotificationBell'
 
 function NavLink({
   to,
@@ -90,6 +91,8 @@ export function IconRail() {
         </NavLink>
 
         <div className="flex-1" />
+
+        <NotificationBell />
 
         {/* Account + sign out */}
         {user && (
