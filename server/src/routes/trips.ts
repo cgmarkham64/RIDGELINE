@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { Trip } from '../models/Trip'
+import { User } from '../models/User'
 import { JournalDay } from '../models/JournalDay'
 
 const router = Router()
@@ -75,6 +76,30 @@ router.put('/:id', async (req, res) => {
     res.json(result)
   } catch (err) {
     console.error('PUT /trips/:id error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+router.post('/:id/share', async (req, res) => {
+  try {
+    const trip = await Trip.findById(req.params.id)
+    if (!trip) return res.status(404).json({ error: 'Not found' })
+    if (trip.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
+
+    const { sub } = req.body
+    if (!sub) return res.status(400).json({ error: 'sub required' })
+    if (sub === req.user.sub) return res.status(400).json({ error: 'Cannot share with yourself' })
+
+    const target = await User.findOne({ sub }).lean()
+    if (!target) return res.status(404).json({ error: 'User not found' })
+
+    if (!trip.sharedWith.includes(sub)) {
+      trip.sharedWith.push(sub)
+      await trip.save()
+    }
+    res.json({ ok: true, name: target.name })
+  } catch (err) {
+    console.error('POST /trips/:id/share error:', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import type { Trip, JournalDay } from '../../types'
 import { useJournalDays, useSaveJournalDay } from '../../hooks/useJournalDays'
 import { api } from '../../lib/api'
+import { searchUsers, shareTrip, type UserSearchResult } from '../../lib/users'
 import { HikerOverlay } from '../ui/HikerOverlay'
 import { DaySelector } from './DaySelector'
 
@@ -64,6 +65,7 @@ export function JournalSection({ trip }: Props) {
   const [wildlife, setWildlife] = useState<string[]>([])
   const [companions, setCompanions] = useState<string[]>([])
   const panelsDirtyRef = useRef(false)
+  const pendingShareSubsRef = useRef<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const saveStartRef = useRef(0)
 
@@ -92,6 +94,7 @@ export function JournalSection({ trip }: Props) {
     setWildlife(currentEntry?.wildlife ?? [])
     setCompanions(currentEntry?.companions ?? [])
     panelsDirtyRef.current = false
+    pendingShareSubsRef.current = []
   }, [selectedDate, currentEntry?._id, reset])
 
   // Auto-save when focus leaves the form — but only if body has content
@@ -135,6 +138,13 @@ export function JournalSection({ trip }: Props) {
       const remaining = MIN_SAVE_OVERLAY_MS - elapsed
       if (remaining > 0) {
         await new Promise((r) => setTimeout(r, remaining))
+      }
+
+      // Share trip with any @mentioned companions added this save
+      const subsToShare = pendingShareSubsRef.current.slice()
+      pendingShareSubsRef.current = []
+      for (const sub of subsToShare) {
+        try { await shareTrip(trip._id, sub) } catch { /* non-fatal */ }
       }
 
       setSavedFeedback(true)
@@ -341,10 +351,13 @@ export function JournalSection({ trip }: Props) {
             <hr className="flex-1 border-0 border-t border-border" />
           </div>
           <div className="mb-5">
-            <TagInput
+            <CompanionTagInput
               tags={companions}
-              placeholder="Add names…"
               onChange={(tags) => { setCompanions(tags); panelsDirtyRef.current = true }}
+              onMentionAdded={(sub) => {
+                if (!pendingShareSubsRef.current.includes(sub))
+                  pendingShareSubsRef.current.push(sub)
+              }}
             />
           </div>
 
@@ -449,6 +462,140 @@ function TagInput({
       />
     </div>
   )
+}
+
+function CompanionTagInput({
+  tags,
+  onChange,
+  onMentionAdded,
+}: {
+  tags: string[]
+  onChange: (tags: string[]) => void
+  onMentionAdded: (sub: string) => void
+}) {
+  const [input, setInput] = useState('')
+  const [results, setResults] = useState<UserSearchResult[]>([])
+  const [searching, setSearching] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  const mentionQuery = input.startsWith('@') ? input.slice(1) : null
+
+  useEffect(() => {
+    if (mentionQuery === null || mentionQuery.length < 2) {
+      setResults([])
+      setOpen(false)
+      return
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const users = await searchUsers(mentionQuery)
+        setResults(users)
+        setOpen(true)
+      } catch {
+        setResults([])
+      } finally {
+        setSearching(false)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [mentionQuery])
+
+  function addTag(label: string, sub?: string) {
+    const trimmed = label.trim()
+    if (!trimmed || tags.includes(trimmed)) return
+    onChange([...tags, trimmed])
+    if (sub) onMentionAdded(sub)
+    setInput('')
+    setOpen(false)
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      if (open && results.length > 0) {
+        addTag(`@${results[0].name}`, results[0].sub)
+      } else if (mentionQuery === null && input.trim()) {
+        addTag(input)
+      }
+    } else if (e.key === 'Backspace' && !input && tags.length) {
+      onChange(tags.slice(0, -1))
+    } else if (e.key === 'Escape') {
+      setOpen(false)
+    }
+  }
+
+  return (
+    <div className="relative">
+      <div className="flex flex-wrap gap-1.5 items-center min-h-[32px]">
+        {tags.map((tag) => (
+          <span
+            key={tag}
+            className={`flex items-center gap-1 border rounded-sm px-2 py-0.5 font-mono text-[10px] ${
+              tag.startsWith('@')
+                ? 'bg-amber-dim border-amber-border text-amber'
+                : 'bg-surface-2 border-border text-text-mid'
+            }`}
+          >
+            {tag}
+            <button
+              type="button"
+              onClick={() => onChange(tags.filter((t) => t !== tag))}
+              className="text-text-dim hover:text-amber leading-none"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={() => {
+            setTimeout(() => setOpen(false), 150)
+            if (mentionQuery === null && input.trim()) addTag(input)
+          }}
+          placeholder={tags.length === 0 ? 'Add names, or type @ to mention a user…' : ''}
+          className="flex-1 min-w-32 bg-transparent border-0 outline-none font-mono text-[11px] text-text placeholder:text-text-dim"
+        />
+      </div>
+
+      {open && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border-mid rounded-md overflow-hidden z-10 shadow-lg">
+          {searching ? (
+            <div className="px-3 py-2.5 font-mono text-[10px] text-text-dim">Searching…</div>
+          ) : results.length > 0 ? (
+            results.map((user) => (
+              <button
+                key={user.sub}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); addTag(`@${user.name}`, user.sub) }}
+                className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-surface-2 transition-colors duration-100"
+              >
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-mono text-[9px] font-bold"
+                  style={{ background: 'var(--amber-dim)', color: 'var(--amber)' }}
+                >
+                  {initials(user.name)}
+                </div>
+                <div className="min-w-0">
+                  <div className="font-sans text-[12px] font-medium text-text truncate">{user.name}</div>
+                  <div className="font-mono text-[9px] text-text-dim truncate">{user.email}</div>
+                </div>
+              </button>
+            ))
+          ) : (
+            <div className="px-3 py-2.5 font-mono text-[10px] text-text-dim">No users found</div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function initials(name: string): string {
+  return name.split(' ').filter(Boolean).map((w) => w[0]).join('').toUpperCase().slice(0, 2)
 }
 
 function fileToBase64(file: File): Promise<string> {
