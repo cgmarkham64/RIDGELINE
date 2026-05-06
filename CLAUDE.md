@@ -38,22 +38,26 @@ npm run mongodb:stop   # stops mongodb-community@8.0 via homebrew
 ```
 src/
   lib/            # api.ts (axios instance), auth.ts (login/register/avatar API calls),
-                  #   gpx.ts, exif.ts, journalDays.ts, trips.ts
+                  #   gpx.ts, exif.ts, journalDays.ts, trips.ts,
+                  #   users.ts (searchUsers by name/email, shareTrip)
   routes/         # TanStack Router — __root.tsx, _authenticated.tsx, index.tsx, login.tsx, register.tsx,
                   #   map.tsx, photos.tsx, gear.tsx
   pages/          # LoginPage, RegisterPage, HomePage, MapPage, PhotosPage, GearPage
   store/          # auth.ts (Zustand — token, user {id, email, name, avatarUrl}, updateUser, clearAuth)
-  types/          # index.ts (Trip, JournalDay, Photo, GearItem, GearCategory, Loadout,
+  types/          # index.ts (Trip, JournalDay [+ wildlife?: string[], companions?: string[]],
+                  #            Photo, GearItem, GearCategory, Loadout,
                   #            GpxTrack, GpxTrackEntry, Waypoint, WaypointType), auth.ts (User, AuthResponse)
   components/
-    journal/      # DaySelector.tsx, JournalSection.tsx
+    journal/      # DaySelector.tsx, JournalSection.tsx (wildlife + companions tag panels;
+                  #   companions supports @ to mention a Ridgeline user — auto-shares trip on save)
     layout/       # IconRail.tsx (nav rail + account avatar button + sign-out button),
                   #   AccountDialog.tsx (edit name, change password, upload/remove avatar)
     map/          # MapTab.tsx, MapHelpers.tsx, MapEmptyState.tsx, WaypointIcon.tsx,
                   #   WaypointForm.tsx, WaypointChip.tsx, constants.ts
     trip/         # TripDetail.tsx, TripHero.tsx, TripSidebar.tsx, TripModal.tsx,
                   #   TripRightPanel.tsx, ElevationProfile.tsx, GpxMapSection.tsx,
-                  #   ShareDialog.tsx, DeleteConfirm.tsx
+                  #   ShareDialog.tsx (copy link + invite-to-collaborate with debounced user search),
+                  #   DeleteConfirm.tsx
     ui/           # HikerOverlay.tsx, sayings.ts
   hooks/          # useTrips.ts (query key scoped by user sub), useJournalDays.ts (query key scoped by user sub)
   router.tsx      # TanStack Router instance
@@ -67,9 +71,10 @@ server/
                   #           verifyToken() is isolated for easy Keycloak swap)
     models/       # User.ts (sub UUID, email, name, passwordHash, avatarUrl),
                   #   Trip.ts (+ ownerSub, sharedWith[]), Loadout.ts (+ ownerSub),
-                  #   GearItem.ts (+ ownerSub), JournalDay.ts
+                  #   GearItem.ts (+ ownerSub), JournalDay.ts (+ wildlife[], companions[])
     routes/       # auth.ts (register, login, GET/PUT /me, PUT/DELETE /me/avatar),
-                  #   trips.ts, loadouts.ts, gearItems.ts, journalDays.ts, journalScan.ts
+                  #   trips.ts, loadouts.ts, gearItems.ts, journalDays.ts, journalScan.ts,
+                  #   users.ts (GET /search?q=)
     index.ts      # Express app, MongoDB connect; /api/auth public, all other routes behind requireAuth
   .env            # PORT=8000, MONGODB_URI, ANTHROPIC_API_KEY, JWT_SECRET
 ```
@@ -91,6 +96,7 @@ server/
 |----------------|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | GET/POST       | `/api/trips`     | List owned+shared trips / create trip (ownerSub set server-side)                                                                                                                                                                                                                                                  |
 | GET/PUT/DELETE | `/api/trips/:id` | Read (owner or shared) / update (owner only) / delete (owner only). PUT accepts `gpxPlanned` (GeoJSON LineString, persisted via `doc.set()` + `markModified`) and `gpxTracks` (array of `{ id, label, track }` entries, persisted via raw `collection.updateOne` + `$set` to bypass Mongoose casting of nested GeoJSON `type` keys). |
+| POST           | `/api/trips/:id/share` | Add a user to `sharedWith` by their `sub` (owner only). Validates target user exists; idempotent. Returns `{ ok, name }`. |
 
 **Journal days (all require JWT; read gated by trip access, writes owner-only)**
 | Method         | Path                        | Description                                           |
@@ -105,6 +111,11 @@ server/
 | GET/PUT/DELETE | `/api/loadouts/:id`   | Read / update / delete loadout                 |
 | GET/POST       | `/api/gear-items`     | List / create gear items                       |
 | GET/PUT/DELETE | `/api/gear-items/:id` | Read / update / delete gear item               |
+
+**Users (all require JWT)**
+| Method | Path                    | Description                                                                                                      |
+|--------|-------------------------|------------------------------------------------------------------------------------------------------------------|
+| GET    | `/api/users/search?q=`  | Search users by name or email (min 2 chars, case-insensitive, excludes caller). Returns up to 8 `{ sub, name, email }` results. |
 
 **Other**
 | Method | Path                | Description                                                                                                                   |
@@ -122,9 +133,10 @@ server/
 5. Add summary stats to the Hero banner stats for total Weight Carried, and Max Elevation. These should be included as manual entries when the trip is created for now with a plan to link the fields to map and loadout data later.
 6. Add search function to Trips list (by name OR state (acronym or long, CA or California))
 7. Add filter function to Trips list (finite by state, distance, elevation gain, etc.)
-8. Trip sharing UI — send a share invite from the Share dialog in the trip hero:
-   - Add a new `POST /api/trips/:id/share` endpoint that accepts `{ email: string }`, looks up the target user by email, and adds their `sub` to `trip.sharedWith`. Return 404 if no account with that email exists.
-   - In `ShareDialog.tsx`, add an "Invite by email" input below the copy-link button. On submit, call the new endpoint and show confirmation or error inline.
+8. Trip sharing UI — ✅ core sharing implemented; remaining work:
+   - ✅ `POST /api/trips/:id/share` — adds user to `sharedWith` by sub; validates user exists
+   - ✅ `ShareDialog.tsx` — "Invite to collaborate" card with debounced name/email search and inline feedback
+   - ✅ Journal companions — typing `@` triggers user search; selecting a user auto-shares the trip on save
    - Shared trips should appear in the recipient's trip list with a visual indicator (e.g. a small avatar or "Shared by X" label) so they're distinguishable from owned trips.
    - Add a `DELETE /api/trips/:id/share/:sub` endpoint so the owner can revoke access.
    - Add a notification bell icon to the bottom part of IconRail above the account element. Include a popover menu that scrolls with notifications. A notification in this context will be there when another user shares a trip and journal entries with you. The notification should allow you to accept or decline the invite to collaborate. Another notification should be available for the original author of the trip when the invited user accepts or declines the collaboration invitation.
