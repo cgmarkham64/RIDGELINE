@@ -142,15 +142,22 @@ server/
 
 
 ### Todo
-1. Photo upload + EXIF — Use the exif-js or exifr library to parse EXIF in the browser before uploading. Extract GPS coordinates, camera settings, and timestamp client-side, store them alongside the photo reference in MongoDB.
-2. Gear loadouts — Straightforward CRUD once the pattern is established from trips. Weight calculations are pure frontend math in Zustand.
-3. Add hover text for each day button that says the title of the entry if it exists, or some prompt if it doesn't.
-4. Share / Export PDF — The Share button in the trip hero opens a dialog with two options:
+1. **Unit tests** — Add Vitest unit tests for pure logic:
+   - `src/lib/utils.ts` — `initials()` (empty string, undefined, single-word, multi-word) and `extractApiError()` (typed error, plain Error, null)
+   - Sidebar filter predicates — date overlap logic, min/max range edge cases, ownership filtering
+   - `useDebounce` hook — verify value only updates after delay, and cancels on rapid changes
+2. **E2E tests** — Add a Playwright baseline covering golden paths:
+   - Register → login → create trip → view trip
+   - Share trip → accept invite as second user → view shared trip
+   - Add journal entry → save → verify persistence
+   - Leave trip / delete trip
+3. Photo upload + EXIF — Use the exif-js or exifr library to parse EXIF in the browser before uploading. Extract GPS coordinates, camera settings, and timestamp client-side, store them alongside the photo reference in MongoDB.
+4. Gear loadouts — Straightforward CRUD once the pattern is established from trips. Weight calculations are pure frontend math in Zustand.
+5. Add hover text for each day button that says the title of the entry if it exists, or some prompt if it doesn't.
+6. Share / Export PDF — The Share button in the trip hero opens a dialog with two options:
     - **Copy link** — copies the current page URL to clipboard (implemented, shows a "Copied" confirmation).
     - **Export as PDF** — generates a styled PDF trip report matching the app's visual design. TODO: implement using a headless print stylesheet or a library like `@react-pdf/renderer`. The PDF should include: trip hero (title, location, dates, stats), journal entries (each day with conditions grid and narrative), GPX map screenshot or SVG export, gear loadout weight summary, and photos with EXIF metadata. Style it to match the dark amber/mono aesthetic of the app.
-5. Add summary stats to the Hero banner stats for total Weight Carried, and Max Elevation. These should be included as manual entries when the trip is created for now with a plan to link the fields to map and loadout data later.
-6. ✅ Search trips list — filters by title or location (state name/abbreviation) in real time
-7. ✅ Filter trips list — popover with ownership (All/Mine/Shared), miles range, elevation range, date range (trip overlap)
+7. Add summary stats to the Hero banner stats for total Weight Carried, and Max Elevation. These should be included as manual entries when the trip is created for now with a plan to link the fields to map and loadout data later.
 8. Shared trip acceptance flow — for a future invite-token model (email link):
    - Generate a signed, expiring invite token (`crypto.randomUUID()` stored on the trip + expiry timestamp) when the owner shares.
    - Email the token to the invitee (requires a mail integration — Sendgrid, Resend, etc.).
@@ -165,6 +172,23 @@ server/
    6. **Drop the `User` model** — once migrated, `server/src/models/User.ts` is no longer needed. User identity comes from the Keycloak token; store only app-specific profile data if needed.
 
 #### Todo Sidebar nav — planned page contents
+- **TRIP PLANNING FEATURE** - Allow users to plan trips in advance of going out - they will basically compile all their pre trip prep things in one place 
+  - Maps
+  - Permit info
+  - Number of days
+  - Weather forecasts
+  - Local wildlife info
+  - Leave no trace info
+  - Campsite planning
+    - Mileage per day
+    - Elevation per day
+  - Campsite contingency
+  - Water availability by mile marker and locale (drought? flash flooding?)
+  - Fires permissible?
+  - Drones permissible?
+  - Nearest emergency services and how to reach them?
+  - NOTE: we can maybe use AI to help compile all of this information into the pre-trip plan
+  - NOTE: after doing some design work and building this, we'd want a flow to take us from plan to execution to post trip report journal (what we've built already)
 - **Trips** - Share trips to other users leads to collaboration with other registered users. Add a feature to allow for simultaneous and deconflicted/merged edits of a trip and journal entries.
 - **Map** (`/map`) — Global map showing all GPX tracks and planned routes across every trip. Clicking a track opens the associated trip or plan detail.
 - **Photos** (`/photos`) — Collage/grid of all photos across all trips, with basic metadata (trip name, date, GPS coords). Clicking a photo navigates to its trip or shows full EXIF metadata.
