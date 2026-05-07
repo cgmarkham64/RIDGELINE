@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { useAuthStore } from '../../store/auth'
 import { AccountDialog } from './AccountDialog'
@@ -60,7 +60,7 @@ export function IconRail() {
 
   return (
     <>
-      <nav className="w-16 shrink-0 bg-surface border-r border-border flex flex-col items-center py-4 pb-5 gap-[2px] h-full">
+      <nav className="w-16 shrink-0 bg-surface border-r border-border flex flex-col items-center py-4 pb-5 gap-0.5 h-full">
         <div
           className="font-heading text-[11px] font-extrabold tracking-[0.22em] text-amber mb-5 select-none"
           style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}

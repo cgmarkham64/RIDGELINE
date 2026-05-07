@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import type { Trip } from '../../types'
 import { useTrips } from '../../hooks/useTrips'
 import { useAuthStore } from '../../store/auth'
@@ -17,13 +18,67 @@ function formatDateRange(start: string, end: string) {
   return `${fmt(start)} – ${fmt(end)}`
 }
 
+type Ownership = 'all' | 'mine' | 'shared'
+
 export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: Props) {
   const { data: trips, isLoading, isError } = useTrips()
   const userId = useAuthStore((s) => s.user?.id)
 
+  const [search, setSearch] = useState('')
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [ownership, setOwnership] = useState<Ownership>('all')
+  const [minMiles, setMinMiles] = useState('')
+  const [maxMiles, setMaxMiles] = useState('')
+  const [minElev, setMinElev] = useState('')
+  const [maxElev, setMaxElev] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+
+  const hasActiveFilters = ownership !== 'all' || minMiles !== '' || maxMiles !== '' || minElev !== '' || maxElev !== '' || dateFrom !== '' || dateTo !== ''
+
+  function clearFilters() {
+    setOwnership('all')
+    setMinMiles('')
+    setMaxMiles('')
+    setMinElev('')
+    setMaxElev('')
+    setDateFrom('')
+    setDateTo('')
+  }
+
+  const filterWrapRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    function onMouseDown(e: MouseEvent) {
+      if (filterWrapRef.current && !filterWrapRef.current.contains(e.target as Node)) {
+        setFiltersOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    return () => document.removeEventListener('mousedown', onMouseDown)
+  }, [])
+
   const sorted = trips
     ? [...trips].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
     : []
+
+  const filtered = sorted.filter((trip) => {
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      if (!trip.title.toLowerCase().includes(q) && !trip.location.toLowerCase().includes(q)) return false
+    }
+    const isOwner = !!userId && trip.ownerSub === userId
+    if (ownership === 'mine' && !isOwner) return false
+    if (ownership === 'shared' && isOwner) return false
+    if (minMiles && trip.distanceMiles != null && trip.distanceMiles < parseFloat(minMiles)) return false
+    if (maxMiles && trip.distanceMiles != null && trip.distanceMiles > parseFloat(maxMiles)) return false
+    if (minElev && trip.elevationGainFt != null && trip.elevationGainFt < parseFloat(minElev)) return false
+    if (maxElev && trip.elevationGainFt != null && trip.elevationGainFt > parseFloat(maxElev)) return false
+    if (dateFrom && trip.endDate.slice(0, 10) < dateFrom) return false
+    if (dateTo && trip.startDate.slice(0, 10) > dateTo) return false
+    return true
+  })
+
+  const showResultCount = (search.trim() || hasActiveFilters) && !isLoading && !isError
 
   return (
     <aside className="w-64.5 shrink-0 bg-surface border-r border-border flex flex-col h-full">
@@ -36,6 +91,113 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
         <button onClick={onNew} className="btn btn-primary btn-block">
           + New trip
         </button>
+
+        {/* Search + filter toggle */}
+        <div className="flex items-center gap-1.5">
+          <div className="relative flex-1">
+            <svg
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-dim pointer-events-none"
+              width="11" height="11" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search trips…"
+              className="w-full pl-7 pr-6 py-[5px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-text-dim hover:text-text leading-none"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          <div ref={filterWrapRef} className="relative shrink-0">
+            <button
+              onClick={() => setFiltersOpen((v) => !v)}
+              title="Filters"
+              className="relative w-7 h-7 flex items-center justify-center rounded-sm border border-border bg-surface-2 text-text-dim hover:text-text hover:border-border-mid transition-colors duration-100"
+              style={filtersOpen || hasActiveFilters ? { color: 'var(--amber)', borderColor: 'var(--amber-border)' } : undefined}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="11" y1="18" x2="13" y2="18" />
+              </svg>
+              {hasActiveFilters && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber" />
+              )}
+            </button>
+
+            {filtersOpen && (
+              <div className="absolute left-[calc(100%+8px)] top-0 w-56 bg-surface border border-border-mid rounded-lg shadow-xl z-50 p-3.5 flex flex-col gap-3">
+                <div className="font-heading text-[11px] font-extrabold text-text">Filters</div>
+
+                {/* Ownership */}
+                <div>
+                  <div className="font-mono text-[8px] tracking-[0.12em] uppercase text-text-dim mb-1.5">Show</div>
+                  <div className="flex gap-1">
+                    {(['all', 'mine', 'shared'] as Ownership[]).map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => setOwnership(opt)}
+                        className="flex-1 py-[4px] font-mono text-[9px] rounded-sm border transition-colors duration-100"
+                        style={{
+                          background: ownership === opt ? 'var(--amber-dim)' : 'var(--surface-2)',
+                          borderColor: ownership === opt ? 'var(--amber-border)' : 'var(--border)',
+                          color: ownership === opt ? 'var(--amber)' : 'var(--text-dim)',
+                        }}
+                      >
+                        {opt === 'all' ? 'All' : opt === 'mine' ? 'Mine' : 'Shared'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Distance */}
+                <div>
+                  <div className="font-mono text-[8px] tracking-[0.12em] uppercase text-text-dim mb-1">Miles</div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <input type="number" min="0" value={minMiles} onChange={(e) => setMinMiles(e.target.value)} placeholder="Min" className="w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]" />
+                    <input type="number" min="0" value={maxMiles} onChange={(e) => setMaxMiles(e.target.value)} placeholder="Max" className="w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]" />
+                  </div>
+                </div>
+
+                {/* Elevation */}
+                <div>
+                  <div className="font-mono text-[8px] tracking-[0.12em] uppercase text-text-dim mb-1">Elev gain (ft)</div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <input type="number" min="0" value={minElev} onChange={(e) => setMinElev(e.target.value)} placeholder="Min" className="w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]" />
+                    <input type="number" min="0" value={maxElev} onChange={(e) => setMaxElev(e.target.value)} placeholder="Max" className="w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]" />
+                  </div>
+                </div>
+
+                {/* Date range */}
+                <div>
+                  <div className="font-mono text-[8px] tracking-[0.12em] uppercase text-text-dim mb-1">Date range</div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[10px] text-text outline-none focus:border-border-mid transition-[border-color] duration-[140ms]" />
+                    <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[10px] text-text outline-none focus:border-border-mid transition-[border-color] duration-[140ms]" />
+                  </div>
+                  <div className="flex justify-between mt-0.5">
+                    <span className="font-mono text-[8px] text-text-dim">From</span>
+                    <span className="font-mono text-[8px] text-text-dim">To</span>
+                  </div>
+                </div>
+
+                {hasActiveFilters && (
+                  <button onClick={clearFilters} className="self-end font-mono text-[9px] text-text-dim hover:text-amber transition-colors duration-100">
+                    Clear filters
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Trip list */}
@@ -56,7 +218,19 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
           </p>
         )}
 
-        {sorted.map((trip) => {
+        {showResultCount && (
+          <p className="px-3.5 pt-1.5 pb-1 font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim">
+            {filtered.length} of {sorted.length} trip{sorted.length !== 1 ? 's' : ''}
+          </p>
+        )}
+
+        {!isLoading && !isError && sorted.length > 0 && filtered.length === 0 && (
+          <p className="px-3.5 pt-4 font-mono text-[9px] text-text-dim tracking-[0.1em] uppercase">
+            No trips match
+          </p>
+        )}
+
+        {filtered.map((trip) => {
           const isSelected = trip._id === selectedId
           const isOwner = !!userId && trip.ownerSub === userId
           return (
@@ -92,14 +266,10 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                 {(trip.distanceMiles || trip.elevationGainFt) && (
                   <div className="flex gap-2 mt-0.75">
                     {trip.distanceMiles && (
-                      <span className="font-mono text-[9px] text-text-dim">
-                        {trip.distanceMiles} mi
-                      </span>
+                      <span className="font-mono text-[9px] text-text-dim">{trip.distanceMiles} mi</span>
                     )}
                     {trip.elevationGainFt && (
-                      <span className="font-mono text-[9px] text-text-dim">
-                        +{trip.elevationGainFt.toLocaleString()} ft
-                      </span>
+                      <span className="font-mono text-[9px] text-text-dim">+{trip.elevationGainFt.toLocaleString()} ft</span>
                     )}
                   </div>
                 )}
@@ -110,17 +280,10 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                 )}
               </div>
 
-              {/* Edit / delete — shown on hover via CSS */}
               <TripActions
                 isOwner={isOwner}
-                onEdit={(e) => {
-                  e.stopPropagation()
-                  onEdit(trip)
-                }}
-                onDelete={(e) => {
-                  e.stopPropagation()
-                  onDelete(trip)
-                }}
+                onEdit={(e) => { e.stopPropagation(); onEdit(trip) }}
+                onDelete={(e) => { e.stopPropagation(); onDelete(trip) }}
               />
             </div>
           )
