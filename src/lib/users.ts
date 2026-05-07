@@ -3,7 +3,6 @@ import { api } from './api'
 export interface UserSearchResult {
   sub: string
   name: string
-  email: string
 }
 
 export async function searchUsers(q: string): Promise<UserSearchResult[]> {

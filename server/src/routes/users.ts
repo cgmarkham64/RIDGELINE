@@ -1,11 +1,21 @@
 import { Router } from 'express'
+import rateLimit from 'express-rate-limit'
 import { User } from '../models/User'
 
 const router = Router()
 
+const searchLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many searches — try again in a minute' },
+})
+
 // GET /api/users/search?q=<query>
 // Returns up to 8 users matching name or email (case-insensitive). Excludes the caller.
-router.get('/search', async (req, res) => {
+// Email is intentionally omitted from results to prevent harvesting.
+router.get('/search', searchLimiter, async (req, res) => {
   const { q } = req.query
   if (!q || typeof q !== 'string' || q.trim().length < 2) {
     return res.json([])
@@ -16,7 +26,7 @@ router.get('/search', async (req, res) => {
     sub: { $ne: req.user.sub },
     $or: [{ name: regex }, { email: regex }],
   })
-    .select('sub name email')
+    .select('sub name')
     .limit(8)
     .lean()
   res.json(users)

@@ -579,10 +579,7 @@ function CompanionTagInput({
                 >
                   {initials(user.name)}
                 </div>
-                <div className="min-w-0">
-                  <div className="font-sans text-[12px] font-medium text-text truncate">{user.name}</div>
-                  <div className="font-mono text-[9px] text-text-dim truncate">{user.email}</div>
-                </div>
+                <div className="font-sans text-[12px] font-medium text-text truncate">{user.name}</div>
               </button>
             ))
           ) : (
