@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AppNotification } from '../../types'
+import { initials } from '../../lib/utils'
 import {
   useNotifications,
   useAcceptInvite,
@@ -194,9 +195,6 @@ function messageFor(n: AppNotification): string {
   }
 }
 
-function initials(name: string): string {
-  return name.split(' ').filter(Boolean).map((w) => w[0]).join('').toUpperCase().slice(0, 2)
-}
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()

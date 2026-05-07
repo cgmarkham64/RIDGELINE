@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { useDebounce } from '../../hooks/useDebounce'
 import type { Trip } from '../../types'
 import { searchUsers, shareTrip, type UserSearchResult } from '../../lib/users'
 import { useUnshareTrip } from '../../hooks/useTrips'
+import { initials, extractApiError } from '../../lib/utils'
 
 interface Props {
   trip: Trip
@@ -23,28 +25,20 @@ export function ShareDialog({ trip, onClose }: Props) {
   const dropdownRef = useRef<HTMLDivElement>(null)
   const unshare = useUnshareTrip()
 
-  // Debounced user search
+  useEffect(() => { setInviteError(null) }, [query])
+  const debouncedQuery = useDebounce(query, 300)
   useEffect(() => {
-    setInviteError(null)
-    if (query.trim().length < 2) {
+    if (debouncedQuery.trim().length < 2) {
       setResults([])
       setDropdownOpen(false)
       return
     }
-    const timer = setTimeout(async () => {
-      setIsSearching(true)
-      try {
-        const users = await searchUsers(query.trim())
-        setResults(users)
-        setDropdownOpen(true)
-      } catch {
-        setResults([])
-      } finally {
-        setIsSearching(false)
-      }
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [query])
+    setIsSearching(true)
+    searchUsers(debouncedQuery.trim())
+      .then((users) => { setResults(users); setDropdownOpen(true) })
+      .catch(() => setResults([]))
+      .finally(() => setIsSearching(false))
+  }, [debouncedQuery])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -72,7 +66,7 @@ export function ShareDialog({ trip, onClose }: Props) {
       setQuery('')
       setResults([])
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error
+      const msg = extractApiError(err)
       setInviteError(msg ?? 'Failed to send invite')
     }
   }
@@ -239,9 +233,4 @@ export function ShareDialog({ trip, onClose }: Props) {
       </div>
     </div>
   )
-}
-
-function initials(name: string | undefined): string {
-  if (!name) return '?'
-  return name.split(' ').filter(Boolean).map((w) => w[0]).join('').toUpperCase().slice(0, 2)
 }

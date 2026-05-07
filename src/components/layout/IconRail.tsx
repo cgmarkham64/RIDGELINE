@@ -3,6 +3,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useAuthStore } from '../../store/auth'
 import { AccountDialog } from './AccountDialog'
 import { NotificationBell } from './NotificationBell'
+import { initials } from '../../lib/utils'
 
 function NavLink({
   to,
@@ -39,14 +40,6 @@ function NavLink({
   )
 }
 
-function initials(name: string) {
-  return name
-    .split(' ')
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
-}
 
 export function IconRail() {
   const { user, clearAuth } = useAuthStore()

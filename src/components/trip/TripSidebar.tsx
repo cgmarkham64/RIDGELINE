@@ -20,6 +20,9 @@ function formatDateRange(start: string, end: string) {
 
 type Ownership = 'all' | 'mine' | 'shared'
 
+const filterInputCls = 'w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]'
+const filterDateInputCls = 'w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[10px] text-text outline-none focus:border-border-mid transition-[border-color] duration-[140ms]'
+
 export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: Props) {
   const { data: trips, isLoading, isError } = useTrips()
   const userId = useAuthStore((s) => s.user?.id)
@@ -162,8 +165,8 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                 <div>
                   <div className="font-mono text-[8px] tracking-[0.12em] uppercase text-text-dim mb-1">Miles</div>
                   <div className="grid grid-cols-2 gap-1.5">
-                    <input type="number" min="0" value={minMiles} onChange={(e) => setMinMiles(e.target.value)} placeholder="Min" className="w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]" />
-                    <input type="number" min="0" value={maxMiles} onChange={(e) => setMaxMiles(e.target.value)} placeholder="Max" className="w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]" />
+                    <input type="number" min="0" value={minMiles} onChange={(e) => setMinMiles(e.target.value)} placeholder="Min" className={filterInputCls} />
+                    <input type="number" min="0" value={maxMiles} onChange={(e) => setMaxMiles(e.target.value)} placeholder="Max" className={filterInputCls} />
                   </div>
                 </div>
 
@@ -171,8 +174,8 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                 <div>
                   <div className="font-mono text-[8px] tracking-[0.12em] uppercase text-text-dim mb-1">Elev gain (ft)</div>
                   <div className="grid grid-cols-2 gap-1.5">
-                    <input type="number" min="0" value={minElev} onChange={(e) => setMinElev(e.target.value)} placeholder="Min" className="w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]" />
-                    <input type="number" min="0" value={maxElev} onChange={(e) => setMaxElev(e.target.value)} placeholder="Max" className="w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]" />
+                    <input type="number" min="0" value={minElev} onChange={(e) => setMinElev(e.target.value)} placeholder="Min" className={filterInputCls} />
+                    <input type="number" min="0" value={maxElev} onChange={(e) => setMaxElev(e.target.value)} placeholder="Max" className={filterInputCls} />
                   </div>
                 </div>
 
@@ -180,8 +183,8 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                 <div>
                   <div className="font-mono text-[8px] tracking-[0.12em] uppercase text-text-dim mb-1">Date range</div>
                   <div className="grid grid-cols-2 gap-1.5">
-                    <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[10px] text-text outline-none focus:border-border-mid transition-[border-color] duration-[140ms]" />
-                    <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[10px] text-text outline-none focus:border-border-mid transition-[border-color] duration-[140ms]" />
+                    <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={filterDateInputCls} />
+                    <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={filterDateInputCls} />
                   </div>
                   <div className="flex justify-between mt-0.5">
                     <span className="font-mono text-[8px] text-text-dim">From</span>

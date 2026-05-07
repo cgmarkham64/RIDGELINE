@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { initials } from '../../lib/utils'
+import { useDebounce } from '../../hooks/useDebounce'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -489,27 +491,19 @@ function CompanionTagInput({
   const [searching, setSearching] = useState(false)
   const [open, setOpen] = useState(false)
 
-  // Search whenever 2+ chars are typed — no @ required
+  const debouncedInput = useDebounce(input, 300)
   useEffect(() => {
-    if (input.trim().length < 2) {
+    if (debouncedInput.trim().length < 2) {
       setResults([])
       setOpen(false)
       return
     }
-    const timer = setTimeout(async () => {
-      setSearching(true)
-      try {
-        const users = await searchUsers(input.trim())
-        setResults(users)
-        setOpen(true)
-      } catch {
-        setResults([])
-      } finally {
-        setSearching(false)
-      }
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [input])
+    setSearching(true)
+    searchUsers(debouncedInput.trim())
+      .then((users) => { setResults(users); setOpen(true) })
+      .catch(() => setResults([]))
+      .finally(() => setSearching(false))
+  }, [debouncedInput])
 
   function addTag(label: string, sub?: string) {
     const trimmed = label.trim()
@@ -608,10 +602,6 @@ function CompanionTagInput({
       )}
     </div>
   )
-}
-
-function initials(name: string): string {
-  return name.split(' ').filter(Boolean).map((w) => w[0]).join('').toUpperCase().slice(0, 2)
 }
 
 function fileToBase64(file: File): Promise<string> {

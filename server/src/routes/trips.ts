@@ -12,7 +12,7 @@ function canRead(trip: { ownerSub: string; sharedWith: string[] }, sub: string) 
 }
 
 // Populates sharedWith as { sub, name }[] and adds ownerName — single User query covers both
-async function populateSharedWith(trip: any) {
+async function populateTripUsers(trip: any) {
   const subs: string[] = trip.sharedWith ?? []
   const toFetch = [...new Set([...subs, trip.ownerSub].filter(Boolean))]
   const users = toFetch.length
@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
     })
       .populate('loadoutId')
       .lean()
-    const populated = await Promise.all(trips.map(populateSharedWith))
+    const populated = await Promise.all(trips.map(populateTripUsers))
     res.json(populated)
   } catch (err) {
     console.error('GET /trips error:', err)
@@ -50,7 +50,7 @@ router.get('/:id', async (req, res) => {
     const trip = await Trip.findById(req.params.id).populate('loadoutId').lean()
     if (!trip) return res.status(404).json({ error: 'Not found' })
     if (!canRead(trip as any, req.user.sub)) return res.status(403).json({ error: 'Forbidden' })
-    res.json(await populateSharedWith(trip))
+    res.json(await populateTripUsers(trip))
   } catch (err) {
     console.error('GET /trips/:id error:', err)
     res.status(500).json({ error: 'Internal server error' })
@@ -94,7 +94,7 @@ router.put('/:id', async (req, res) => {
     }
 
     const result = await Trip.findById(trip._id).populate('loadoutId').lean()
-    res.json(await populateSharedWith(result))
+    res.json(await populateTripUsers(result))
   } catch (err) {
     console.error('PUT /trips/:id error:', err)
     res.status(500).json({ error: 'Internal server error' })

@@ -38,9 +38,10 @@ npm run mongodb:stop   # stops mongodb-community@8.0 via homebrew
 ```
 src/
   lib/            # api.ts (axios instance), auth.ts (login/register/avatar API calls),
-                  #   gpx.ts, exif.ts, journalDays.ts, trips.ts (+ unshareTrip),
+                  #   gpx.ts, exif.ts, journalDays.ts, trips.ts (+ unshareTrip, leaveTrip),
                   #   users.ts (searchUsers by name/email, shareTrip),
-                  #   notifications.ts (fetchNotifications, acceptInvite, declineInvite, markAllRead, dismissNotification)
+                  #   notifications.ts (fetchNotifications, acceptInvite, declineInvite, markAllRead, dismissNotification),
+                  #   utils.ts (initials, extractApiError — shared across components)
   routes/         # TanStack Router — __root.tsx, _authenticated.tsx, index.tsx, login.tsx, register.tsx,
                   #   map.tsx, photos.tsx, gear.tsx
   pages/          # LoginPage, RegisterPage, HomePage, MapPage, PhotosPage, GearPage
@@ -57,12 +58,15 @@ src/
     map/          # MapTab.tsx, MapHelpers.tsx, MapEmptyState.tsx, WaypointIcon.tsx,
                   #   WaypointForm.tsx, WaypointChip.tsx, constants.ts
     trip/         # TripDetail.tsx, TripHero.tsx (owner-gated Share/Delete; "Shared trip" badge for non-owners),
-                  #   TripSidebar.tsx (owner-gated delete; "Shared" label on non-owned trips),
+                  #   TripSidebar.tsx (search + filter popover: ownership, miles range, elev range, date range),
                   #   TripModal.tsx, TripRightPanel.tsx, ElevationProfile.tsx, GpxMapSection.tsx,
                   #   ShareDialog.tsx (People with access + Invite someone + utilities; optimistic collaborator list),
-                  #   DeleteConfirm.tsx
-    ui/           # HikerOverlay.tsx, sayings.ts
-  hooks/          # useTrips.ts (+ useUnshareTrip), useJournalDays.ts, useNotifications.ts (useNotifications polls 30s, useAcceptInvite, useDeclineInvite, useMarkAllRead, useDismissNotification)
+                  #   ConfirmDialog.tsx (reusable confirm modal base),
+                  #   DeleteConfirm.tsx, LeaveConfirm.tsx (use ConfirmDialog)
+    ui/           # HikerOverlay.tsx, MoonLoader.tsx (inline moon/mountain loading animation), sayings.ts
+  hooks/          # useTrips.ts (+ useUnshareTrip, useLeaveTrip), useJournalDays.ts,
+                  #   useNotifications.ts (useNotifications polls 30s, useAcceptInvite, useDeclineInvite, useMarkAllRead, useDismissNotification),
+                  #   useDebounce.ts (generic debounce hook used in search inputs)
   router.tsx      # TanStack Router instance
 ```
 
@@ -145,8 +149,8 @@ server/
     - **Copy link** — copies the current page URL to clipboard (implemented, shows a "Copied" confirmation).
     - **Export as PDF** — generates a styled PDF trip report matching the app's visual design. TODO: implement using a headless print stylesheet or a library like `@react-pdf/renderer`. The PDF should include: trip hero (title, location, dates, stats), journal entries (each day with conditions grid and narrative), GPX map screenshot or SVG export, gear loadout weight summary, and photos with EXIF metadata. Style it to match the dark amber/mono aesthetic of the app.
 5. Add summary stats to the Hero banner stats for total Weight Carried, and Max Elevation. These should be included as manual entries when the trip is created for now with a plan to link the fields to map and loadout data later.
-6. Add search function to Trips list (by name OR state (acronym or long, CA or California))
-7. Add filter function to Trips list (finite by state, distance, elevation gain, etc.)
+6. ✅ Search trips list — filters by title or location (state name/abbreviation) in real time
+7. ✅ Filter trips list — popover with ownership (All/Mine/Shared), miles range, elevation range, date range (trip overlap)
 8. Shared trip acceptance flow — for a future invite-token model (email link):
    - Generate a signed, expiring invite token (`crypto.randomUUID()` stored on the trip + expiry timestamp) when the owner shares.
    - Email the token to the invitee (requires a mail integration — Sendgrid, Resend, etc.).

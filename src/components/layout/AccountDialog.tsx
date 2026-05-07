@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react'
 import { useAuthStore } from '../../store/auth'
 import { api } from '../../lib/api'
 import { uploadAvatar, removeAvatar } from '../../lib/auth'
+import { initials } from '../../lib/utils'
 import type { AuthResponse } from '../../types/auth'
 
 interface Props {
@@ -38,9 +39,6 @@ function apiError(err: unknown, fallback: string): string {
   return fallback
 }
 
-function initials(name: string) {
-  return name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()
-}
 
 export function AccountDialog({ onClose }: Props) {
   const { user, updateUser, setAuth } = useAuthStore()
