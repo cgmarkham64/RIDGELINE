@@ -1,6 +1,7 @@
 import type { Trip } from '../../types'
 import { useTrips } from '../../hooks/useTrips'
 import { useAuthStore } from '../../store/auth'
+import { MoonLoader } from '../ui/MoonLoader'
 
 interface Props {
   selectedId: string | null
@@ -39,11 +40,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
 
       {/* Trip list */}
       <div className="flex-1 overflow-y-auto min-h-0 py-2 pb-4">
-        {isLoading && (
-          <p className="px-3.5 pt-6 pb-6 font-mono text-[9px] text-text-dim tracking-widest uppercase">
-            Loading…
-          </p>
-        )}
+        {isLoading && <MoonLoader />}
 
         {isError && (
           <p className="px-3.5 pt-6 pb-6 font-mono text-[9px] text-red tracking-widest uppercase">

@@ -7,6 +7,7 @@ import { useJournalDays, useSaveJournalDay } from '../../hooks/useJournalDays'
 import { api } from '../../lib/api'
 import { searchUsers, shareTrip, type UserSearchResult } from '../../lib/users'
 import { HikerOverlay } from '../ui/HikerOverlay'
+import { MoonLoader } from '../ui/MoonLoader'
 import { DaySelector } from './DaySelector'
 
 const WEATHER_OPTIONS = [
@@ -214,9 +215,7 @@ export function JournalSection({ trip }: Props) {
       />
 
       {isLoading ? (
-        <p className="font-mono text-[9px] text-text-dim tracking-widest uppercase">
-          Loading…
-        </p>
+        <MoonLoader />
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} onBlur={handleFormBlur}>
           {/* Hidden file input for journal scan */}
