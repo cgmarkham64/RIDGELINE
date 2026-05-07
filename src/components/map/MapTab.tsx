@@ -731,7 +731,7 @@ function WaypointEditDialog({
 
 function AttributionStrip() {
   return (
-    <div className="shrink-0 px-3.5 py-1.25 border-t border-border bg-surface font-mono text-[8px] tracking-[0.06em] text-text-dim">
+    <div className="shrink-0 px-3.5 py-1.25 border-t border-border bg-surface font-mono text-[9px] tracking-[0.06em] text-text-dim">
       Map data &copy;{' '}
       <a
         href="https://www.openstreetmap.org/copyright"

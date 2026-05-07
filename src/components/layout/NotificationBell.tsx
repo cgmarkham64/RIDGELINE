@@ -51,7 +51,7 @@ export function NotificationBell() {
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         {badgeCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 min-w-[14px] h-[14px] rounded-full bg-red flex items-center justify-center font-mono text-[8px] font-bold text-white leading-none px-[3px]">
+          <span className="absolute top-1.5 right-1.5 min-w-[14px] h-[14px] rounded-full bg-red flex items-center justify-center font-mono text-[9px] font-bold text-white leading-none px-[3px]">
             {badgeCount > 9 ? '9+' : badgeCount}
           </span>
         )}
@@ -125,7 +125,7 @@ function NotificationItem({
     >
       <div className="flex items-start gap-2.5 mb-1.5">
         <div
-          className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center font-mono text-[8px] font-bold mt-[1px]"
+          className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center font-mono text-[9px] font-bold mt-[1px]"
           style={{ background: 'var(--amber-dim)', color: 'var(--amber)' }}
         >
           {initials(n.fromName)}
@@ -137,7 +137,7 @@ function NotificationItem({
           <p className="font-mono text-[9px] text-text-dim mt-0.5 truncate">
             {n.tripTitle}
           </p>
-          <p className="font-mono text-[8px] text-text-dim mt-0.5">
+          <p className="font-mono text-[9px] text-text-dim mt-0.5">
             {relativeTime(n.createdAt)}
           </p>
         </div>

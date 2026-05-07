@@ -29,3 +29,7 @@ export async function updateTrip(id: string, input: TripInput): Promise<Trip> {
 export async function deleteTrip(id: string): Promise<void> {
   await api.delete(`/api/trips/${id}`)
 }
+
+export async function unshareTrip(tripId: string, sub: string): Promise<void> {
+  await api.delete(`/api/trips/${tripId}/share/${sub}`)
+}

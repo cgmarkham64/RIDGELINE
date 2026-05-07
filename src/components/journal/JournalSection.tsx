@@ -66,6 +66,7 @@ export function JournalSection({ trip }: Props) {
   const [companions, setCompanions] = useState<string[]>([])
   const panelsDirtyRef = useRef(false)
   const pendingShareSubsRef = useRef<string[]>([])
+  const [pendingInviteCount, setPendingInviteCount] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const saveStartRef = useRef(0)
 
@@ -95,6 +96,7 @@ export function JournalSection({ trip }: Props) {
     setCompanions(currentEntry?.companions ?? [])
     panelsDirtyRef.current = false
     pendingShareSubsRef.current = []
+    setPendingInviteCount(0)
   }, [selectedDate, currentEntry?._id, reset])
 
   // Auto-save when focus leaves the form — but only if body has content
@@ -143,6 +145,7 @@ export function JournalSection({ trip }: Props) {
       // Share trip with any @mentioned companions added this save
       const subsToShare = pendingShareSubsRef.current.slice()
       pendingShareSubsRef.current = []
+      setPendingInviteCount(0)
       for (const sub of subsToShare) {
         try { await shareTrip(trip._id, sub) } catch { /* non-fatal */ }
       }
@@ -355,10 +358,19 @@ export function JournalSection({ trip }: Props) {
               tags={companions}
               onChange={(tags) => { setCompanions(tags); panelsDirtyRef.current = true }}
               onMentionAdded={(sub) => {
-                if (!pendingShareSubsRef.current.includes(sub))
+                if (!pendingShareSubsRef.current.includes(sub)) {
                   pendingShareSubsRef.current.push(sub)
+                  setPendingInviteCount(pendingShareSubsRef.current.length)
+                }
               }}
             />
+            {pendingInviteCount > 0 && (
+              <p className="font-mono text-[9px] text-text-dim mt-2">
+                {pendingInviteCount === 1
+                  ? 'Will send 1 collaboration invite on save'
+                  : `Will send ${pendingInviteCount} collaboration invites on save`}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-3 justify-end">
@@ -478,10 +490,9 @@ function CompanionTagInput({
   const [searching, setSearching] = useState(false)
   const [open, setOpen] = useState(false)
 
-  const mentionQuery = input.startsWith('@') ? input.slice(1) : null
-
+  // Search whenever 2+ chars are typed — no @ required
   useEffect(() => {
-    if (mentionQuery === null || mentionQuery.length < 2) {
+    if (input.trim().length < 2) {
       setResults([])
       setOpen(false)
       return
@@ -489,7 +500,7 @@ function CompanionTagInput({
     const timer = setTimeout(async () => {
       setSearching(true)
       try {
-        const users = await searchUsers(mentionQuery)
+        const users = await searchUsers(input.trim())
         setResults(users)
         setOpen(true)
       } catch {
@@ -499,12 +510,14 @@ function CompanionTagInput({
       }
     }, 300)
     return () => clearTimeout(timer)
-  }, [mentionQuery])
+  }, [input])
 
   function addTag(label: string, sub?: string) {
     const trimmed = label.trim()
-    if (!trimmed || tags.includes(trimmed)) return
-    onChange([...tags, trimmed])
+    // Store Ridgeline users with @ prefix as an internal discriminator
+    const stored = sub ? `@${trimmed}` : trimmed
+    if (!stored || tags.includes(stored)) return
+    onChange([...tags, stored])
     if (sub) onMentionAdded(sub)
     setInput('')
     setOpen(false)
@@ -514,8 +527,8 @@ function CompanionTagInput({
     if (e.key === 'Enter') {
       e.preventDefault()
       if (open && results.length > 0) {
-        addTag(`@${results[0].name}`, results[0].sub)
-      } else if (mentionQuery === null && input.trim()) {
+        addTag(results[0].name, results[0].sub)
+      } else if (input.trim()) {
         addTag(input)
       }
     } else if (e.key === 'Backspace' && !input && tags.length) {
@@ -528,25 +541,29 @@ function CompanionTagInput({
   return (
     <div className="relative">
       <div className="flex flex-wrap gap-1.5 items-center min-h-[32px]">
-        {tags.map((tag) => (
-          <span
-            key={tag}
-            className={`flex items-center gap-1 border rounded-sm px-2 py-0.5 font-mono text-[10px] ${
-              tag.startsWith('@')
-                ? 'bg-amber-dim border-amber-border text-amber'
-                : 'bg-surface-2 border-border text-text-mid'
-            }`}
-          >
-            {tag}
-            <button
-              type="button"
-              onClick={() => onChange(tags.filter((t) => t !== tag))}
-              className="text-text-dim hover:text-amber leading-none"
+        {tags.map((tag) => {
+          const isRidgeline = tag.startsWith('@')
+          const display = isRidgeline ? tag.slice(1) : tag
+          return (
+            <span
+              key={tag}
+              className={`flex items-center gap-1 border rounded-sm px-2 py-0.5 font-mono text-[10px] ${
+                isRidgeline
+                  ? 'bg-amber-dim border-amber-border text-amber'
+                  : 'bg-surface-2 border-border text-text-mid'
+              }`}
             >
-              ×
-            </button>
-          </span>
-        ))}
+              {display}
+              <button
+                type="button"
+                onClick={() => onChange(tags.filter((t) => t !== tag))}
+                className="text-text-dim hover:text-amber leading-none"
+              >
+                ×
+              </button>
+            </span>
+          )
+        })}
         <input
           type="text"
           value={input}
@@ -554,10 +571,10 @@ function CompanionTagInput({
           onKeyDown={handleKeyDown}
           onBlur={() => {
             setTimeout(() => setOpen(false), 150)
-            if (mentionQuery === null && input.trim()) addTag(input)
+            if (input.trim() && !open) addTag(input)
           }}
-          placeholder={tags.length === 0 ? 'Add names, or type @ to mention a user…' : ''}
-          className="flex-1 min-w-32 bg-transparent border-0 outline-none font-mono text-[11px] text-text placeholder:text-text-dim"
+          placeholder={tags.length === 0 ? 'Add names…' : ''}
+          className="flex-1 min-w-24 bg-transparent border-0 outline-none font-mono text-[11px] text-text placeholder:text-text-dim"
         />
       </div>
 
@@ -570,7 +587,7 @@ function CompanionTagInput({
               <button
                 key={user.sub}
                 type="button"
-                onMouseDown={(e) => { e.preventDefault(); addTag(`@${user.name}`, user.sub) }}
+                onMouseDown={(e) => { e.preventDefault(); addTag(user.name, user.sub) }}
                 className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-surface-2 transition-colors duration-100"
               >
                 <div
@@ -579,11 +596,14 @@ function CompanionTagInput({
                 >
                   {initials(user.name)}
                 </div>
-                <div className="font-sans text-[12px] font-medium text-text truncate">{user.name}</div>
+                <div className="min-w-0">
+                  <div className="font-sans text-[12px] font-medium text-text truncate">{user.name}</div>
+                  <div className="font-mono text-[9px] text-text-dim">Ridgeline user — will be invited</div>
+                </div>
               </button>
             ))
           ) : (
-            <div className="px-3 py-2.5 font-mono text-[10px] text-text-dim">No users found</div>
+            <div className="px-3 py-2.5 font-mono text-[10px] text-text-dim">No Ridgeline users found — will be saved as a name only</div>
           )}
         </div>
       )}

@@ -81,7 +81,7 @@ export function TripHero({ trip, days, onEdit, onDelete, onShare }: Props) {
         <div className="flex flex-col items-end gap-2 shrink-0">
           <div className="flex gap-1.5 items-center">
             {!isOwner && (
-              <span className="font-mono text-[8px] tracking-[0.12em] uppercase border rounded px-2 py-[3px]" style={{ color: 'var(--amber)', borderColor: 'var(--amber-border)' }}>
+              <span className="font-mono text-[9px] tracking-[0.12em] uppercase border rounded px-2 py-[3px]" style={{ color: 'var(--amber)', borderColor: 'var(--amber-border)' }}>
                 Shared trip
               </span>
             )}
@@ -135,7 +135,7 @@ function StatBlock({ value, label }: { value: string; label: string }) {
       <div className="font-heading text-[17px] font-extrabold text-amber leading-none mb-[3px]">
         {value}
       </div>
-      <div className="font-mono text-[7px] tracking-[0.1em] uppercase text-text-dim">
+      <div className="font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim">
         {label}
       </div>
     </div>

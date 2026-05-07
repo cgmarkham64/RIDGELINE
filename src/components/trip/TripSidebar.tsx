@@ -95,19 +95,19 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                 {(trip.distanceMiles || trip.elevationGainFt) && (
                   <div className="flex gap-2 mt-[3px]">
                     {trip.distanceMiles && (
-                      <span className="font-mono text-[8px] text-text-dim">
+                      <span className="font-mono text-[9px] text-text-dim">
                         {trip.distanceMiles} mi
                       </span>
                     )}
                     {trip.elevationGainFt && (
-                      <span className="font-mono text-[8px] text-text-dim">
+                      <span className="font-mono text-[9px] text-text-dim">
                         +{trip.elevationGainFt.toLocaleString()} ft
                       </span>
                     )}
                   </div>
                 )}
                 {!isOwner && (
-                  <div className="font-mono text-[8px] mt-[3px]" style={{ color: 'var(--amber)', opacity: 0.7 }}>
+                  <div className="font-mono text-[9px] mt-[3px]" style={{ color: 'var(--amber)', opacity: 0.7 }}>
                     Shared
                   </div>
                 )}

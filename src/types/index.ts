@@ -144,6 +144,7 @@ export interface Trip {
   coverPhotoId?: string
   loadoutId?: string
   ownerSub?: string
+  sharedWith?: { sub: string; name: string }[]
   journalDays?: JournalDay[]
   photos?: Photo[]
   createdAt: string

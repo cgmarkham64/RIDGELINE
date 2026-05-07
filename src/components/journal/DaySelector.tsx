@@ -192,7 +192,7 @@ export function DaySelector({ startDate, endDate, selectedDate, entries, onSelec
       {/* Day-of-week header */}
       <div className="grid grid-cols-7 border-b border-border">
         {DOW.map((d, i) => (
-          <div key={i} className="text-center py-1.5 font-mono text-[8px] tracking-widest uppercase text-text-dim">
+          <div key={i} className="text-center py-1.5 font-mono text-[9px] tracking-widest uppercase text-text-dim">
             {d}
           </div>
         ))}
@@ -229,7 +229,7 @@ export function DaySelector({ startDate, endDate, selectedDate, entries, onSelec
                   {cell.dayNumber}
                 </span>
                 <span className={[
-                  'font-mono text-[7px] tracking-[0.06em] uppercase leading-none',
+                  'font-mono text-[8px] tracking-[0.06em] uppercase leading-none',
                   isSelected ? 'text-amber/55' : 'text-text-dim',
                 ].join(' ')}>
                   {calDate}
@@ -252,7 +252,7 @@ export function DaySelector({ startDate, endDate, selectedDate, entries, onSelec
           onClick={() => setVisibleMonthIdx((i) => i + 1)}
           className="w-full flex items-center justify-end gap-1.5 px-2.5 py-1.5 border-t border-border text-text-dim hover:text-text hover:bg-surface-3 transition-colors duration-120 cursor-pointer"
         >
-          <span className="font-mono text-[8px] tracking-[0.1em] uppercase">
+          <span className="font-mono text-[9px] tracking-[0.1em] uppercase">
             Continues in {currentMonth.nextLabel}
           </span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3" style={{ strokeWidth: 2 }}>

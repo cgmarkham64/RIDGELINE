@@ -38,28 +38,31 @@ npm run mongodb:stop   # stops mongodb-community@8.0 via homebrew
 ```
 src/
   lib/            # api.ts (axios instance), auth.ts (login/register/avatar API calls),
-                  #   gpx.ts, exif.ts, journalDays.ts, trips.ts,
-                  #   users.ts (searchUsers by name/email, shareTrip)
+                  #   gpx.ts, exif.ts, journalDays.ts, trips.ts (+ unshareTrip),
+                  #   users.ts (searchUsers by name/email, shareTrip),
+                  #   notifications.ts (fetchNotifications, acceptInvite, declineInvite, markAllRead, dismissNotification)
   routes/         # TanStack Router — __root.tsx, _authenticated.tsx, index.tsx, login.tsx, register.tsx,
                   #   map.tsx, photos.tsx, gear.tsx
   pages/          # LoginPage, RegisterPage, HomePage, MapPage, PhotosPage, GearPage
   store/          # auth.ts (Zustand — token, user {id, email, name, avatarUrl}, updateUser, clearAuth)
-  types/          # index.ts (Trip, JournalDay [+ wildlife?: string[], companions?: string[]],
-                  #            Photo, GearItem, GearCategory, Loadout,
+  types/          # index.ts (Trip [+ ownerSub, sharedWith: {sub,name}[]], JournalDay [+ wildlife?, companions?],
+                  #            AppNotification, Photo, GearItem, GearCategory, Loadout,
                   #            GpxTrack, GpxTrackEntry, Waypoint, WaypointType), auth.ts (User, AuthResponse)
   components/
-    journal/      # DaySelector.tsx, JournalSection.tsx (wildlife + companions tag panels;
-                  #   companions supports @ to mention a Ridgeline user — auto-shares trip on save)
-    layout/       # IconRail.tsx (nav rail + account avatar button + sign-out button),
-                  #   AccountDialog.tsx (edit name, change password, upload/remove avatar)
+    journal/      # DaySelector.tsx, JournalSection.tsx (wildlife + companions panels;
+                  #   companions always searches Ridgeline users as you type; amber chip = user; auto-shares on save)
+    layout/       # IconRail.tsx (nav rail + notification bell + account avatar + sign-out),
+                  #   AccountDialog.tsx (edit name, change password, upload/remove avatar),
+                  #   NotificationBell.tsx (badge + popover; accept/decline invites, dismiss, mark all read)
     map/          # MapTab.tsx, MapHelpers.tsx, MapEmptyState.tsx, WaypointIcon.tsx,
                   #   WaypointForm.tsx, WaypointChip.tsx, constants.ts
-    trip/         # TripDetail.tsx, TripHero.tsx, TripSidebar.tsx, TripModal.tsx,
-                  #   TripRightPanel.tsx, ElevationProfile.tsx, GpxMapSection.tsx,
-                  #   ShareDialog.tsx (copy link + invite-to-collaborate with debounced user search),
+    trip/         # TripDetail.tsx, TripHero.tsx (owner-gated Share/Delete; "Shared trip" badge for non-owners),
+                  #   TripSidebar.tsx (owner-gated delete; "Shared" label on non-owned trips),
+                  #   TripModal.tsx, TripRightPanel.tsx, ElevationProfile.tsx, GpxMapSection.tsx,
+                  #   ShareDialog.tsx (People with access + Invite someone + utilities; optimistic collaborator list),
                   #   DeleteConfirm.tsx
     ui/           # HikerOverlay.tsx, sayings.ts
-  hooks/          # useTrips.ts (query key scoped by user sub), useJournalDays.ts (query key scoped by user sub)
+  hooks/          # useTrips.ts (+ useUnshareTrip), useJournalDays.ts, useNotifications.ts (useNotifications polls 30s, useAcceptInvite, useDeclineInvite, useMarkAllRead, useDismissNotification)
   router.tsx      # TanStack Router instance
 ```
 
@@ -71,10 +74,11 @@ server/
                   #           verifyToken() is isolated for easy Keycloak swap)
     models/       # User.ts (sub UUID, email, name, passwordHash, avatarUrl),
                   #   Trip.ts (+ ownerSub, sharedWith[]), Loadout.ts (+ ownerSub),
-                  #   GearItem.ts (+ ownerSub), JournalDay.ts (+ wildlife[], companions[])
+                  #   GearItem.ts (+ ownerSub), JournalDay.ts (+ wildlife[], companions[]),
+                  #   Notification.ts (toSub, fromSub, fromName, type, tripId, tripTitle, read, status)
     routes/       # auth.ts (register, login, GET/PUT /me, PUT/DELETE /me/avatar),
                   #   trips.ts, loadouts.ts, gearItems.ts, journalDays.ts, journalScan.ts,
-                  #   users.ts (GET /search?q=)
+                  #   users.ts (GET /search?q=), notifications.ts (GET, POST accept/decline, DELETE, PATCH read-all)
     index.ts      # Express app, MongoDB connect; /api/auth public, all other routes behind requireAuth
   .env            # PORT=8000, MONGODB_URI, ANTHROPIC_API_KEY, JWT_SECRET
 ```
@@ -95,8 +99,9 @@ server/
 | Method         | Path             | Description                                                                                                                                                                                                                                                                                                       |
 |----------------|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | GET/POST       | `/api/trips`     | List owned+shared trips / create trip (ownerSub set server-side)                                                                                                                                                                                                                                                  |
-| GET/PUT/DELETE | `/api/trips/:id` | Read (owner or shared) / update (owner only) / delete (owner only). PUT accepts `gpxPlanned` (GeoJSON LineString, persisted via `doc.set()` + `markModified`) and `gpxTracks` (array of `{ id, label, track }` entries, persisted via raw `collection.updateOne` + `$set` to bypass Mongoose casting of nested GeoJSON `type` keys). |
-| POST           | `/api/trips/:id/share` | Add a user to `sharedWith` by their `sub` (owner only). Validates target user exists; idempotent. Returns `{ ok, name }`. |
+| GET/PUT/DELETE | `/api/trips/:id` | Read (owner or shared) / update (owner or shared) / delete (owner only). GET and PUT responses populate `sharedWith` as `{ sub, name }[]`. PUT accepts `gpxPlanned` and `gpxTracks`; non-owners cannot overwrite `sharedWith`. |
+| POST           | `/api/trips/:id/share` | Send a collaboration invite notification to a user by `sub` (owner only); idempotent; does not add to `sharedWith` directly. |
+| DELETE         | `/api/trips/:id/share/:sub` | Remove a collaborator (owner only); also cancels any pending invite notification for that user. |
 
 **Journal days (all require JWT; read gated by trip access, writes owner-only)**
 | Method         | Path                        | Description                                           |
@@ -115,7 +120,16 @@ server/
 **Users (all require JWT)**
 | Method | Path                    | Description                                                                                                      |
 |--------|-------------------------|------------------------------------------------------------------------------------------------------------------|
-| GET    | `/api/users/search?q=`  | Search users by name or email (min 2 chars, case-insensitive, excludes caller). Returns up to 8 `{ sub, name, email }` results. |
+| GET    | `/api/users/search?q=`  | Search users by name or email (min 2 chars, case-insensitive, excludes caller, rate-limited 20 req/min). Returns up to 8 `{ sub, name }` results — email intentionally omitted. |
+
+**Notifications (all require JWT)**
+| Method | Path                            | Description                                                                                                   |
+|--------|---------------------------------|---------------------------------------------------------------------------------------------------------------|
+| GET    | `/api/notifications`            | List latest 50 notifications for the current user, newest first                                               |
+| POST   | `/api/notifications/:id/accept` | Accept a pending trip invite — adds caller to `sharedWith`, notifies owner, marks notification read            |
+| POST   | `/api/notifications/:id/decline`| Decline a pending trip invite — notifies owner, marks notification read                                        |
+| DELETE | `/api/notifications/:id`        | Dismiss (delete) a notification                                                                                |
+| PATCH  | `/api/notifications/read-all`   | Mark all non-pending notifications as read (called on panel open)                                              |
 
 **Other**
 | Method | Path                | Description                                                                                                                   |
@@ -140,11 +154,12 @@ server/
    - ✅ Shared trips appear in the recipient's list with a "Shared" label in the sidebar and "Shared trip" badge in the hero
    - ✅ Notification bell in IconRail — popover with invite accept/decline and outcome notifications; polls every 30s
    - ✅ Shared trip UI restrictions — non-owners see "Shared trip" badge, no Delete or Share button, edit allowed
-   - **Unshare (revoke access):**
-     - Add `DELETE /api/trips/:id/share/:sub` endpoint (owner-only) — removes sub from `sharedWith`
-     - Update `GET /api/trips` and `GET /api/trips/:id` to populate `sharedWith` subs into `{ sub, name, avatarUrl }` objects so names are available client-side
-     - Update frontend `Trip` type: change `sharedWith?: string[]` → `sharedWith?: { sub: string; name: string; avatarUrl?: string }[]`
-     - Add a "Collaborators" list to `ShareDialog.tsx` (above the invite input, owner-only) showing each shared user with a remove `×` button that calls the delete endpoint
+   - **Unshare (revoke access):** ✅ complete
+     - ✅ `DELETE /api/trips/:id/share/:sub` — removes sub from `sharedWith`; cancels any pending invite notification
+     - ✅ `GET /api/trips` and `GET /api/trips/:id` populate `sharedWith` as `{ sub, name }[]`; `PUT /:id` also returns populated response
+     - ✅ Frontend `Trip` type updated: `sharedWith?: { sub: string; name: string }[]`
+     - ✅ `unshareTrip` in `src/lib/trips.ts` + `useUnshareTrip` mutation in `useTrips.ts`
+     - ✅ `ShareDialog.tsx` restructured: "People with access" section with Remove buttons; "Invite someone" section; optimistic collaborator add on invite
 9. Shared trip acceptance flow — for a future invite-token model (email link):
    - Generate a signed, expiring invite token (`crypto.randomUUID()` stored on the trip + expiry timestamp) when the owner shares.
    - Email the token to the invitee (requires a mail integration — Sendgrid, Resend, etc.).

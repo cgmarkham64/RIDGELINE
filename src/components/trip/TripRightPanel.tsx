@@ -54,7 +54,7 @@ export function TripRightPanel({ trip, onTripUpdated, activeTab }: Props) {
         <ComingSoon />
       </RpSection>
       {!isMapTab && (
-        <div className="mt-auto pt-4 font-mono text-[8px] tracking-[0.06em] text-text-dim leading-[1.8]">
+        <div className="mt-auto pt-4 font-mono text-[9px] tracking-[0.06em] text-text-dim leading-[1.8]">
           Map data &copy;{' '}
           <a
             href="https://www.openstreetmap.org/copyright"
@@ -141,12 +141,12 @@ function WaypointList({
                 </div>
                 <div className="flex items-center gap-1.5 mt-[2px]">
                   <span
-                    className="font-mono text-[7px] tracking-[0.08em] uppercase"
+                    className="font-mono text-[8px] tracking-[0.08em] uppercase"
                     style={{ color }}
                   >
                     {WAYPOINT_LABEL[wp.type]}
                   </span>
-                  <span className="font-mono text-[7px] tracking-[0.04em] text-text-dim">
+                  <span className="font-mono text-[8px] tracking-[0.04em] text-text-dim">
                     {wp.lat.toFixed(4)}, {wp.lon.toFixed(4)}
                   </span>
                 </div>
@@ -170,7 +170,7 @@ function WaypointList({
 function ComingSoon() {
   return (
     <div className="bg-surface-2 border border-dashed border-border rounded-md px-4 py-[22px] text-center">
-      <p className="font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim">
+      <p className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim">
         Coming soon
       </p>
     </div>

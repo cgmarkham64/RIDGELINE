@@ -174,7 +174,7 @@ function toSvg(
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
-const monoCls = 'font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim text-center'
+const monoCls = 'font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim text-center'
 const svgMonoStyle = { fontFamily: 'var(--font-mono)', fill: 'var(--text-dim)', letterSpacing: '0.05em' }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -263,7 +263,7 @@ export function ElevationProfile({
 
   return (
     <div className="flex flex-col gap-2.5">
-      <span className={`${monoCls} text-[7px]`}>{heading}</span>
+      <span className={`${monoCls} text-[8px]`}>{heading}</span>
 
       <svg
         viewBox={`0 0 ${VB_W} ${VB_H}`}

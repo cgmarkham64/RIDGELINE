@@ -11,6 +11,20 @@ function canRead(trip: { ownerSub: string; sharedWith: string[] }, sub: string) 
   return trip.ownerSub === sub || trip.sharedWith.includes(sub)
 }
 
+// Replaces sharedWith string[] with populated { sub, name }[] objects
+async function populateSharedWith(trip: any) {
+  const subs: string[] = trip.sharedWith ?? []
+  if (!subs.length) return { ...trip, sharedWith: [] }
+  const users = await User.find({ sub: { $in: subs } }).select('sub name').lean()
+  return {
+    ...trip,
+    sharedWith: subs.map((s) => {
+      const u = users.find((u) => u.sub === s)
+      return u ? { sub: u.sub, name: u.name } : { sub: s, name: 'Unknown' }
+    }),
+  }
+}
+
 router.get('/', async (req, res) => {
   try {
     const sub = req.user.sub
@@ -19,7 +33,8 @@ router.get('/', async (req, res) => {
     })
       .populate('loadoutId')
       .lean()
-    res.json(trips)
+    const populated = await Promise.all(trips.map(populateSharedWith))
+    res.json(populated)
   } catch (err) {
     console.error('GET /trips error:', err)
     res.status(500).json({ error: 'Internal server error' })
@@ -31,7 +46,7 @@ router.get('/:id', async (req, res) => {
     const trip = await Trip.findById(req.params.id).populate('loadoutId').lean()
     if (!trip) return res.status(404).json({ error: 'Not found' })
     if (!canRead(trip as any, req.user.sub)) return res.status(403).json({ error: 'Forbidden' })
-    res.json(trip)
+    res.json(await populateSharedWith(trip))
   } catch (err) {
     console.error('GET /trips/:id error:', err)
     res.status(500).json({ error: 'Internal server error' })
@@ -75,7 +90,7 @@ router.put('/:id', async (req, res) => {
     }
 
     const result = await Trip.findById(trip._id).populate('loadoutId').lean()
-    res.json(result)
+    res.json(await populateSharedWith(result))
   } catch (err) {
     console.error('PUT /trips/:id error:', err)
     res.status(500).json({ error: 'Internal server error' })
@@ -117,6 +132,30 @@ router.post('/:id/share', async (req, res) => {
     res.json({ ok: true, name: target.name })
   } catch (err) {
     console.error('POST /trips/:id/share error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+router.delete('/:id/share/:sub', async (req, res) => {
+  try {
+    const trip = await Trip.findById(req.params.id)
+    if (!trip) return res.status(404).json({ error: 'Not found' })
+    if (trip.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
+
+    trip.sharedWith = (trip.sharedWith as string[]).filter((s) => s !== req.params.sub)
+    await trip.save()
+
+    // Cancel any pending invite so the removed user can't accept it after revocation
+    await Notification.deleteMany({
+      toSub: req.params.sub,
+      tripId: req.params.id,
+      type: 'trip_share_invite',
+      status: 'pending',
+    })
+
+    res.status(204).send()
+  } catch (err) {
+    console.error('DELETE /trips/:id/share/:sub error:', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

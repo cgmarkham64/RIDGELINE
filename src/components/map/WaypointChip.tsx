@@ -38,7 +38,7 @@ export function WaypointChip({
           {wp.label}
         </span>
         <span
-          className="font-mono text-[8px] tracking-[0.08em] uppercase shrink-0"
+          className="font-mono text-[9px] tracking-[0.08em] uppercase shrink-0"
           style={{ color: WAYPOINT_COLOR[wp.type] }}
         >
           {WAYPOINT_LABEL[wp.type]}
