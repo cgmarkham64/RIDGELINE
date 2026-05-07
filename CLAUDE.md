@@ -147,31 +147,18 @@ server/
 5. Add summary stats to the Hero banner stats for total Weight Carried, and Max Elevation. These should be included as manual entries when the trip is created for now with a plan to link the fields to map and loadout data later.
 6. Add search function to Trips list (by name OR state (acronym or long, CA or California))
 7. Add filter function to Trips list (finite by state, distance, elevation gain, etc.)
-8. Trip sharing UI — ✅ core sharing implemented; remaining work:
-   - ✅ `POST /api/trips/:id/share` — adds user to `sharedWith` by sub; validates user exists
-   - ✅ `ShareDialog.tsx` — "Invite to collaborate" card with debounced name/email search and inline feedback
-   - ✅ Journal companions — typing `@` triggers user search; selecting a user auto-shares the trip on save
-   - ✅ Shared trips appear in the recipient's list with a "Shared" label in the sidebar and "Shared trip" badge in the hero
-   - ✅ Notification bell in IconRail — popover with invite accept/decline and outcome notifications; polls every 30s
-   - ✅ Shared trip UI restrictions — non-owners see "Shared trip" badge, no Delete or Share button, edit allowed
-   - **Unshare (revoke access):** ✅ complete
-     - ✅ `DELETE /api/trips/:id/share/:sub` — removes sub from `sharedWith`; cancels any pending invite notification
-     - ✅ `GET /api/trips` and `GET /api/trips/:id` populate `sharedWith` as `{ sub, name }[]`; `PUT /:id` also returns populated response
-     - ✅ Frontend `Trip` type updated: `sharedWith?: { sub: string; name: string }[]`
-     - ✅ `unshareTrip` in `src/lib/trips.ts` + `useUnshareTrip` mutation in `useTrips.ts`
-     - ✅ `ShareDialog.tsx` restructured: "People with access" section with Remove buttons; "Invite someone" section; optimistic collaborator add on invite
-9. Shared trip acceptance flow — for a future invite-token model (email link):
+8. Shared trip acceptance flow — for a future invite-token model (email link):
    - Generate a signed, expiring invite token (`crypto.randomUUID()` stored on the trip + expiry timestamp) when the owner shares.
    - Email the token to the invitee (requires a mail integration — Sendgrid, Resend, etc.).
    - Add a `POST /api/trips/:id/accept?token=` endpoint: verify token, verify not expired, add caller's `sub` to `sharedWith`, clear the token.
    - Frontend: a `/accept-invite` route that reads the token from the URL, calls the endpoint, and redirects to the trip on success.
-10. Implement Keycloak security — steps to migrate from the current JWT system:
-    1. **Stand up Keycloak** — run via Docker (`quay.io/keycloak/keycloak`). Create a realm (e.g. `ridgeline`), a client (e.g. `ridgeline-app`, public, PKCE), and configure redirect URIs to `http://localhost:5173/*`.
-    2. **Add `jwks-rsa` to server** — `npm install jwks-rsa` in `/server`. Update the `verifyToken()` function in `server/src/middleware/auth.ts` to fetch Keycloak's public key via JWKS instead of using `JWT_SECRET`. Add `KEYCLOAK_JWKS_URI` and `KEYCLOAK_ISSUER` to `server/.env`. No other server files change.
-    3. **Swap frontend auth flow** — replace `src/lib/auth.ts` (direct API login/register) with the Keycloak JS adapter (`keycloak-js`) or an OIDC library (`oidc-client-ts`). On app init, check Keycloak session; on login, redirect to Keycloak's login page. On return, extract the access token and store it in the Zustand auth store as before (the Axios interceptor already attaches it).
-    4. **Remove local auth routes** — delete `server/src/routes/auth.ts` and the `POST /api/auth` entries in `index.ts`. Keycloak owns login/register/password-reset.
-    5. **Migrate existing users** — for each `User` doc in MongoDB, create a matching user in Keycloak (via the Admin REST API) and update the `sub` field in all their documents to the Keycloak-issued UUID. This is the only data migration step; it's a one-time script.
-    6. **Drop the `User` model** — once migrated, `server/src/models/User.ts` is no longer needed. User identity comes from the Keycloak token; store only app-specific profile data if needed.
+9. Implement Keycloak security — steps to migrate from the current JWT system:
+   1. **Stand up Keycloak** — run via Docker (`quay.io/keycloak/keycloak`). Create a realm (e.g. `ridgeline`), a client (e.g. `ridgeline-app`, public, PKCE), and configure redirect URIs to `http://localhost:5173/*`.
+   2. **Add `jwks-rsa` to server** — `npm install jwks-rsa` in `/server`. Update the `verifyToken()` function in `server/src/middleware/auth.ts` to fetch Keycloak's public key via JWKS instead of using `JWT_SECRET`. Add `KEYCLOAK_JWKS_URI` and `KEYCLOAK_ISSUER` to `server/.env`. No other server files change.
+   3. **Swap frontend auth flow** — replace `src/lib/auth.ts` (direct API login/register) with the Keycloak JS adapter (`keycloak-js`) or an OIDC library (`oidc-client-ts`). On app init, check Keycloak session; on login, redirect to Keycloak's login page. On return, extract the access token and store it in the Zustand auth store as before (the Axios interceptor already attaches it).
+   4. **Remove local auth routes** — delete `server/src/routes/auth.ts` and the `POST /api/auth` entries in `index.ts`. Keycloak owns login/register/password-reset.
+   5. **Migrate existing users** — for each `User` doc in MongoDB, create a matching user in Keycloak (via the Admin REST API) and update the `sub` field in all their documents to the Keycloak-issued UUID. This is the only data migration step; it's a one-time script.
+   6. **Drop the `User` model** — once migrated, `server/src/models/User.ts` is no longer needed. User identity comes from the Keycloak token; store only app-specific profile data if needed.
 
 #### Todo Sidebar nav — planned page contents
 - **Trips** - Share trips to other users leads to collaboration with other registered users. Add a feature to allow for simultaneous and deconflicted/merged edits of a trip and journal entries.
