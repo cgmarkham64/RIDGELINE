@@ -5,6 +5,7 @@ import {
   useAcceptInvite,
   useDeclineInvite,
   useMarkAllRead,
+  useDismissNotification,
 } from '../../hooks/useNotifications'
 
 export function NotificationBell() {
@@ -14,6 +15,7 @@ export function NotificationBell() {
   const accept = useAcceptInvite()
   const decline = useDeclineInvite()
   const markRead = useMarkAllRead()
+  const dismiss = useDismissNotification()
 
   const badgeCount = notifications.filter(
     (n) => n.status === 'pending' || !n.read
@@ -62,10 +64,13 @@ export function NotificationBell() {
         >
           <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
             <span className="font-heading text-[12px] font-extrabold text-text">Notifications</span>
-            {badgeCount > 0 && (
-              <span className="font-mono text-[9px] tracking-widest uppercase text-text-dim">
-                {badgeCount} new
-              </span>
+            {notifications.length > 0 && (
+              <button
+                onClick={() => markRead.mutate()}
+                className="font-mono text-[9px] tracking-widest uppercase text-text-dim hover:text-amber transition-colors duration-100"
+              >
+                Mark all read
+              </button>
             )}
           </div>
 
@@ -81,6 +86,7 @@ export function NotificationBell() {
                   notification={n}
                   onAccept={() => accept.mutate(n._id)}
                   onDecline={() => decline.mutate(n._id)}
+                  onDismiss={() => dismiss.mutate(n._id)}
                   accepting={accept.isPending}
                   declining={decline.isPending}
                 />
@@ -97,12 +103,14 @@ function NotificationItem({
   notification: n,
   onAccept,
   onDecline,
+  onDismiss,
   accepting,
   declining,
 }: {
   notification: AppNotification
   onAccept: () => void
   onDecline: () => void
+  onDismiss: () => void
   accepting: boolean
   declining: boolean
 }) {
@@ -133,6 +141,15 @@ function NotificationItem({
             {relativeTime(n.createdAt)}
           </p>
         </div>
+        {!isPending && (
+          <button
+            onClick={onDismiss}
+            className="text-text-dim hover:text-amber shrink-0 leading-none text-[14px] mt-[1px] transition-colors duration-100"
+            title="Dismiss"
+          >
+            ×
+          </button>
+        )}
       </div>
 
       {isPending && (

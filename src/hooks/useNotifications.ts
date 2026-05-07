@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchNotifications, acceptInvite, declineInvite, markAllRead } from '../lib/notifications'
+import { fetchNotifications, acceptInvite, declineInvite, markAllRead, dismissNotification } from '../lib/notifications'
 import { useAuthStore } from '../store/auth'
 
 export function useNotifications() {
@@ -38,6 +38,15 @@ export function useMarkAllRead() {
   const sub = useAuthStore((s) => s.user?.id)
   return useMutation({
     mutationFn: markAllRead,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications', sub] }),
+  })
+}
+
+export function useDismissNotification() {
+  const qc = useQueryClient()
+  const sub = useAuthStore((s) => s.user?.id)
+  return useMutation({
+    mutationFn: dismissNotification,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications', sub] }),
   })
 }

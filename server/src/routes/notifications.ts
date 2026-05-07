@@ -36,6 +36,7 @@ router.post('/:id/accept', async (req, res) => {
       type: 'invite_accepted',
       tripId: note.tripId,
       tripTitle: note.tripTitle,
+      status: 'accepted',
     })
 
     res.json({ ok: true })
@@ -63,6 +64,7 @@ router.post('/:id/decline', async (req, res) => {
       type: 'invite_declined',
       tripId: note.tripId,
       tripTitle: note.tripTitle,
+      status: 'declined',
     })
 
     res.json({ ok: true })
@@ -72,7 +74,14 @@ router.post('/:id/decline', async (req, res) => {
   }
 })
 
-// Mark all non-pending as read (called when the panel opens)
+router.delete('/:id', async (req, res) => {
+  const note = await Notification.findById(req.params.id)
+  if (!note || note.toSub !== req.user.sub) return res.status(404).json({ error: 'Not found' })
+  await note.deleteOne()
+  res.status(204).send()
+})
+
+// Mark all non-pending-invite as read (called when panel opens or user clicks "Mark all read")
 router.patch('/read-all', async (req, res) => {
   await Notification.updateMany(
     { toSub: req.user.sub, read: false, status: { $ne: 'pending' } },
