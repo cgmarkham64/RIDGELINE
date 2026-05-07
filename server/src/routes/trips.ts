@@ -11,13 +11,17 @@ function canRead(trip: { ownerSub: string; sharedWith: string[] }, sub: string) 
   return trip.ownerSub === sub || trip.sharedWith.includes(sub)
 }
 
-// Replaces sharedWith string[] with populated { sub, name }[] objects
+// Populates sharedWith as { sub, name }[] and adds ownerName — single User query covers both
 async function populateSharedWith(trip: any) {
   const subs: string[] = trip.sharedWith ?? []
-  if (!subs.length) return { ...trip, sharedWith: [] }
-  const users = await User.find({ sub: { $in: subs } }).select('sub name').lean()
+  const toFetch = [...new Set([...subs, trip.ownerSub].filter(Boolean))]
+  const users = toFetch.length
+    ? await User.find({ sub: { $in: toFetch } }).select('sub name').lean()
+    : []
+  const owner = users.find((u) => u.sub === trip.ownerSub)
   return {
     ...trip,
+    ownerName: owner?.name ?? 'Unknown',
     sharedWith: subs.map((s) => {
       const u = users.find((u) => u.sub === s)
       return u ? { sub: u.sub, name: u.name } : { sub: s, name: 'Unknown' }
@@ -132,6 +136,22 @@ router.post('/:id/share', async (req, res) => {
     res.json({ ok: true, name: target.name })
   } catch (err) {
     console.error('POST /trips/:id/share error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+router.delete('/:id/leave', async (req, res) => {
+  try {
+    const trip = await Trip.findById(req.params.id)
+    if (!trip) return res.status(404).json({ error: 'Not found' })
+    if (trip.ownerSub === req.user.sub) return res.status(400).json({ error: 'Owner cannot leave their own trip' })
+    if (!trip.sharedWith.includes(req.user.sub)) return res.status(400).json({ error: 'Not a collaborator' })
+
+    trip.sharedWith = (trip.sharedWith as string[]).filter((s) => s !== req.user.sub)
+    await trip.save()
+    res.status(204).send()
+  } catch (err) {
+    console.error('DELETE /trips/:id/leave error:', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

@@ -3,6 +3,7 @@ import type { Trip } from '../types'
 import { TripSidebar } from '../components/trip/TripSidebar'
 import { TripModal } from '../components/trip/TripModal'
 import { DeleteConfirm } from '../components/trip/DeleteConfirm'
+import { LeaveConfirm } from '../components/trip/LeaveConfirm'
 import { TripDetail } from '../components/trip/TripDetail'
 
 type ModalState = { mode: 'create' } | { mode: 'edit'; trip: Trip }
@@ -13,6 +14,7 @@ export function HomePage() {
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null)
   const [modal, setModal] = useState<ModalState | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Trip | null>(null)
+  const [leaveTarget, setLeaveTarget] = useState<Trip | null>(null)
 
   function handleTripSaved(trip: Trip) {
     setModal(null)
@@ -24,6 +26,11 @@ export function HomePage() {
       setSelectedTrip(null)
     }
     setDeleteTarget(null)
+  }
+
+  function handleLeft() {
+    setSelectedTrip(null)
+    setLeaveTarget(null)
   }
 
   return (
@@ -42,6 +49,7 @@ export function HomePage() {
             trip={selectedTrip}
             onEdit={() => setModal({ mode: 'edit', trip: selectedTrip })}
             onDelete={() => setDeleteTarget(selectedTrip)}
+            onLeave={() => setLeaveTarget(selectedTrip)}
             onTripUpdated={setSelectedTrip}
           />
         ) : (
@@ -61,6 +69,13 @@ export function HomePage() {
           trip={deleteTarget}
           onClose={() => setDeleteTarget(null)}
           onDeleted={handleDeleted}
+        />
+      )}
+      {leaveTarget && (
+        <LeaveConfirm
+          trip={leaveTarget}
+          onClose={() => setLeaveTarget(null)}
+          onLeft={handleLeft}
         />
       )}
     </div>

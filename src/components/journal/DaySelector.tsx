@@ -252,7 +252,7 @@ export function DaySelector({ startDate, endDate, selectedDate, entries, onSelec
           onClick={() => setVisibleMonthIdx((i) => i + 1)}
           className="w-full flex items-center justify-end gap-1.5 px-2.5 py-1.5 border-t border-border text-text-dim hover:text-text hover:bg-surface-3 transition-colors duration-120 cursor-pointer"
         >
-          <span className="font-mono text-[9px] tracking-[0.1em] uppercase">
+          <span className="font-mono text-[9px] tracking-widest uppercase">
             Continues in {currentMonth.nextLabel}
           </span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3" style={{ strokeWidth: 2 }}>

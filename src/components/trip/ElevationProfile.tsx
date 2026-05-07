@@ -174,7 +174,7 @@ function toSvg(
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
-const monoCls = 'font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim text-center'
+const monoCls = 'font-mono text-[9px] tracking-widest uppercase text-text-dim text-center'
 const svgMonoStyle = { fontFamily: 'var(--font-mono)', fill: 'var(--text-dim)', letterSpacing: '0.05em' }
 
 // ─── Component ────────────────────────────────────────────────────────────────

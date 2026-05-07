@@ -115,7 +115,7 @@ export function ShareDialog({ trip, onClose }: Props) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
             <div className="font-heading text-sm font-extrabold text-text">Share trip</div>
-            <div className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim mt-[3px]">
+            <div className="font-mono text-[9px] tracking-widest uppercase text-text-dim mt-[3px]">
               {trip.title}
             </div>
           </div>
@@ -231,7 +231,7 @@ export function ShareDialog({ trip, onClose }: Props) {
               <div className="font-sans text-[12px] font-medium text-text">Export as PDF</div>
               <div className="font-mono text-[9px] text-text-dim">Styled trip report with journal, map &amp; stats</div>
             </div>
-            <span className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim border border-border rounded-[3px] px-[7px] py-[3px] shrink-0">
+            <span className="font-mono text-[9px] tracking-widest uppercase text-text-dim border border-border rounded-[3px] px-[7px] py-[3px] shrink-0">
               Soon
             </span>
           </div>

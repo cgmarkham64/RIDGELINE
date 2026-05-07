@@ -17,10 +17,11 @@ interface Props {
   trip: Trip
   onEdit: () => void
   onDelete: () => void
+  onLeave: () => void
   onTripUpdated: (trip: Trip) => void
 }
 
-export function TripDetail({ trip, onEdit, onDelete, onTripUpdated }: Props) {
+export function TripDetail({ trip, onEdit, onDelete, onLeave, onTripUpdated }: Props) {
   const days = tripDays(trip.startDate, trip.endDate)
   const [activeTab, setActiveTab] = useState<Tab>('journal')
   const [showShare, setShowShare] = useState(false)
@@ -33,6 +34,7 @@ export function TripDetail({ trip, onEdit, onDelete, onTripUpdated }: Props) {
         onEdit={onEdit}
         onDelete={onDelete}
         onShare={() => setShowShare(true)}
+        onLeave={onLeave}
       />
 
       <TabRow activeTab={activeTab} onChange={setActiveTab} />

@@ -25,7 +25,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
     : []
 
   return (
-    <aside className="w-[258px] shrink-0 bg-surface border-r border-border flex flex-col h-full">
+    <aside className="w-64.5 shrink-0 bg-surface border-r border-border flex flex-col h-full">
       {/* Header */}
       <div className="px-3.5 pt-4 pb-3 border-b border-border shrink-0 flex flex-col gap-2.5">
         <span className="font-heading text-[9px] font-extrabold tracking-[0.22em] uppercase text-text-dim">
@@ -40,19 +40,19 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
       {/* Trip list */}
       <div className="flex-1 overflow-y-auto min-h-0 py-2 pb-4">
         {isLoading && (
-          <p className="px-3.5 pt-6 pb-6 font-mono text-[9px] text-text-dim tracking-[0.1em] uppercase">
+          <p className="px-3.5 pt-6 pb-6 font-mono text-[9px] text-text-dim tracking-widest uppercase">
             Loading…
           </p>
         )}
 
         {isError && (
-          <p className="px-3.5 pt-6 pb-6 font-mono text-[9px] text-red tracking-[0.1em] uppercase">
+          <p className="px-3.5 pt-6 pb-6 font-mono text-[9px] text-red tracking-widest uppercase">
             Could not load trips
           </p>
         )}
 
         {!isLoading && !isError && sorted.length === 0 && (
-          <p className="px-3.5 pt-6 pb-6 font-mono text-[9px] text-text-dim tracking-[0.1em] uppercase leading-[1.8]">
+          <p className="px-3.5 pt-6 pb-6 font-mono text-[9px] text-text-dim tracking-widest uppercase leading-[1.8]">
             No trips yet.
             <br />
             Create one above.
@@ -81,7 +81,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
             >
               <div className="flex-1 min-w-0">
                 <div
-                  className="font-heading text-[12px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis mb-[2px]"
+                  className="font-heading text-[12px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis mb-0.5"
                   style={{ color: isSelected ? 'var(--amber)' : 'var(--text)' }}
                 >
                   {trip.title}
@@ -89,11 +89,11 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                 <div className="font-mono text-[9px] text-text-dim whitespace-nowrap overflow-hidden text-ellipsis">
                   {trip.location}
                 </div>
-                <div className="font-mono text-[9px] text-text-dim mt-[1px]">
+                <div className="font-mono text-[9px] text-text-dim mt-px">
                   {formatDateRange(trip.startDate, trip.endDate)}
                 </div>
                 {(trip.distanceMiles || trip.elevationGainFt) && (
-                  <div className="flex gap-2 mt-[3px]">
+                  <div className="flex gap-2 mt-0.75">
                     {trip.distanceMiles && (
                       <span className="font-mono text-[9px] text-text-dim">
                         {trip.distanceMiles} mi
@@ -107,8 +107,8 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                   </div>
                 )}
                 {!isOwner && (
-                  <div className="font-mono text-[9px] mt-[3px]" style={{ color: 'var(--amber)', opacity: 0.7 }}>
-                    Shared
+                  <div className="font-mono text-[9px] mt-0.75" style={{ color: 'var(--amber)', opacity: 0.7 }}>
+                    Shared by {trip.ownerName ?? '…'}
                   </div>
                 )}
               </div>
@@ -143,7 +143,7 @@ function TripActions({
   onDelete: (e: React.MouseEvent) => void
 }) {
   return (
-    <div className="trip-actions flex gap-[3px] shrink-0">
+    <div className="trip-actions flex gap-0.75 shrink-0">
       <button onClick={onEdit} title="Edit" className="btn-icon-action edit">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />

@@ -7,6 +7,7 @@ interface Props {
   onEdit: () => void
   onDelete: () => void
   onShare: () => void
+  onLeave: () => void
 }
 
 function formatDateRange(start: string, end: string) {
@@ -20,7 +21,7 @@ function formatDateRange(start: string, end: string) {
   return `${s.toLocaleDateString('en-US', full)} – ${e.toLocaleDateString('en-US', full)}`
 }
 
-export function TripHero({ trip, days, onEdit, onDelete, onShare }: Props) {
+export function TripHero({ trip, days, onEdit, onDelete, onShare, onLeave }: Props) {
   const userId = useAuthStore((s) => s.user?.id)
   const isOwner = !!userId && trip.ownerSub === userId
 
@@ -81,9 +82,14 @@ export function TripHero({ trip, days, onEdit, onDelete, onShare }: Props) {
         <div className="flex flex-col items-end gap-2 shrink-0">
           <div className="flex gap-1.5 items-center">
             {!isOwner && (
-              <span className="font-mono text-[9px] tracking-[0.12em] uppercase border rounded px-2 py-[3px]" style={{ color: 'var(--amber)', borderColor: 'var(--amber-border)' }}>
-                Shared trip
-              </span>
+              <>
+                <span className="font-mono text-[9px] tracking-[0.12em] uppercase border rounded px-2 py-[3px]" style={{ color: 'var(--amber)', borderColor: 'var(--amber-border)' }}>
+                  Shared trip
+                </span>
+                <button onClick={onLeave} className="btn btn-danger btn-sm">
+                  Leave
+                </button>
+              </>
             )}
             {isOwner && (
               <button onClick={onShare} className="btn btn-pine btn-sm">
@@ -135,7 +141,7 @@ function StatBlock({ value, label }: { value: string; label: string }) {
       <div className="font-heading text-[17px] font-extrabold text-amber leading-none mb-[3px]">
         {value}
       </div>
-      <div className="font-mono text-[8px] tracking-[0.1em] uppercase text-text-dim">
+      <div className="font-mono text-[8px] tracking-widest uppercase text-text-dim">
         {label}
       </div>
     </div>

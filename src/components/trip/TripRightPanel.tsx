@@ -109,7 +109,7 @@ function WaypointList({
 
   if (waypoints.length === 0) {
     return (
-      <p className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim leading-[1.7]">
+      <p className="font-mono text-[9px] tracking-widest uppercase text-text-dim leading-[1.7]">
         No waypoints yet — add them from the Map tab
       </p>
     )
@@ -170,7 +170,7 @@ function WaypointList({
 function ComingSoon() {
   return (
     <div className="bg-surface-2 border border-dashed border-border rounded-md px-4 py-[22px] text-center">
-      <p className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim">
+      <p className="font-mono text-[9px] tracking-widest uppercase text-text-dim">
         Coming soon
       </p>
     </div>

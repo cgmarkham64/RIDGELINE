@@ -33,3 +33,7 @@ export async function deleteTrip(id: string): Promise<void> {
 export async function unshareTrip(tripId: string, sub: string): Promise<void> {
   await api.delete(`/api/trips/${tripId}/share/${sub}`)
 }
+
+export async function leaveTrip(tripId: string): Promise<void> {
+  await api.delete(`/api/trips/${tripId}/leave`)
+}
