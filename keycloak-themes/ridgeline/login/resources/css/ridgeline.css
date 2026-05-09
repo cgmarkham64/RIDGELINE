@@ -1,0 +1,249 @@
+@import url('https://fonts.googleapis.com/css2?family=Karla:wght@400;500;600&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400&display=swap');
+
+/* ── Design tokens ─────────────────────────────────────────────────────────── */
+:root {
+  --bg:           #0f0d0b;
+  --surface:      #181410;
+  --surface-2:    #201c16;
+  --surface-3:    #2a2420;
+  --border:       #352e28;
+  --border-mid:   #4a3e34;
+  --text:         #ede5db;
+  --text-mid:     #9a8878;
+  --text-dim:     #685646;
+  --amber:        #f0a030;
+  --amber-dim:    rgba(240,160,48,0.08);
+  --amber-border: rgba(240,160,48,0.22);
+  --red:          #d94030;
+  --pine:         #448860;
+  --pine-dim:     rgba(61,122,86,0.1);
+  --pine-border:  rgba(61,122,86,0.35);
+  --font-sans:    'Karla', sans-serif;
+  --font-heading: 'Syne', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+}
+
+/* ── Reset ─────────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--amber); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── Auth shell ─────────────────────────────────────────────────────────────── */
+.auth-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header with brand */
+.auth-header {
+  position: relative;
+  width: 100%;
+  height: clamp(140px, 18vw, 220px);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--bg);
+}
+
+.auth-mountains {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  opacity: 0.18;
+}
+
+.auth-brand {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: clamp(22px, 3.5vw, 48px);
+}
+
+.auth-brand-text {
+  font-family: var(--font-heading);
+  font-size: clamp(26px, 4vw, 54px);
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: var(--amber);
+}
+
+/* Main content */
+.auth-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1.5rem 2.5rem;
+  background: var(--bg);
+}
+
+/* Footer */
+.auth-footer {
+  width: 100%;
+  height: clamp(60px, 8vw, 100px);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--bg);
+  position: relative;
+}
+
+.auth-footer-mountains {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  opacity: 0.1;
+  transform: scaleX(-1);
+}
+
+/* ── Form card ──────────────────────────────────────────────────────────────── */
+.auth-form {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.auth-form h1 {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text);
+  text-align: center;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.25rem;
+}
+
+.auth-form .subtitle {
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: -0.5rem;
+}
+
+/* Fields */
+.auth-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.auth-form .field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.auth-form label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.auth-form input[type="text"],
+.auth-form input[type="email"],
+.auth-form input[type="password"] {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  background: var(--surface-2);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.14s;
+  width: 100%;
+}
+
+.auth-form input:focus {
+  border-color: var(--border-mid);
+}
+
+/* Submit button */
+.auth-form button[type="submit"],
+.auth-form .btn-submit {
+  padding: 10px;
+  background: var(--amber);
+  color: #0f0d0b;
+  border: none;
+  border-radius: 5px;
+  font-family: var(--font-heading);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.14s;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.auth-form button[type="submit"]:hover { background: #fbb040; }
+.auth-form button[type="submit"]:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Links row */
+.auth-form .links {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.auth-form .links .sep {
+  color: var(--border-mid);
+}
+
+/* Alert messages */
+.auth-alert {
+  padding: 9px 12px;
+  border-radius: 5px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.auth-alert.error {
+  background: rgba(217,64,48,0.1);
+  border: 1px solid rgba(217,64,48,0.28);
+  color: #e87060;
+}
+
+.auth-alert.success {
+  background: var(--pine-dim);
+  border: 1px solid var(--pine-border);
+  color: var(--pine);
+}
+
+.auth-alert.info,
+.auth-alert.warning {
+  background: var(--amber-dim);
+  border: 1px solid var(--amber-border);
+  color: var(--amber);
+}
+
+/* Field-level error */
+.field-error {
+  font-size: 11px;
+  color: var(--red);
+  font-family: var(--font-mono);
+}

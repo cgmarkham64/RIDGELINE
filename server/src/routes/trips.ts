@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { Trip } from '../models/Trip'
-import { User } from '../models/User'
+import { UserProfile } from '../models/UserProfile'
 import { JournalDay } from '../models/JournalDay'
 import { Notification } from '../models/Notification'
 
@@ -16,14 +16,14 @@ async function populateTripUsers(trip: any) {
   const subs: string[] = trip.sharedWith ?? []
   const toFetch = [...new Set([...subs, trip.ownerSub].filter(Boolean))]
   const users = toFetch.length
-    ? await User.find({ sub: { $in: toFetch } }).select('sub name').lean()
+    ? await UserProfile.find({ sub: { $in: toFetch } }).select('sub name').lean()
     : []
-  const owner = users.find((u) => u.sub === trip.ownerSub)
+  const owner = users.find((u: { sub: string; name: string }) => u.sub === trip.ownerSub)
   return {
     ...trip,
     ownerName: owner?.name ?? 'Unknown',
     sharedWith: subs.map((s) => {
-      const u = users.find((u) => u.sub === s)
+      const u = users.find((u: { sub: string; name: string }) => u.sub === s)
       return u ? { sub: u.sub, name: u.name } : { sub: s, name: 'Unknown' }
     }),
   }
@@ -111,7 +111,7 @@ router.post('/:id/share', async (req, res) => {
     if (!sub) return res.status(400).json({ error: 'sub required' })
     if (sub === req.user.sub) return res.status(400).json({ error: 'Cannot share with yourself' })
 
-    const target = await User.findOne({ sub }).lean()
+    const target = await UserProfile.findOne({ sub }).lean()
     if (!target) return res.status(404).json({ error: 'User not found' })
 
     // Already has access — no-op

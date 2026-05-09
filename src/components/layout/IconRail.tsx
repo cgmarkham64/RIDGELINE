@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { useAuthStore } from '../../store/auth'
 import { AccountDialog } from './AccountDialog'
 import { NotificationBell } from './NotificationBell'
 import { initials } from '../../lib/utils'
+import { keycloak } from '../../lib/keycloak'
 
 function NavLink({
   to,
@@ -43,12 +44,11 @@ function NavLink({
 
 export function IconRail() {
   const { user, clearAuth } = useAuthStore()
-  const navigate = useNavigate()
   const [accountOpen, setAccountOpen] = useState(false)
 
   function handleSignOut() {
     clearAuth()
-    navigate({ to: '/login' })
+    keycloak.logout({ redirectUri: window.location.origin })
   }
 
   return (

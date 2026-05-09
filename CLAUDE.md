@@ -22,14 +22,21 @@ An outdoor/hiking trip tracking app with a React frontend and Express/MongoDB ba
 ## Commands
 
 ```bash
-npm run dev      # Start dev server
+# Local dev (requires Homebrew MongoDB)
+npm run dev      # Start Vite dev server (frontend only)
 npm run build    # Type-check + build
 npm run lint     # Run ESLint
 npm run preview  # Preview production build
-npm run api:dev  # runs the API and dev
-npm run dev:all  # runs concurrently which runs frontend and backend
-npm run mongodb:start  # starts mongodb-community@8.0 via homebrew
-npm run mongodb:stop   # stops mongodb-community@8.0 via homebrew
+npm run api:dev  # Start Express API only
+npm run dev:all  # Frontend + backend concurrently (localhost:5173 / :8000)
+npm run mongodb:start  # Start mongodb-community@8.0 via Homebrew
+npm run mongodb:stop   # Stop mongodb-community@8.0 via Homebrew
+
+# Docker (full stack — frontend nginx :3000, API :8000, MongoDB, Keycloak :8080)
+docker compose up --build   # Build images and start all services
+docker compose up           # Start without rebuilding
+docker compose down         # Stop all containers
+docker compose down -v      # Stop and wipe volumes (clears DB)
 ```
 
 ## Project Structure
@@ -84,7 +91,21 @@ server/
                   #   trips.ts, loadouts.ts, gearItems.ts, journalDays.ts, journalScan.ts,
                   #   users.ts (GET /search?q=), notifications.ts (GET, POST accept/decline, DELETE, PATCH read-all)
     index.ts      # Express app, MongoDB connect; /api/auth public, all other routes behind requireAuth
-  .env            # PORT=8000, MONGODB_URI, ANTHROPIC_API_KEY, JWT_SECRET
+  .env            # PORT=8000, MONGODB_URI, ANTHROPIC_API_KEY, JWT_SECRET, CORS_ORIGIN
+  .env.example    # committed template — copy to .env and fill in secrets
+  Dockerfile      # multi-stage: tsc build → node:22-alpine runtime
+```
+
+### Docker
+```
+Dockerfile          # Frontend: node:22 Vite build → nginx:alpine; VITE_API_URL='' (relative paths)
+server/Dockerfile   # Backend: tsc build → node:22-alpine; runs node dist/index.js
+nginx.conf          # Serves SPA (try_files fallback) + reverse-proxies /api/* → ridgeline-api:8000
+docker compose.yml  # Four services on ridgeline-net:
+                    #   mongodb (mongo:8, named volume mongo-data)
+                    #   keycloak (quay.io/keycloak/keycloak:26.0, start-dev, port 8080)
+                    #   ridgeline-api (env_file: server/.env, overrides MONGODB_URI + CORS_ORIGIN)
+                    #   ridgeline-frontend (nginx, port 3000)
 ```
 
 ### API Endpoints
@@ -164,12 +185,12 @@ server/
    - Add a `POST /api/trips/:id/accept?token=` endpoint: verify token, verify not expired, add caller's `sub` to `sharedWith`, clear the token.
    - Frontend: a `/accept-invite` route that reads the token from the URL, calls the endpoint, and redirects to the trip on success.
 9. Implement Keycloak security — steps to migrate from the current JWT system:
-   1. **Stand up Keycloak** — run via Docker (`quay.io/keycloak/keycloak`). Create a realm (e.g. `ridgeline`), a client (e.g. `ridgeline-app`, public, PKCE), and configure redirect URIs to `http://localhost:5173/*`.
-   2. **Add `jwks-rsa` to server** — `npm install jwks-rsa` in `/server`. Update the `verifyToken()` function in `server/src/middleware/auth.ts` to fetch Keycloak's public key via JWKS instead of using `JWT_SECRET`. Add `KEYCLOAK_JWKS_URI` and `KEYCLOAK_ISSUER` to `server/.env`. No other server files change.
-   3. **Swap frontend auth flow** — replace `src/lib/auth.ts` (direct API login/register) with the Keycloak JS adapter (`keycloak-js`) or an OIDC library (`oidc-client-ts`). On app init, check Keycloak session; on login, redirect to Keycloak's login page. On return, extract the access token and store it in the Zustand auth store as before (the Axios interceptor already attaches it).
-   4. **Remove local auth routes** — delete `server/src/routes/auth.ts` and the `POST /api/auth` entries in `index.ts`. Keycloak owns login/register/password-reset.
-   5. **Migrate existing users** — for each `User` doc in MongoDB, create a matching user in Keycloak (via the Admin REST API) and update the `sub` field in all their documents to the Keycloak-issued UUID. This is the only data migration step; it's a one-time script.
-   6. **Drop the `User` model** — once migrated, `server/src/models/User.ts` is no longer needed. User identity comes from the Keycloak token; store only app-specific profile data if needed.
+   1. **Stand up Keycloak** — ✅ DONE. Keycloak 26.0 in `docker compose.yml` (`start-dev`, port 8080). After `docker compose up`, visit http://localhost:8080, log in as `admin/admin`, create realm `Ridgeline`, client `ridgeline-app` (public, PKCE enabled), and set redirect URIs to `http://localhost:3000/*`.
+   2. **Add `jwks-rsa` to server** — ✅ DONE. `jwks-rsa` installed; `verifyToken()` now uses JWKS when `KEYCLOAK_JWKS_URI` is set (RS256), falls back to `JWT_SECRET` (HS256) for local dev without Docker. `KEYCLOAK_JWKS_URI` and `KEYCLOAK_ISSUER` are live in `docker-compose.yml`.
+   3. **Swap frontend auth flow** — ✅ DONE. `keycloak-js` installed; `src/lib/keycloak.ts` singleton created. `main.tsx` inits Keycloak (`check-sso` + PKCE S256) before rendering — populates Zustand on success, clears stale tokens otherwise. `onTokenExpired` refreshes silently. `_authenticated` route calls `keycloak.login()` when unauthenticated. `LoginPage`/`RegisterPage` redirect to `keycloak.login()`/`keycloak.register()`. Sign-out calls `keycloak.logout()`. Keycloak URL/realm/clientId configurable via `VITE_KEYCLOAK_*` build args (defaults: `localhost:8080`, `Ridgeline`, `ridgeline-app`).
+   4. **Remove local auth routes** — ✅ DONE. Removed `POST /register` and `POST /login` from `server/src/routes/auth.ts`; `/me` endpoints kept (still needed for avatarUrl until 9.6). `requireAuth` moved to mount level in `index.ts`. Dead `login()`/`register()` helpers removed from `src/lib/auth.ts`. Password change section removed from `AccountDialog` (Keycloak owns passwords now).
+   5. **Migrate existing users** — ✅ DONE. `server/scripts/migrate-to-keycloak.ts` — idempotent script that creates each MongoDB User in Keycloak (via Admin REST API) with `requiredActions: ['UPDATE_PASSWORD']`, then rewrites `sub` in User, Trip (ownerSub + sharedWith[]), Loadout, GearItem, and Notification (toSub + fromSub). Run with `npx tsx scripts/migrate-to-keycloak.ts` from `server/`. All 3 existing users migrated 2026-05-08.
+   6. **Drop the `User` model** — ✅ DONE. Replaced with `server/src/models/UserProfile.ts` (`{ sub, name, email, avatarUrl }`). `GET /me` upserts name/email from the Keycloak token on every login so the profile stays in sync; `PUT /me` removed (Keycloak owns name/password). `trips.ts` and `users.ts` updated to query `UserProfile`. `AccountDialog` name field made read-only. `server/scripts/migrate-user-profiles.ts` copies avatarUrl from the old `users` collection into `userprofiles`.
 
 #### Todo Sidebar nav — planned page contents
 - **TRIP PLANNING FEATURE** - Allow users to plan trips in advance of going out - they will basically compile all their pre trip prep things in one place 
@@ -201,6 +222,8 @@ See git log for completed work.
 - GET /api/loadouts/:id — automatically populates the full GearItem documents so the frontend doesn't need a second request
 - GET /api/trips/:id — populates the full Loadout (but not the loadout's items — you'd need a second populate for that; we can address it when you hook up the frontend)
 - Auth middleware is wired in — all API routes except `/api/auth` require a valid Bearer JWT. `req.user.sub` is available in every route handler.
+- `CORS_ORIGIN` env var controls Express CORS allowed origin (defaults to `http://localhost:5173` for local dev; docker compose sets it to `http://localhost:3000`)
+- In Docker, `VITE_API_URL` is built as empty string so axios uses relative paths; nginx proxies `/api/*` to `ridgeline-api:8000` preserving the full path
 - Find out if OnX Backcountry offer any integrations for personal app projects to import data and items from them, brainstorm ideas to integrate this app into theirs
 
 

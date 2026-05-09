@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
-import { User } from '../models/User'
+import { UserProfile } from '../models/UserProfile'
 
 const router = Router()
 
@@ -22,7 +22,7 @@ router.get('/search', searchLimiter, async (req, res) => {
   }
   const escaped = q.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const regex = new RegExp(escaped, 'i')
-  const users = await User.find({
+  const users = await UserProfile.find({
     sub: { $ne: req.user.sub },
     $or: [{ name: regex }, { email: regex }],
   })

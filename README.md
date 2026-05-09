@@ -18,41 +18,63 @@ An outdoor and hiking trip tracking app. Log trips, write journal entries, impor
 
 **Backend** (`/server`)
 - Node.js + Express 4
-- MongoDB 8 (local) via Mongoose
+- MongoDB 8 via Mongoose
 - TypeScript compiled with `tsx` (dev) / `tsc` (prod)
-
----
-
-## Prerequisites
-
-- Node.js 20+
-- MongoDB Community 8.0 (installed via Homebrew)
-
-```bash
-brew tap mongodb/brew
-brew install mongodb-community@8.0
-```
 
 ---
 
 ## Getting Started
 
-```bash
-# Install frontend dependencies
-npm install
+### Docker (recommended)
 
-# Install backend dependencies
+Spins up the full stack — frontend (nginx), API, MongoDB, and Keycloak — in one command.
+
+**Prerequisites:** Docker + Docker Compose
+
+```bash
+# Copy and fill in secrets
+cp server/.env.example server/.env
+
+# Build images and start all services
+docker compose up --build
+```
+
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:3000 |
+| API | http://localhost:8000 |
+| Keycloak admin | http://localhost:8080 (admin / admin) |
+
+To stop: `docker compose down`  
+To wipe volumes (clears the database): `docker compose down -v`
+
+---
+
+### Local Development
+
+**Prerequisites:** Node.js 20+, MongoDB Community 8.0
+
+```bash
+# Install MongoDB via Homebrew (first time only)
+brew tap mongodb/brew
+brew install mongodb-community@8.0
+
+# Install dependencies
+npm install
 cd server && npm install && cd ..
 
-# Start MongoDB
-npm run mongodb:start
+# Copy and fill in secrets
+cp server/.env.example server/.env
 
-# Run frontend + backend concurrently
+# Start MongoDB, then run frontend + backend
+npm run mongodb:start
 npm run dev:all
 ```
 
-Frontend: http://localhost:5173  
-API: http://localhost:8000
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| API | http://localhost:8000 |
 
 ---
 
@@ -78,19 +100,28 @@ ridgeline/
 ├── src/                        # Frontend
 │   ├── components/
 │   │   ├── journal/            # DaySelector, JournalSection
-│   │   ├── layout/             # IconRail
-│   │   └── trip/               # TripSidebar, TripModal, DeleteConfirm
-│   ├── hooks/                  # useTrips, useJournalDays
-│   ├── lib/                    # api.ts (axios), trips.ts, journalDays.ts
+│   │   ├── layout/             # IconRail, AccountDialog, NotificationBell
+│   │   ├── map/                # MapTab, WaypointForm, WaypointChip
+│   │   ├── trip/               # TripSidebar, TripModal, ShareDialog, ConfirmDialog
+│   │   └── ui/                 # HikerOverlay, MoonLoader
+│   ├── hooks/                  # useTrips, useJournalDays, useNotifications, useDebounce
+│   ├── lib/                    # api.ts (axios), auth.ts, trips.ts, users.ts, notifications.ts, utils.ts
 │   ├── pages/                  # HomePage, MapPage, PhotosPage, GearPage, LoginPage, RegisterPage
 │   ├── routes/                 # TanStack Router route definitions
 │   ├── store/                  # auth.ts (Zustand)
-│   └── types/                  # Trip, JournalDay, GearItem, Loadout, Photo
+│   └── types/                  # Trip, JournalDay, GearItem, Loadout, Photo, Notification
 │
-└── server/                     # Backend
-    └── src/
-        ├── models/             # Trip.ts, JournalDay.ts, Loadout.ts, GearItem.ts
-        └── routes/             # trips.ts, journalDays.ts, loadouts.ts, gearItems.ts
+├── server/                     # Backend
+│   ├── Dockerfile
+│   ├── .env.example
+│   └── src/
+│       ├── middleware/         # requireAuth (JWT → Keycloak-ready)
+│       ├── models/             # Trip, JournalDay, User, Loadout, GearItem, Notification
+│       └── routes/             # trips, journalDays, loadouts, gearItems, users, notifications, auth
+│
+├── Dockerfile                  # Frontend — Node build → nginx
+├── docker compose.yml          # Full stack: frontend, API, MongoDB, Keycloak
+└── nginx.conf                  # SPA routing + /api proxy to backend container
 ```
 
 ---
@@ -99,11 +130,24 @@ ridgeline/
 
 | Method | Path | Description |
 |---|---|---|
-| GET / POST | `/api/trips` | List / create trips |
-| GET / PUT / DELETE | `/api/trips/:id` | Read / update / delete trip (populates loadout). `PUT` accepts `gpxPlanned` and `gpxTrack` as GeoJSON LineString objects. |
-| GET / POST | `/api/journal-days?tripId=` | List entries for a trip (sorted by day) / create entry |
+| POST | `/api/auth/register` | Create account, returns JWT |
+| POST | `/api/auth/login` | Verify credentials, return JWT |
+| GET / PUT | `/api/auth/me` | Get or update current user profile |
+| PUT / DELETE | `/api/auth/me/avatar` | Upload or remove avatar |
+| GET / POST | `/api/trips` | List owned+shared trips / create trip |
+| GET / PUT / DELETE | `/api/trips/:id` | Read / update / delete trip |
+| POST | `/api/trips/:id/share` | Send collaboration invite |
+| DELETE | `/api/trips/:id/share/:sub` | Remove collaborator |
+| GET / POST | `/api/journal-days?tripId=` | List / create journal entries for a trip |
 | PUT / DELETE | `/api/journal-days/:id` | Update / delete a journal entry |
-| GET / POST | `/api/loadouts` | List / create loadouts (populates gear items) |
+| GET / POST | `/api/loadouts` | List / create loadouts |
 | GET / PUT / DELETE | `/api/loadouts/:id` | Read / update / delete loadout |
 | GET / POST | `/api/gear-items` | List / create gear items |
 | GET / PUT / DELETE | `/api/gear-items/:id` | Read / update / delete gear item |
+| GET | `/api/users/search?q=` | Search users by name or email |
+| GET | `/api/notifications` | List notifications for current user |
+| POST | `/api/notifications/:id/accept` | Accept a trip invite |
+| POST | `/api/notifications/:id/decline` | Decline a trip invite |
+| DELETE | `/api/notifications/:id` | Dismiss a notification |
+| PATCH | `/api/notifications/read-all` | Mark all non-pending notifications as read |
+| POST | `/api/journal-scan` | AI scan of a journal image → structured JSON |

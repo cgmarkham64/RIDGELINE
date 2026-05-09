@@ -16,11 +16,11 @@ const app = express()
 const PORT = process.env.PORT ?? 8000
 const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/ridgeline'
 
-app.use(cors({ origin: 'http://localhost:5173' }))
+app.use(cors({ origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173' }))
 app.use(express.json({ limit: '10mb' }))
 
-// Public routes
-app.use('/api/auth', authRouter)
+// Auth profile routes — login/register handled by Keycloak
+app.use('/api/auth', requireAuth, authRouter)
 
 // Protected routes — all require a valid JWT
 app.use('/api/gear-items', requireAuth, gearItemsRouter)
