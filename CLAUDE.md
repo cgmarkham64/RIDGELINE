@@ -82,12 +82,12 @@ src/
 server/
   src/
     middleware/   # auth.ts (requireAuth — extracts Bearer JWT, populates req.user.sub/email/name;
-                  #           verifyToken() is isolated for easy Keycloak swap)
-    models/       # User.ts (sub UUID, email, name, passwordHash, avatarUrl),
+                  #           verifyToken() uses JWKS/RS256 when KEYCLOAK_JWKS_URI is set, else JWT_SECRET/HS256)
+    models/       # UserProfile.ts (sub, name, email, avatarUrl — upserted from JWT on every login),
                   #   Trip.ts (+ ownerSub, sharedWith[]), Loadout.ts (+ ownerSub),
                   #   GearItem.ts (+ ownerSub), JournalDay.ts (+ wildlife[], companions[]),
                   #   Notification.ts (toSub, fromSub, fromName, type, tripId, tripTitle, read, status)
-    routes/       # auth.ts (register, login, GET/PUT /me, PUT/DELETE /me/avatar),
+    routes/       # auth.ts (register + login local-dev only; GET /me, PUT/DELETE /me/avatar),
                   #   trips.ts, loadouts.ts, gearItems.ts, journalDays.ts, journalScan.ts,
                   #   users.ts (GET /search?q=), notifications.ts (GET, POST accept/decline, DELETE, PATCH read-all)
     index.ts      # Express app, MongoDB connect; /api/auth public, all other routes behind requireAuth
@@ -113,12 +113,11 @@ docker compose.yml  # Four services on ridgeline-net:
 **Auth (public)**
 | Method     | Path                    | Description                                                                                  |
 |------------|-------------------------|----------------------------------------------------------------------------------------------|
-| POST       | `/api/auth/register`    | Create account — hashes password, stores User with UUID sub, returns signed 7-day JWT + user |
-| POST       | `/api/auth/login`       | Verify credentials, return JWT + user (including `avatarUrl`)                                |
-| GET        | `/api/auth/me`          | Return current user profile (requires JWT)                                                   |
-| PUT        | `/api/auth/me`          | Update name and/or password (requires JWT); re-signs token when name changes                 |
-| PUT        | `/api/auth/me/avatar`   | Upload avatar as base64 data URL (max 5 MB raw); stores on User doc (requires JWT)           |
-| DELETE     | `/api/auth/me/avatar`   | Remove avatar from User doc (requires JWT)                                                   |
+| POST       | `/api/auth/register`    | **Local dev only.** Create account — hashes password, stores UserProfile, returns signed 7-day JWT |
+| POST       | `/api/auth/login`       | **Local dev only.** Verify credentials, return JWT + user (including `avatarUrl`)            |
+| GET        | `/api/auth/me`          | Return current UserProfile (requires JWT); upserts name/email from token on each call        |
+| PUT        | `/api/auth/me/avatar`   | Upload avatar as base64 data URL (max 5 MB); stores on UserProfile (requires JWT)            |
+| DELETE     | `/api/auth/me/avatar`   | Remove avatar from UserProfile (requires JWT)                                                |
 
 **Trips (all require JWT; scoped to ownerSub or sharedWith)**
 | Method         | Path             | Description                                                                                                                                                                                                                                                                                                       |
@@ -162,61 +161,41 @@ docker compose.yml  # Four services on ridgeline-net:
 | POST   | `/api/journal-scan` | AI-powered journal image scan — sends base64 image to Claude, returns structured JSON (title, body, milesCovered, elevationGainFt, tempLowF, tempHighF, weatherNotes) |
 
 
-### Todo
-1. **Unit tests** — Add Vitest unit tests for pure logic:
-   - `src/lib/utils.ts` — `initials()` (empty string, undefined, single-word, multi-word) and `extractApiError()` (typed error, plain Error, null)
-   - Sidebar filter predicates — date overlap logic, min/max range edge cases, ownership filtering
-   - `useDebounce` hook — verify value only updates after delay, and cancels on rapid changes
-2. **E2E tests** — Add a Playwright baseline covering golden paths:
-   - Register → login → create trip → view trip
-   - Share trip → accept invite as second user → view shared trip
-   - Add journal entry → save → verify persistence
-   - Leave trip / delete trip
-3. Photo upload + EXIF — Use the exif-js or exifr library to parse EXIF in the browser before uploading. Extract GPS coordinates, camera settings, and timestamp client-side, store them alongside the photo reference in MongoDB.
-4. Gear loadouts — Straightforward CRUD once the pattern is established from trips. Weight calculations are pure frontend math in Zustand.
-5. Add hover text for each day button that says the title of the entry if it exists, or some prompt if it doesn't.
-6. Share / Export PDF — The Share button in the trip hero opens a dialog with two options:
-    - **Copy link** — copies the current page URL to clipboard (implemented, shows a "Copied" confirmation).
-    - **Export as PDF** — generates a styled PDF trip report matching the app's visual design. TODO: implement using a headless print stylesheet or a library like `@react-pdf/renderer`. The PDF should include: trip hero (title, location, dates, stats), journal entries (each day with conditions grid and narrative), GPX map screenshot or SVG export, gear loadout weight summary, and photos with EXIF metadata. Style it to match the dark amber/mono aesthetic of the app.
-7. Add summary stats to the Hero banner stats for total Weight Carried, and Max Elevation. These should be included as manual entries when the trip is created for now with a plan to link the fields to map and loadout data later.
-8. Shared trip acceptance flow — for a future invite-token model (email link):
-   - Generate a signed, expiring invite token (`crypto.randomUUID()` stored on the trip + expiry timestamp) when the owner shares.
-   - Email the token to the invitee (requires a mail integration — Sendgrid, Resend, etc.).
-   - Add a `POST /api/trips/:id/accept?token=` endpoint: verify token, verify not expired, add caller's `sub` to `sharedWith`, clear the token.
-   - Frontend: a `/accept-invite` route that reads the token from the URL, calls the endpoint, and redirects to the trip on success.
-9. Implement Keycloak security — steps to migrate from the current JWT system:
-   1. **Stand up Keycloak** — ✅ DONE. Keycloak 26.0 in `docker compose.yml` (`start-dev`, port 8080). After `docker compose up`, visit http://localhost:8080, log in as `admin/admin`, create realm `Ridgeline`, client `ridgeline-app` (public, PKCE enabled), and set redirect URIs to `http://localhost:3000/*`.
-   2. **Add `jwks-rsa` to server** — ✅ DONE. `jwks-rsa` installed; `verifyToken()` now uses JWKS when `KEYCLOAK_JWKS_URI` is set (RS256), falls back to `JWT_SECRET` (HS256) for local dev without Docker. `KEYCLOAK_JWKS_URI` and `KEYCLOAK_ISSUER` are live in `docker-compose.yml`.
-   3. **Swap frontend auth flow** — ✅ DONE. `keycloak-js` installed; `src/lib/keycloak.ts` singleton created. `main.tsx` inits Keycloak (`check-sso` + PKCE S256) before rendering — populates Zustand on success, clears stale tokens otherwise. `onTokenExpired` refreshes silently. `_authenticated` route calls `keycloak.login()` when unauthenticated. `LoginPage`/`RegisterPage` redirect to `keycloak.login()`/`keycloak.register()`. Sign-out calls `keycloak.logout()`. Keycloak URL/realm/clientId configurable via `VITE_KEYCLOAK_*` build args (defaults: `localhost:8080`, `Ridgeline`, `ridgeline-app`).
-   4. **Remove local auth routes** — ✅ DONE. Removed `POST /register` and `POST /login` from `server/src/routes/auth.ts`; `/me` endpoints kept (still needed for avatarUrl until 9.6). `requireAuth` moved to mount level in `index.ts`. Dead `login()`/`register()` helpers removed from `src/lib/auth.ts`. Password change section removed from `AccountDialog` (Keycloak owns passwords now).
-   5. **Migrate existing users** — ✅ DONE. `server/scripts/migrate-to-keycloak.ts` — idempotent script that creates each MongoDB User in Keycloak (via Admin REST API) with `requiredActions: ['UPDATE_PASSWORD']`, then rewrites `sub` in User, Trip (ownerSub + sharedWith[]), Loadout, GearItem, and Notification (toSub + fromSub). Run with `npx tsx scripts/migrate-to-keycloak.ts` from `server/`. All 3 existing users migrated 2026-05-08.
-   6. **Drop the `User` model** — ✅ DONE. Replaced with `server/src/models/UserProfile.ts` (`{ sub, name, email, avatarUrl }`). `GET /me` upserts name/email from the Keycloak token on every login so the profile stays in sync; `PUT /me` removed (Keycloak owns name/password). `trips.ts` and `users.ts` updated to query `UserProfile`. `AccountDialog` name field made read-only. `server/scripts/migrate-user-profiles.ts` copies avatarUrl from the old `users` collection into `userprofiles`.
+### Roadmap
 
-#### Todo Sidebar nav — planned page contents
-- **TRIP PLANNING FEATURE** - Allow users to plan trips in advance of going out - they will basically compile all their pre trip prep things in one place 
-  - Maps
-  - Permit info
-  - Number of days
-  - Weather forecasts
-  - Local wildlife info
-  - Leave no trace info
-  - Campsite planning
-    - Mileage per day
-    - Elevation per day
-  - Campsite contingency
-  - Water availability by mile marker and locale (drought? flash flooding?)
-  - Fires permissible?
-  - Drones permissible?
-  - Nearest emergency services and how to reach them?
-  - NOTE: we can maybe use AI to help compile all of this information into the pre-trip plan
-  - NOTE: after doing some design work and building this, we'd want a flow to take us from plan to execution to post trip report journal (what we've built already)
-- **Trips** - Share trips to other users leads to collaboration with other registered users. Add a feature to allow for simultaneous and deconflicted/merged edits of a trip and journal entries.
-- **Map** (`/map`) — Global map showing all GPX tracks and planned routes across every trip. Clicking a track opens the associated trip or plan detail.
-- **Photos** (`/photos`) — Collage/grid of all photos across all trips, with basic metadata (trip name, date, GPS coords). Clicking a photo navigates to its trip or shows full EXIF metadata.
-- **Gear** (`/gear`) — Categorized lists of the user's gear inventory. Eventually links to loadouts attached to trips and supports weight calculations.
+See `TODO.md` for detailed task breakdowns. Feature direction:
 
-### Done
-See git log for completed work.
+- **Tests** — Vitest unit tests (`utils.ts`, filter predicates, `useDebounce`) + Playwright E2E golden paths (register → trip → share → journal).
+- **Trip planning** — Pre-trip workflow: permits, weather, campsite mileage/elevation, water sources, fire/drone rules, emergency services. AI-assisted compilation. Flow: plan → execution → post-trip journal.
+- **PDF export** — Trip report from Share dialog: hero stats, journal entries, GPX map, gear summary, photos. Dark amber/mono aesthetic via `@react-pdf/renderer` or print stylesheet.
+- **Photo EXIF** — Parse EXIF client-side on upload (exifr): GPS coords, camera settings, timestamp. Store alongside photo in MongoDB.
+- **Gear loadouts** — CRUD gear inventory; weight calculations in Zustand; link loadouts to trips.
+- **Trip hero stats** — Add Weight Carried and Max Elevation as manual inputs on trip create; later derive from loadout and GPX.
+- **Email invites** — Signed expiring invite tokens for share flow (Sendgrid/Resend); `/accept-invite` route.
+- **Real-time collaboration** — Deconflicted/merged edits of trips and journal entries for multiple owners.
+- **Global map** (`/map`) — All GPX tracks + planned routes across every trip; click to open trip/plan.
+- **Photos** (`/photos`) — Grid of all photos across trips with metadata; full EXIF on click.
+- **Gear** (`/gear`) — Gear inventory management; links to loadouts and weight calculations.
+
+### Dev vs Docker
+
+| | Local dev | Docker |
+|---|---|---|
+| Frontend | http://localhost:5173 (Vite HMR) | http://localhost:3000 (nginx) |
+| API | http://localhost:8000 (absolute URL) | relative paths, proxied by nginx → `ridgeline-api:8000` |
+| Auth | JWT/HS256 via `JWT_SECRET`; `/login` + `/register` pages work | Keycloak OIDC/PKCE via `keycloak-js`; login/register redirect to Keycloak |
+| Token verification | `verifyToken()` uses `JWT_SECRET` (HS256) when `KEYCLOAK_JWKS_URI` unset | `verifyToken()` fetches JWKS from Keycloak and verifies RS256 |
+| MongoDB | Homebrew `mongodb-community@8.0` | `mongodb` container with named volume `mongo-data` |
+| Keycloak | not running | http://localhost:8080 (admin / admin) |
+
+**Local dev auth** — `KEYCLOAK_JWKS_URI` and `KEYCLOAK_ISSUER` must be absent/commented out in `server/.env` (default in `.env.example`). The frontend detects no Keycloak config and falls back to the `/login` page with `POST /api/auth/login`.
+
+**Docker/Keycloak first-time setup** — after `docker compose up --build`, visit http://localhost:8080, sign in as `admin/admin`, then:
+1. Create realm `Ridgeline`
+2. Create client `ridgeline-app` (OpenID Connect, public, PKCE S256 enabled)
+3. Set valid redirect URIs to `http://localhost:3000/*` and web origins to `http://localhost:3000`
+
+Subsequent `docker compose up` calls don't need the realm re-created if the `keycloak-data` volume persists.
 
 ### Notes
 - GET /api/loadouts/:id — automatically populates the full GearItem documents so the frontend doesn't need a second request

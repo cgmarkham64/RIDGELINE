@@ -29,6 +29,8 @@ An outdoor and hiking trip tracking app. Log trips, write journal entries, impor
 
 Spins up the full stack — frontend (nginx), API, MongoDB, and Keycloak — in one command.
 
+**Auth:** Keycloak handles login via OIDC/PKCE. The app redirects to Keycloak at http://localhost:8080 instead of using the built-in login page. API tokens are RS256 JWTs verified via Keycloak's JWKS endpoint.
+
 **Prerequisites:** Docker + Docker Compose
 
 ```bash
@@ -45,12 +47,20 @@ docker compose up --build
 | API | http://localhost:8000 |
 | Keycloak admin | http://localhost:8080 (admin / admin) |
 
+**First-time Keycloak setup** (only needed once — persists across restarts as long as the `keycloak-data` volume exists):
+1. Visit http://localhost:8080, sign in as `admin / admin`
+2. Create realm: `Ridgeline`
+3. Create client: `ridgeline-app` (OpenID Connect, public, PKCE S256 enabled)
+4. Set valid redirect URIs to `http://localhost:3000/*` and web origins to `http://localhost:3000`
+
 To stop: `docker compose down`  
-To wipe volumes (clears the database): `docker compose down -v`
+To wipe volumes (clears the database and Keycloak realm): `docker compose down -v`
 
 ---
 
 ### Local Development
+
+**Auth:** Uses the built-in login page (`/login`) with JWT/HS256 tokens signed by `JWT_SECRET`. No Keycloak required — leave `KEYCLOAK_JWKS_URI` and `KEYCLOAK_ISSUER` commented out in `server/.env` (the default).
 
 **Prerequisites:** Node.js 20+, MongoDB Community 8.0
 
@@ -63,7 +73,7 @@ brew install mongodb-community@8.0
 npm install
 cd server && npm install && cd ..
 
-# Copy and fill in secrets
+# Copy and fill in secrets (keep KEYCLOAK_* lines commented out)
 cp server/.env.example server/.env
 
 # Start MongoDB, then run frontend + backend
