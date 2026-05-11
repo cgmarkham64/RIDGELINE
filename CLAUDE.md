@@ -67,9 +67,10 @@ src/
     plan/         # PlanWizard.tsx (view/stage state, jumpTo, STAGE_COMPONENTS dispatch),
                   #   StageRail.tsx (left 280px rail), StageHeader.tsx (shared header bar),
                   #   PlanOverview.tsx (2×3 stage card grid + critical path timeline),
-                  #   Ring.tsx (SVG progress ring), Pill.tsx (tone pill), JumpChip.tsx (cross-stage nav),
+                  #   Ring.tsx, Pill.tsx, JumpChip.tsx, ProgressBar.tsx, CheckItem.tsx (shared atoms),
                   #   types.ts, constants.ts (STAGES metadata, createStages(), stageState()),
-                  #   stages/ (RouteStage, DaysStage, PermitsStage, FoodStage, GearStage, DepartStage — stubs)
+                  #   stages/ RouteStage.tsx ✅, DaysStage.tsx ✅,
+                  #           PermitsStage, FoodStage, GearStage, DepartStage (stubs)
     trip/         # TripDetail.tsx, TripHero.tsx (owner-gated Share/Delete; "Shared trip" badge for non-owners),
                   #   TripSidebar.tsx (search + filter popover: ownership, miles range, elev range, date range),
                   #   TripModal.tsx, TripRightPanel.tsx, ElevationProfile.tsx, GpxMapSection.tsx,
@@ -172,7 +173,7 @@ docker compose.yml  # Four services on ridgeline-net:
 See `TODO.md` for detailed task breakdowns. Feature direction:
 
 - **Tests** — Vitest unit tests (`utils.ts`, filter predicates, `useDebounce`) + Playwright E2E golden paths (register → trip → share → journal).
-- **Trip planning** *(shell done, stages in progress)* — Six-stage wizard (`Route → Days → Permits → Food → Gear → Depart`). Shell is live at `/plan`: left `StageRail`, shared `StageHeader`, `PlanOverview` god's-eye view, and six stage stubs (`src/components/plan/`). Shared atoms: `Ring`, `Pill`, `JumpChip`. Next: implement Route stage. Design handoff: `inspiration/design_handoff_plan_a_trip/` — prototype at `prototypes/Plan a Trip.html` (V3). Stage specs and build order in `TODO.md`. Flow: plan → execution → post-trip journal.
+- **Trip planning** *(Route + Days done, Permits next)* — Six-stage wizard (`Route → Days → Permits → Food → Gear → Depart`). Shell + Route + Days are live at `/plan` (`src/components/plan/`). Shared atoms: `Ring`, `Pill`, `JumpChip`, `ProgressBar`, `CheckItem`. Next: Permits stage (list-first + map toggle). Design handoff: `inspiration/design_handoff_plan_a_trip/` — prototype at `prototypes/Plan a Trip.html` (V3). Stage specs and build order in `TODO.md`. Flow: plan → execution → post-trip journal.
 - **PDF export** — Trip report from Share dialog: hero stats, journal entries, GPX map, gear summary, photos. Dark amber/mono aesthetic via `@react-pdf/renderer` or print stylesheet.
 - **Photo EXIF** — Parse EXIF client-side on upload (exifr): GPS coords, camera settings, timestamp. Store alongside photo in MongoDB.
 - **Gear loadouts** — CRUD gear inventory; weight calculations in Zustand; link loadouts to trips.

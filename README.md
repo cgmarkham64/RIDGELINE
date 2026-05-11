@@ -113,9 +113,9 @@ ridgeline/
 │   │   ├── layout/             # IconRail, AccountDialog, NotificationBell
 │   │   ├── map/                # MapTab, WaypointForm, WaypointChip, leafletIcons
 │   │   ├── plan/               # PlanWizard, StageRail, StageHeader, PlanOverview,
-│   │   │                       #   Ring, Pill, JumpChip, types, constants
-│   │   │   └── stages/         # RouteStage, DaysStage, PermitsStage, FoodStage,
-│   │   │                       #   GearStage, DepartStage (stubs — being built out)
+│   │   │                       #   Ring, Pill, JumpChip, ProgressBar, CheckItem
+│   │   │   └── stages/         # RouteStage ✅, DaysStage ✅,
+│   │   │                       #   PermitsStage, FoodStage, GearStage, DepartStage (stubs)
 │   │   ├── trip/               # TripSidebar, TripModal, ShareDialog, ConfirmDialog
 │   │   └── ui/                 # HikerOverlay, MoonLoader
 │   ├── hooks/                  # useTrips, useJournalDays, useNotifications, useDebounce
