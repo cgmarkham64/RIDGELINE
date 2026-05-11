@@ -20,6 +20,12 @@
             "command": "if ! output=$(npm run build 2>&1); then echo \"$output\" | tail -20 | jq -Rs '{hookSpecificOutput: {hookEventName: \"PostToolUse\", additionalContext: (\"Build errors:\\n\" + .)}}'; fi",
             "timeout": 60,
             "statusMessage": "Type-checking..."
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | { read -r f; if echo \"$f\" | grep -qE '\\.(ts|tsx)$'; then if ! output=$(npx eslint \"$f\" 2>&1); then echo \"$output\" | jq -Rs '{hookSpecificOutput: {hookEventName: \"PostToolUse\", additionalContext: (\"Lint errors:\\n\" + .)}}'; fi; fi; } 2>/dev/null || true",
+            "timeout": 30,
+            "statusMessage": "Linting..."
           }
         ]
       }
