@@ -69,9 +69,9 @@ Stage status model: `done` / `active` / `pending` / `locked`. Drive from per-sta
 **JumpChips** — amber pill links that navigate between stages without losing scroll position. Use them to surface data dependencies inline (e.g. "Pulled from Days · 8 days" in Food).
 
 #### Build order
-1. **Tokens + shared atoms** — `ridgeline-tokens.css`, `prototype.css`, `Icon`, `Pill`, `Field`, `ProgressBar`, `Checkmark`, `JumpChip`. Load-bearing primitives first.
-2. **Wizard shell** — left rail, hero band, right rail, stage routing. Stub the stage bodies.
-3. **Stage 1 — Route** (simplest, all data no interaction — confirms layout works)
+1. ✅ **Tokens + shared atoms** — `Pill`, `Ring`, `JumpChip` in `src/components/plan/`. Design tokens already existed in `src/index.css`.
+2. ✅ **Wizard shell** — `/plan` route, Plan icon in `IconRail`, left `StageRail`, shared `StageHeader`, `PlanOverview` (2×3 card grid + critical path), six stage stubs. `PlanWizard` manages view/stage state via `useState(createStages)`.
+3. **Stage 1 — Route** (simplest, all data no interaction — confirms layout works) ← **next**
 4. **Stage 2 — Days** (adds clickable-row + selected-day detail interaction)
 5. **Stage 3 — Permits list view** (`PermitsListFirst` — primary path)
 6. **Stage 3 — Permits map view** (`PermitsMapFirst` + section-header toggle)

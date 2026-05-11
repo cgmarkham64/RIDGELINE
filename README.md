@@ -111,13 +111,17 @@ ridgeline/
 │   ├── components/
 │   │   ├── journal/            # DaySelector, JournalSection
 │   │   ├── layout/             # IconRail, AccountDialog, NotificationBell
-│   │   ├── map/                # MapTab, WaypointForm, WaypointChip
+│   │   ├── map/                # MapTab, WaypointForm, WaypointChip, leafletIcons
+│   │   ├── plan/               # PlanWizard, StageRail, StageHeader, PlanOverview,
+│   │   │                       #   Ring, Pill, JumpChip, types, constants
+│   │   │   └── stages/         # RouteStage, DaysStage, PermitsStage, FoodStage,
+│   │   │                       #   GearStage, DepartStage (stubs — being built out)
 │   │   ├── trip/               # TripSidebar, TripModal, ShareDialog, ConfirmDialog
 │   │   └── ui/                 # HikerOverlay, MoonLoader
 │   ├── hooks/                  # useTrips, useJournalDays, useNotifications, useDebounce
 │   ├── lib/                    # api.ts (axios), auth.ts, trips.ts, users.ts, notifications.ts, utils.ts
-│   ├── pages/                  # HomePage, MapPage, PhotosPage, GearPage, LoginPage, RegisterPage
-│   ├── routes/                 # TanStack Router route definitions
+│   ├── pages/                  # HomePage, MapPage, PhotosPage, GearPage, PlanPage, LoginPage, RegisterPage
+│   ├── routes/                 # TanStack Router route definitions (/plan now live)
 │   ├── store/                  # auth.ts (Zustand)
 │   └── types/                  # Trip, JournalDay, GearItem, Loadout, Photo, Notification
 │
