@@ -33,7 +33,7 @@ Format your response as:
 - A one-paragraph summary of the overall change quality
 - A bullet list of specific issues found (file:line — severity — description)
 - A bullet list of things done well (positive callouts)
-
+    
 Severity levels: 🔴 bug/security, 🟡 concern, 🟢 suggestion
 ---
 
