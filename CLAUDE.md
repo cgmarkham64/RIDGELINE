@@ -166,7 +166,7 @@ docker compose.yml  # Four services on ridgeline-net:
 See `TODO.md` for detailed task breakdowns. Feature direction:
 
 - **Tests** — Vitest unit tests (`utils.ts`, filter predicates, `useDebounce`) + Playwright E2E golden paths (register → trip → share → journal).
-- **Trip planning** — Pre-trip workflow: permits, weather, campsite mileage/elevation, water sources, fire/drone rules, emergency services. AI-assisted compilation. Flow: plan → execution → post-trip journal.
+- **Trip planning** — Six-stage wizard (`Route → Days → Permits → Food → Gear → Depart`) with a persistent left-rail stage list, always-visible hero band, and per-stage right-rail checklist. Design handoff lives in `inspiration/design_handoff_plan_a_trip/` — open `prototypes/Plan a Trip.html` in a browser (keep on V3). Files to port: `ridgeline-tokens.css`, `prototype.css`, `rdgln-shared.jsx`, `v3-stages.jsx`, `permits-flow.jsx`. Detailed stage specs and build order in `TODO.md`. Flow: plan → execution → post-trip journal.
 - **PDF export** — Trip report from Share dialog: hero stats, journal entries, GPX map, gear summary, photos. Dark amber/mono aesthetic via `@react-pdf/renderer` or print stylesheet.
 - **Photo EXIF** — Parse EXIF client-side on upload (exifr): GPS coords, camera settings, timestamp. Store alongside photo in MongoDB.
 - **Gear loadouts** — CRUD gear inventory; weight calculations in Zustand; link loadouts to trips.
