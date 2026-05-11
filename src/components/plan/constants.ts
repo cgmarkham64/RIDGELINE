@@ -1,5 +1,6 @@
 import type { Stage, StageId } from './types'
 
+// Static metadata — use for label/length lookups only, never mutate.
 export const STAGES: Stage[] = [
   { id: 'route',   n: '01', label: 'Route',   sub: 'Where',           done: 0, total: 6 },
   { id: 'days',    n: '02', label: 'Days',    sub: 'Day-by-day',      done: 0, total: 8 },
@@ -8,6 +9,11 @@ export const STAGES: Stage[] = [
   { id: 'gear',    n: '05', label: 'Gear',    sub: 'Loadout',         done: 0, total: 5, blocked: true },
   { id: 'depart',  n: '06', label: 'Depart',  sub: 'Take it with',    done: 0, total: 4 },
 ]
+
+// Use this to initialise per-instance mutable stage state in PlanWizard.
+export function createStages(): Stage[] {
+  return STAGES.map(s => ({ ...s }))
+}
 
 export const STAGE_TITLES: Record<StageId, string> = {
   route:   'Pick your route.',

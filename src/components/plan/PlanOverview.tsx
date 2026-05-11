@@ -4,11 +4,11 @@ import { Ring } from './Ring'
 import { Pill } from './Pill'
 
 const CRITICAL_PATH = [
-  { d: 'Feb 1',  label: 'Whitney lottery opens',           stageId: 'permits', tone: 'amber' as const },
-  { d: 'Mar 15', label: 'Whitney lottery closes',          stageId: 'permits', tone: 'amber' as const },
-  { d: 'Mar 24', label: 'Lottery results — unblocks Gear', stageId: 'gear',    tone: 'sky'   as const },
-  { d: 'Jul 1',  label: 'Resupply box ships to Bishop',    stageId: 'food',    tone: 'pine'  as const },
-  { d: 'Aug 11', label: 'Fly out — pre-flight checklist',  stageId: 'depart',  tone: 'sky'   as const },
+  { d: 'Feb 1',  label: 'Whitney lottery opens',           stageId: 'permits', cls: 'text-amber border-amber-border bg-amber-dim' },
+  { d: 'Mar 15', label: 'Whitney lottery closes',          stageId: 'permits', cls: 'text-amber border-amber-border bg-amber-dim' },
+  { d: 'Mar 24', label: 'Lottery results — unblocks Gear', stageId: 'gear',    cls: 'text-sky border-sky-border bg-sky-dim'       },
+  { d: 'Jul 1',  label: 'Resupply box ships to Bishop',    stageId: 'food',    cls: 'text-pine border-pine-border bg-pine-dim'    },
+  { d: 'Aug 11', label: 'Fly out — pre-flight checklist',  stageId: 'depart',  cls: 'text-sky border-sky-border bg-sky-dim'       },
 ]
 
 interface PlanOverviewProps {
@@ -77,7 +77,7 @@ export function PlanOverview({ stages, totalDone, totalAll, onJump }: PlanOvervi
                 </p>
                 <div className="flex justify-between items-center pt-2.5 border-t border-border">
                   <span className="font-mono text-[9px] text-text-dim">
-                    {s.blocked ? 'unblock at Mar 24 results' : `${s.done} of ${s.total} items`}
+                    {s.blocked ? (s.blockedReason ?? 'waiting on upstream stage') : `${s.done} of ${s.total} items`}
                   </span>
                   <span className="text-[11px] text-amber font-semibold inline-flex items-center gap-1 group-hover:gap-2 transition-all">
                     Open
@@ -97,7 +97,7 @@ export function PlanOverview({ stages, totalDone, totalAll, onJump }: PlanOvervi
         <div className="bg-surface border border-border rounded-lg overflow-hidden">
           {CRITICAL_PATH.map((row, i) => (
             <button
-              key={i}
+              key={row.label}
               onClick={() => onJump(row.stageId)}
               className={[
                 'w-full grid items-center px-4 py-3 bg-transparent border-none cursor-pointer text-left hover:bg-surface-2 transition-colors',
@@ -105,7 +105,7 @@ export function PlanOverview({ stages, totalDone, totalAll, onJump }: PlanOvervi
               ].join(' ')}
               style={{ gridTemplateColumns: '70px 1fr 110px 18px', gap: 14 }}
             >
-              <span className={`font-mono text-[10px] font-semibold text-center px-1.5 py-1 rounded border text-${row.tone} border-${row.tone}-border bg-${row.tone}-dim`}>
+              <span className={`font-mono text-[10px] font-semibold text-center px-1.5 py-1 rounded border ${row.cls}`}>
                 {row.d}
               </span>
               <span className="text-[12px] text-text">{row.label}</span>

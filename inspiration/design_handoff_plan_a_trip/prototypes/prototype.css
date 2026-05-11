@@ -1,0 +1,352 @@
+/* Prototype-level resets + shared component styles */
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--color-bg);
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: var(--font-heading);
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+p { margin: 0; }
+
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--color-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-border-mid); }
+
+/* ───────── Buttons ───────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-heading);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.14s;
+  white-space: nowrap;
+  background: transparent;
+  color: var(--color-text);
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary {
+  background: var(--color-amber);
+  color: #0f0d0b;
+  border-color: var(--color-amber);
+}
+.btn-primary:hover { background: #fbb040; border-color: #fbb040; }
+.btn-ghost { color: var(--color-text); border-color: var(--color-border); }
+.btn-ghost:hover { border-color: var(--color-border-mid); }
+.btn-sky    { background: var(--color-sky-dim);   color: var(--color-sky);   border-color: var(--color-sky-border); }
+.btn-sky:hover { background: rgba(90,180,220,0.14); }
+.btn-pine   { background: var(--color-pine-dim);  color: var(--color-pine);  border-color: var(--color-pine-border); }
+.btn-pine:hover { background: rgba(66,143,94,0.19); }
+.btn-danger { background: var(--color-red-dim);   color: var(--color-red);   border-color: var(--color-red-border); }
+.btn-danger:hover { background: rgba(217,64,48,0.18); }
+.btn-sm     { padding: 6px 10px; font-size: 10px; }
+.btn-block  { width: 100%; justify-content: center; }
+
+/* ───────── Mono / heading micro labels ───────── */
+.kicker, .meta {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+.kicker-amber { color: var(--color-amber); }
+.sec-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.sec-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+.sec-label .num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px; height: 18px;
+  border: 1px solid var(--color-border-mid);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-mid);
+  font-size: 8px;
+  font-weight: 600;
+}
+
+/* ───────── Form inputs ───────── */
+.fld {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 0.14s;
+  font-family: inherit;
+}
+.fld:focus { border-color: var(--color-border-mid); }
+.fld::placeholder { color: var(--color-text-dim); }
+textarea.fld { resize: none; line-height: 1.55; }
+.lbl {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+  margin-bottom: 5px;
+  display: block;
+}
+
+/* ───────── Cards ───────── */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* ───────── Stat block (matches TripHero) ───────── */
+.stat {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 10px 14px;
+  text-align: center;
+}
+.stat__v {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--color-amber);
+  line-height: 1;
+  margin-bottom: 3px;
+}
+.stat__l {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+/* ───────── Variation shell (a Mac-style window inside an artboard) ───────── */
+.app-frame {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+/* App-rail mock so each prototype reads like a real RIDGELINE screen */
+.app-rail {
+  width: 64px;
+  flex: 0 0 64px;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0;
+  gap: 4px;
+}
+.app-rail__brand {
+  font-family: var(--font-heading);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: var(--color-amber);
+  writing-mode: vertical-lr;
+  transform: rotate(180deg);
+  margin-bottom: 16px;
+}
+.app-rail__btn {
+  width: 40px; height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text-dim);
+  background: transparent;
+  border: none;
+  transition: all 0.14s;
+}
+.app-rail__btn:hover { background: var(--color-surface-2); color: var(--color-text-mid); }
+.app-rail__btn.active {
+  background: var(--color-amber-dim);
+  color: var(--color-amber);
+  box-shadow: inset 0 0 0 1px var(--color-amber-border);
+}
+
+/* ───────── Striped image placeholder ───────── */
+.placeholder {
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--color-surface-2) 0,
+    var(--color-surface-2) 8px,
+    var(--color-surface-3) 8px,
+    var(--color-surface-3) 16px
+  );
+  border: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+/* ───────── Hero band (mountain silhouette) ───────── */
+.hero-band {
+  position: relative;
+  height: 140px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: linear-gradient(160deg, #1c1308 0%, #2e2618 22%, #3c3c2c 48%, #5a6858 72%, #8a9a88 100%);
+}
+.hero-band__mountains {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  pointer-events: none;
+}
+.hero-band__vignette {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(15,13,11,1) 0%, rgba(15,13,11,0.55) 32%, rgba(15,13,11,0.10) 65%, transparent 100%);
+}
+.hero-band__content {
+  position: absolute;
+  bottom: 14px;
+  left: 22px;
+  right: 22px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+/* ───────── Map canvas placeholder (topo lines) ───────── */
+.map-canvas {
+  position: relative;
+  background: #0e1810;
+  background-image:
+    radial-gradient(ellipse 800px 600px at 30% 40%, rgba(90, 180, 220, 0.06), transparent 70%),
+    radial-gradient(ellipse 600px 500px at 70% 70%, rgba(68, 136, 96, 0.10), transparent 70%);
+  overflow: hidden;
+}
+.map-canvas svg.topo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ───────── Day chip ───────── */
+.day-chip {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 6px;
+  text-align: center;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--color-border);
+  transition: background 0.12s;
+  position: relative;
+}
+.day-chip:last-child { border-right: none; }
+.day-chip:hover { background: var(--color-surface-3); }
+.day-chip.active {
+  background: var(--color-amber-glow);
+  box-shadow: inset 0 0 0 1px var(--color-amber-border);
+}
+.day-chip__num {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-text-mid);
+  margin-bottom: 2px;
+}
+.day-chip.active .day-chip__num { color: var(--color-amber); }
+.day-chip__date {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+
+/* ───────── Pill ───────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text-mid);
+}
+.pill-amber { color: var(--color-amber); border-color: var(--color-amber-border); background: var(--color-amber-dim); }
+.pill-sky   { color: var(--color-sky);   border-color: var(--color-sky-border);   background: var(--color-sky-dim); }
+.pill-pine  { color: var(--color-pine);  border-color: var(--color-pine-border);  background: var(--color-pine-dim); }
+.pill-red   { color: var(--color-red);   border-color: var(--color-red-border);   background: var(--color-red-dim); }
+
+/* ───────── Density toggle (driven by Tweaks) ───────── */
+[data-density="compact"] { font-size: 13px; }
+[data-density="compact"] .card { border-radius: var(--radius-sm); }
+[data-density="spacious"] { font-size: 14.5px; }
+
+/* Section row tone */
+.tone-amber { color: var(--color-amber); }
+.tone-sky   { color: var(--color-sky); }
+.tone-pine  { color: var(--color-pine); }
+.tone-mid   { color: var(--color-text-mid); }
+.tone-dim   { color: var(--color-text-dim); }
+
+/* hairlines */
+.hr { height: 1px; background: var(--color-border); width: 100%; }

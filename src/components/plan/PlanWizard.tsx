@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { PlanView, StageId } from './types'
-import { STAGES } from './constants'
+import { createStages } from './constants'
 import { StageRail } from './StageRail'
 import { StageHeader } from './StageHeader'
 import { PlanOverview } from './PlanOverview'
@@ -36,7 +36,7 @@ export function PlanWizard() {
   const [view, setView] = useState<PlanView>('overview')
   const [stageIdx, setStageIdx] = useState(0)
 
-  const stages = STAGES
+  const [stages] = useState(createStages)
   const totalDone = stages.reduce((a, s) => a + s.done, 0)
   const totalAll = stages.reduce((a, s) => a + s.total, 0)
 
@@ -47,6 +47,7 @@ export function PlanWizard() {
   }
 
   const activeStage = stages[stageIdx]
+  if (!activeStage) return null
   const StageBody = STAGE_COMPONENTS[activeStage.id]
 
   return (

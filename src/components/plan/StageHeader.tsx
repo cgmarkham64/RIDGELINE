@@ -34,7 +34,7 @@ export function StageHeader({ stage, stageIdx, onJump, onPrev, onNext }: StageHe
 
         <span className="ml-auto">
           {state === 'done'     && <Pill tone="pine">Locked</Pill>}
-          {state === 'blocked'  && <Pill tone="amber">Waiting on permit</Pill>}
+          {state === 'blocked'  && <Pill tone="amber">{stage.blockedReason ?? 'Waiting on upstream stage'}</Pill>}
           {state === 'progress' && <Pill tone="amber">{stage.done}/{stage.total} done</Pill>}
           {state === 'idle'     && <Pill>Not started</Pill>}
         </span>

@@ -1,0 +1,48 @@
+/* RIDGELINE design tokens — lifted directly from src/index.css */
+:root {
+  /* Surfaces */
+  --color-bg:           #0f0d0b;
+  --color-surface:      #181410;
+  --color-surface-2:    #201c16;
+  --color-surface-3:    #2a2420;
+
+  /* Borders */
+  --color-border:       #352e28;
+  --color-border-mid:   #4a3e34;
+
+  /* Text */
+  --color-text:         #ede5db;
+  --color-text-mid:     #9a8878;
+  --color-text-dim:     #685646;
+
+  /* Amber */
+  --color-amber:        #f0a030;
+  --color-amber-dim:    rgba(240, 160, 48, 0.08);
+  --color-amber-glow:   rgba(240, 160, 48, 0.13);
+  --color-amber-border: rgba(240, 160, 48, 0.22);
+
+  /* Sky */
+  --color-sky:          #5ab4dc;
+  --color-sky-dim:      rgba(90, 180, 220, 0.08);
+  --color-sky-border:   rgba(90, 180, 220, 0.22);
+
+  /* Pine */
+  --color-pine:         #448860;
+  --color-pine-dim:     rgba(61, 122, 86, 0.10);
+  --color-pine-border:  rgba(61, 122, 86, 0.35);
+
+  /* Red */
+  --color-red:          #d94030;
+  --color-red-dim:      rgba(217, 64, 48, 0.10);
+  --color-red-border:   rgba(217, 64, 48, 0.28);
+
+  /* Type */
+  --font-sans:    'Karla', sans-serif;
+  --font-heading: 'Syne', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+
+  /* Radii */
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}

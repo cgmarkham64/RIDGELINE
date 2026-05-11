@@ -7,7 +7,7 @@ interface RingProps {
 }
 
 export function Ring({ done, total, size = 28, blocked = false, highlight = false }: RingProps) {
-  const pct = blocked ? 1 : Math.max(0, Math.min(1, done / total))
+  const pct = blocked ? 1 : total === 0 ? 0 : Math.max(0, Math.min(1, done / total))
   const r = size / 2 - 2
   const c = 2 * Math.PI * r
   const tone =

@@ -8,6 +8,7 @@ export interface Stage {
   done: number
   total: number
   blocked?: boolean
+  blockedReason?: string
 }
 
 export type StageState = 'done' | 'progress' | 'idle' | 'blocked'
