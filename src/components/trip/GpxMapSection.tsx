@@ -7,7 +7,7 @@ import type { Trip, GpxTrack, GpxTrackEntry } from '../../types'
 import { parseGpx } from '../../lib/gpx'
 import type { ParsedGpx } from '../../lib/gpx'
 import { api } from '../../lib/api'
-import { makeWaypointIcon, makeStartIcon, makeEndIcon } from '../map/WaypointIcon'
+import { makeWaypointIcon, makeStartIcon, makeEndIcon } from '../map/leafletIcons'
 import { resolveStartEnd } from '../map/constants'
 
 // ─── Map helpers ─────────────────────────────────────────────────────────────

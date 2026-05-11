@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDebounce } from '../../hooks/useDebounce'
 import type { Trip } from '../../types'
 import { searchUsers, shareTrip, type UserSearchResult } from '../../lib/users'
@@ -23,22 +23,32 @@ export function ShareDialog({ trip, onClose }: Props) {
   const [copied, setCopied] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const searchIdRef = useRef(0)
   const unshare = useUnshareTrip()
 
-  useEffect(() => { setInviteError(null) }, [query])
   const debouncedQuery = useDebounce(query, 300)
-  useEffect(() => {
-    if (debouncedQuery.trim().length < 2) {
-      setResults([])
-      setDropdownOpen(false)
-      return
-    }
+  const showDropdown = dropdownOpen && debouncedQuery.trim().length >= 2
+
+  const runSearch = useCallback(async (q: string) => {
+    const id = ++searchIdRef.current
     setIsSearching(true)
-    searchUsers(debouncedQuery.trim())
-      .then((users) => { setResults(users); setDropdownOpen(true) })
-      .catch(() => setResults([]))
-      .finally(() => setIsSearching(false))
-  }, [debouncedQuery])
+    try {
+      const users = await searchUsers(q)
+      if (id !== searchIdRef.current) return
+      setResults(users)
+      setDropdownOpen(true)
+    } catch {
+      if (id !== searchIdRef.current) return
+      setResults([])
+    } finally {
+      if (id === searchIdRef.current) setIsSearching(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (debouncedQuery.trim().length >= 2) runSearch(debouncedQuery.trim())
+    else { setResults([]); setDropdownOpen(false) }
+  }, [debouncedQuery, runSearch])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -75,7 +85,7 @@ export function ShareDialog({ trip, onClose }: Props) {
     if (e.key === 'Enter') {
       e.preventDefault()
       if (isSearching) return
-      if (results.length > 0) handleInvite(results[0])
+      if (showDropdown && results.length > 0) handleInvite(results[0])
       else if (query.trim().length >= 2) setInviteError('No user found with that name or email')
     } else if (e.key === 'Escape') {
       setDropdownOpen(false)
@@ -164,14 +174,14 @@ export function ShareDialog({ trip, onClose }: Props) {
               ref={inputRef}
               type="text"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => { setQuery(e.target.value); setInviteError(null) }}
               onKeyDown={handleKeyDown}
               onFocus={() => { if (results.length > 0) setDropdownOpen(true) }}
               placeholder="Search by name or email…"
               className="w-full px-3 py-2 border border-border focus:border-border-mid rounded-sm text-[12px] bg-surface-2 text-text outline-none transition-[border-color] duration-[140ms] placeholder:text-text-dim"
               autoComplete="off"
             />
-            {dropdownOpen && (
+            {showDropdown && (
               <div
                 ref={dropdownRef}
                 className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border-mid rounded-md overflow-hidden z-10 shadow-lg"

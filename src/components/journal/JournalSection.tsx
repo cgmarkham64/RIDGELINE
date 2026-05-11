@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { initials } from '../../lib/utils'
 import { useDebounce } from '../../hooks/useDebounce'
 import { useForm } from 'react-hook-form'
@@ -100,7 +100,8 @@ export function JournalSection({ trip }: Props) {
     panelsDirtyRef.current = false
     pendingShareSubsRef.current = []
     setPendingInviteCount(0)
-  }, [selectedDate, currentEntry?._id, reset])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, currentEntry?._id, reset]) // intentional: re-run on ID change only, not every mutation
 
   // Auto-save when focus leaves the form — but only if body has content
   function handleFormBlur(e: React.FocusEvent<HTMLFormElement>) {
@@ -490,20 +491,31 @@ function CompanionTagInput({
   const [results, setResults] = useState<UserSearchResult[]>([])
   const [searching, setSearching] = useState(false)
   const [open, setOpen] = useState(false)
+  const searchIdRef = useRef(0)
 
   const debouncedInput = useDebounce(input, 300)
-  useEffect(() => {
-    if (debouncedInput.trim().length < 2) {
-      setResults([])
-      setOpen(false)
-      return
-    }
+  const showDropdown = open && debouncedInput.trim().length >= 2
+
+  const runSearch = useCallback(async (query: string) => {
+    const id = ++searchIdRef.current
     setSearching(true)
-    searchUsers(debouncedInput.trim())
-      .then((users) => { setResults(users); setOpen(true) })
-      .catch(() => setResults([]))
-      .finally(() => setSearching(false))
-  }, [debouncedInput])
+    try {
+      const users = await searchUsers(query)
+      if (id !== searchIdRef.current) return
+      setResults(users)
+      setOpen(true)
+    } catch {
+      if (id !== searchIdRef.current) return
+      setResults([])
+    } finally {
+      if (id === searchIdRef.current) setSearching(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (debouncedInput.trim().length >= 2) runSearch(debouncedInput.trim())
+    else { setResults([]); setOpen(false) }
+  }, [debouncedInput, runSearch])
 
   function addTag(label: string, sub?: string) {
     const trimmed = label.trim()
@@ -519,7 +531,7 @@ function CompanionTagInput({
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
       e.preventDefault()
-      if (open && results.length > 0) {
+      if (showDropdown && results.length > 0) {
         addTag(results[0].name, results[0].sub)
       } else if (input.trim()) {
         addTag(input)
@@ -564,14 +576,14 @@ function CompanionTagInput({
           onKeyDown={handleKeyDown}
           onBlur={() => {
             setTimeout(() => setOpen(false), 150)
-            if (input.trim() && !open) addTag(input)
+            if (input.trim() && !showDropdown) addTag(input)
           }}
           placeholder={tags.length === 0 ? 'Add names…' : ''}
           className="flex-1 min-w-24 bg-transparent border-0 outline-none font-mono text-[11px] text-text placeholder:text-text-dim"
         />
       </div>
 
-      {open && (
+      {showDropdown && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border-mid rounded-md overflow-hidden z-10 shadow-lg">
           {searching ? (
             <div className="px-3 py-2.5 font-mono text-[10px] text-text-dim">Searching…</div>

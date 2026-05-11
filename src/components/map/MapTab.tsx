@@ -6,7 +6,7 @@ import type { GpxTrack, GpxTrackEntry, Trip, Waypoint, WaypointType } from '../.
 import { api } from '../../lib/api'
 import { GpxMapSection } from '../trip/GpxMapSection'
 import { DEFAULT_FORM, PLANNED_COLOR, mono, trackColor, resolveStartEnd } from './constants'
-import { makeWaypointIcon, makePendingIcon, makeStartIcon, makeEndIcon } from './WaypointIcon'
+import { makeWaypointIcon, makePendingIcon, makeStartIcon, makeEndIcon } from './leafletIcons'
 import { FitBounds, MapClickHandler, MapContextMenuHandler, MapFocuser, MapRefCapture } from './MapHelpers'
 import { WaypointForm } from './WaypointForm'
 import { WaypointChip } from './WaypointChip'
