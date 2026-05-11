@@ -18,15 +18,16 @@ interface Day {
   water: string
   exp: Exposure
   hard?: boolean
+  pass?: string  // named col or pass mid-day; omit for flat/approach days
 }
 
 const DAYS: Day[] = [
   { n: 1, from: 'Onion Valley',   to: 'Charlotte Lake',  mi: 12, gain: 3200, water: 'reliable', exp: 'low'     },
   { n: 2, from: 'Charlotte Lake', to: 'Rae Lakes',        mi: 14, gain: 2100, water: 'reliable', exp: 'low'     },
-  { n: 3, from: 'Rae Lakes',      to: 'Sixty Lake',       mi: 18, gain: 4400, water: 'reliable', exp: 'med'     },
-  { n: 4, from: 'Sixty Lake',     to: 'Bench Lake',       mi: 22, gain: 5100, water: 'reliable', exp: 'high',   hard: true },
-  { n: 5, from: 'Bench Lake',     to: 'Lake Marjorie',    mi: 16, gain: 3800, water: 'reliable', exp: 'med'     },
-  { n: 6, from: 'Lake Marjorie',  to: 'Crabtree',         mi: 19, gain: 4200, water: 'caches',   exp: 'high'    },
+  { n: 3, from: 'Rae Lakes',      to: 'Sixty Lake',       mi: 18, gain: 4400, water: 'reliable', exp: 'med',  pass: 'Glen Pass · 11,978 ft'     },
+  { n: 4, from: 'Sixty Lake',     to: 'Bench Lake',       mi: 22, gain: 5100, water: 'reliable', exp: 'high', pass: 'Cartridge Pass · 12,650 ft', hard: true },
+  { n: 5, from: 'Bench Lake',     to: 'Lake Marjorie',    mi: 16, gain: 3800, water: 'reliable', exp: 'med',  pass: 'Mather Pass · 12,100 ft'   },
+  { n: 6, from: 'Lake Marjorie',  to: 'Crabtree',         mi: 19, gain: 4200, water: 'caches',   exp: 'high', pass: 'Forester Pass · 13,153 ft'  },
   { n: 7, from: 'Crabtree',       to: 'Guitar Lake',      mi: 14, gain: 2800, water: 'reliable', exp: 'med'     },
   { n: 8, from: 'Guitar Lake',    to: 'Whitney Portal',   mi: 17, gain: 4400, water: 'reliable', exp: 'extreme', hard: true },
 ]
@@ -126,11 +127,13 @@ export function DaysStage({ onJump }: StageBodyProps) {
   const [sel, setSel] = useState(3) // default to Day 4
 
   const d = DAYS[sel]
+  if (!d) return null
+
   const totalMi   = DAYS.reduce((a, x) => a + x.mi, 0)
   const totalGain = DAYS.reduce((a, x) => a + x.gain, 0)
   const longest   = Math.max(...DAYS.map(x => x.mi))
-
-  const passLabel = d.n === 4 ? 'Cartridge Pass · 12,650 ft' : 'Mid-day pass'
+  const campCount = DAYS.length - 1  // last day exits, no camp
+  const longDays  = DAYS.filter(x => x.mi > 20)
 
   return (
     <div className="flex-1 overflow-y-auto p-8 pb-20">
@@ -145,7 +148,7 @@ export function DaysStage({ onJump }: StageBodyProps) {
               { v: String(totalMi),                  l: 'total miles' },
               { v: totalGain.toLocaleString(),        l: 'gain (ft)' },
               { v: String(longest),                   l: 'longest day' },
-              { v: '7',                               l: 'camps' },
+              { v: String(campCount),                  l: 'camps' },
             ].map(s => (
               <div key={s.l} className="bg-surface px-3 py-2">
                 <div className="font-heading text-[18px] font-extrabold text-amber leading-none">{s.v}</div>
@@ -193,7 +196,7 @@ export function DaysStage({ onJump }: StageBodyProps) {
           </div>
 
           {/* Selected day detail */}
-          <div className="bg-surface border border-border rounded-lg p-[18px]">
+          <div key={d.n} className="bg-surface border border-border rounded-lg p-[18px]">
             <div className="flex items-baseline gap-2.5 mb-3">
               <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-amber">Day {d.n}</span>
               <span className="font-heading text-[16px] font-extrabold text-text">{d.from} → {d.to}</span>
@@ -205,10 +208,10 @@ export function DaysStage({ onJump }: StageBodyProps) {
               <TimeField label="Camp by"  value="6:00 PM" />
             </div>
             <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2">Waypoints</div>
-            <WaypointRow time="6:30 AM"   name="Leave camp"    loc={d.from}    icon="tent"     />
-            <WaypointRow time="10:30 AM"  name="Pass / col"    loc={passLabel} icon="mountain" />
-            <WaypointRow time="1:00 PM"   name="Lunch + water" loc="Lake outflow" icon="water" />
-            <WaypointRow time="5:30 PM"   name="Make camp"     loc={d.to}      icon="tent"     last />
+            <WaypointRow time="6:30 AM"  name="Leave camp"    loc={d.from}       icon="tent"     />
+            {d.pass && <WaypointRow time="10:30 AM" name="Pass / col" loc={d.pass} icon="mountain" />}
+            <WaypointRow time="1:00 PM"  name="Lunch + water" loc="Lake outflow" icon="water"    />
+            <WaypointRow time="5:30 PM"  name="Make camp"     loc={d.to}         icon="tent"     last />
           </div>
 
           {/* Helper banner */}
@@ -217,7 +220,9 @@ export function DaysStage({ onJump }: StageBodyProps) {
               <path d="M17 18a4 4 0 0 0 0-8 6 6 0 0 0-11.7-1.5A4.5 4.5 0 0 0 6 18z" />
             </svg>
             <span>
-              Day 4 and Day 8 push past 20 mi — confirm caloric load in{' '}
+              {longDays.map((x, i) => (
+                <span key={x.n}>{i > 0 ? ' and ' : ''}Day {x.n}</span>
+              ))}{' '}push{longDays.length === 1 ? 'es' : ''} past 20 mi — confirm caloric load in{' '}
               <JumpChip to="food" onJump={onJump}>Food</JumpChip>
             </span>
           </div>

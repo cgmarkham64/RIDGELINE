@@ -118,8 +118,8 @@ function ElevationProfile() {
         ))}
         <polygon points={areaPts} fill="var(--color-amber-dim)" />
         <polyline points={linePts} fill="none" stroke="var(--color-amber)" strokeWidth="1.6" strokeLinejoin="round" />
-        {pts.map((pt) => (
-          <g key={pt.e + pt.x}>
+        {pts.map((pt, i) => (
+          <g key={`${pt.e}-${i}`}>
             <circle cx={pt.x} cy={pt.y} r="3.5" fill="var(--color-bg)" stroke="var(--color-amber)" strokeWidth="1.4" />
             <text x={pt.x} y={pt.y - 8} textAnchor="middle" fontSize="8" style={{ fontFamily: 'var(--font-mono)', fill: 'var(--color-text-mid)' }}>
               {pt.e.toLocaleString()}
