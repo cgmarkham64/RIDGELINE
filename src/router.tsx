@@ -7,11 +7,12 @@ import { Route as registerRoute } from './routes/register'
 import { Route as mapRoute } from './routes/map'
 import { Route as photosRoute } from './routes/photos'
 import { Route as gearRoute } from './routes/gear'
+import { Route as planRoute } from './routes/plan'
 
 const routeTree = rootRoute.addChildren([
   loginRoute,
   registerRoute,
-  authenticatedRoute.addChildren([indexRoute, mapRoute, photosRoute, gearRoute]),
+  authenticatedRoute.addChildren([indexRoute, planRoute, mapRoute, photosRoute, gearRoute]),
 ])
 
 export const router = createRouter({ routeTree })
