@@ -4,7 +4,7 @@ import { useAuthStore } from '../../store/auth'
 import { AccountDialog } from './AccountDialog'
 import { NotificationBell } from './NotificationBell'
 import { initials } from '../../lib/utils'
-import { keycloak } from '../../lib/keycloak'
+import { keycloak, LOCAL_AUTH } from '../../lib/keycloak'
 
 function NavLink({
   to,
@@ -48,7 +48,11 @@ export function IconRail() {
 
   function handleSignOut() {
     clearAuth()
-    keycloak.logout({ redirectUri: window.location.origin })
+    if (LOCAL_AUTH) {
+      window.location.href = '/login'
+    } else {
+      keycloak.logout({ redirectUri: window.location.origin })
+    }
   }
 
   return (

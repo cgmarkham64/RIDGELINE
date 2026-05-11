@@ -1,8 +1,8 @@
-import { createRoute, Outlet } from '@tanstack/react-router'
+import { createRoute, Outlet, redirect } from '@tanstack/react-router'
 import { Route as rootRoute } from './__root'
 import { useAuthStore } from '../store/auth'
 import { IconRail } from '../components/layout/IconRail'
-import { keycloak } from '../lib/keycloak'
+import { keycloak, LOCAL_AUTH } from '../lib/keycloak'
 
 export const Route = createRoute({
   getParentRoute: () => rootRoute,
@@ -10,8 +10,12 @@ export const Route = createRoute({
   beforeLoad: async () => {
     const { token } = useAuthStore.getState()
     if (!token) {
-      await keycloak.login()
-      // keycloak.login() triggers a browser redirect and never resolves
+      if (LOCAL_AUTH) {
+        throw redirect({ to: '/login' })
+      } else {
+        await keycloak.login()
+        // keycloak.login() triggers a browser redirect and never resolves
+      }
     }
   },
   component: () => (

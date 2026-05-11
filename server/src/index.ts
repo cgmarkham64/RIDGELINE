@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import mongoose from 'mongoose'
 import authRouter from './routes/auth'
+import localAuthRouter from './routes/localAuth'
 import gearItemsRouter from './routes/gearItems'
 import journalDaysRouter from './routes/journalDays'
 import journalScanRouter from './routes/journalScan'
@@ -19,7 +20,12 @@ const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/ridgel
 app.use(cors({ origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173' }))
 app.use(express.json({ limit: '10mb' }))
 
-// Auth profile routes — login/register handled by Keycloak
+// Local dev: register + login routes (only active when KEYCLOAK_JWKS_URI is not set)
+if (!process.env.KEYCLOAK_JWKS_URI) {
+  app.use('/api/auth', localAuthRouter)
+}
+
+// Auth profile routes — login/register handled by Keycloak in Docker
 app.use('/api/auth', requireAuth, authRouter)
 
 // Protected routes — all require a valid JWT
