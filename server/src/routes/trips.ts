@@ -11,19 +11,24 @@ function canRead(trip: { ownerSub: string; sharedWith: string[] }, sub: string) 
   return trip.ownerSub === sub || trip.sharedWith.includes(sub)
 }
 
+interface TripLean extends Record<string, unknown> {
+  ownerSub: string
+  sharedWith: string[]
+}
+
 // Populates sharedWith as { sub, name }[] and adds ownerName — single User query covers both
-async function populateTripUsers(trip: any) {
+async function populateTripUsers(trip: TripLean) {
   const subs: string[] = trip.sharedWith ?? []
   const toFetch = [...new Set([...subs, trip.ownerSub].filter(Boolean))]
   const users = toFetch.length
-    ? await UserProfile.find({ sub: { $in: toFetch } }).select('sub name').lean()
+    ? await UserProfile.find({ sub: { $in: toFetch } }).select('sub name').lean<{ sub: string; name: string }[]>()
     : []
-  const owner = users.find((u: { sub: string; name: string }) => u.sub === trip.ownerSub)
+  const owner = users.find((u) => u.sub === trip.ownerSub)
   return {
     ...trip,
     ownerName: owner?.name ?? 'Unknown',
     sharedWith: subs.map((s) => {
-      const u = users.find((u: { sub: string; name: string }) => u.sub === s)
+      const u = users.find((u) => u.sub === s)
       return u ? { sub: u.sub, name: u.name } : { sub: s, name: 'Unknown' }
     }),
   }
@@ -49,8 +54,8 @@ router.get('/:id', async (req, res) => {
   try {
     const trip = await Trip.findById(req.params.id).populate('loadoutId').lean()
     if (!trip) return res.status(404).json({ error: 'Not found' })
-    if (!canRead(trip as any, req.user.sub)) return res.status(403).json({ error: 'Forbidden' })
-    res.json(await populateTripUsers(trip))
+    if (!canRead(trip as TripLean, req.user.sub)) return res.status(403).json({ error: 'Forbidden' })
+    res.json(await populateTripUsers(trip as TripLean))
   } catch (err) {
     console.error('GET /trips/:id error:', err)
     res.status(500).json({ error: 'Internal server error' })
@@ -71,7 +76,7 @@ router.put('/:id', async (req, res) => {
   try {
     const trip = await Trip.findById(req.params.id)
     if (!trip) return res.status(404).json({ error: 'Not found' })
-    if (!canRead(trip as any, req.user.sub)) return res.status(403).json({ error: 'Forbidden' })
+    if (!canRead(trip as TripLean, req.user.sub)) return res.status(403).json({ error: 'Forbidden' })
 
     // Separate Mixed array fields — Mongoose's set() recursively casts array
     // elements and mangles nested GeoJSON { type } keys. Write them directly
@@ -79,8 +84,8 @@ router.put('/:id', async (req, res) => {
     const { gpxTracks, waypoints, ...rest } = req.body as Record<string, unknown>
 
     // Only the owner may change ownership or collaborator list
-    delete (rest as any).ownerSub
-    if (trip.ownerSub !== req.user.sub) delete (rest as any).sharedWith
+    delete rest.ownerSub
+    if (trip.ownerSub !== req.user.sub) delete rest.sharedWith
 
     trip.set(rest)
     if ('gpxPlanned' in rest) trip.markModified('gpxPlanned')

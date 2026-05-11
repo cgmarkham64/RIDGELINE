@@ -1,13 +1,13 @@
-import { Router } from 'express'
+import { Router, Response } from 'express'
 import { JournalDay } from '../models/JournalDay'
 import { Trip } from '../models/Trip'
 
 const router = Router()
 
-// Fetch a trip and verify the requesting user can read it (owner or shared).
-// Returns the trip doc, or sends an error response and returns null.
-async function getTripForRead(tripId: string, sub: string, res: any) {
-  const trip = await Trip.findById(tripId).lean() as any
+type TripLean = { ownerSub: string; sharedWith: string[] } | null
+
+async function getTripForRead(tripId: string, sub: string, res: Response): Promise<TripLean> {
+  const trip = await Trip.findById(tripId).lean() as TripLean
   if (!trip) { res.status(404).json({ error: 'Trip not found' }); return null }
   if (trip.ownerSub !== sub && !trip.sharedWith.includes(sub)) {
     res.status(403).json({ error: 'Forbidden' }); return null
@@ -15,9 +15,8 @@ async function getTripForRead(tripId: string, sub: string, res: any) {
   return trip
 }
 
-// Fetch a trip and verify the requesting user owns it (write operations).
-async function getTripForWrite(tripId: string, sub: string, res: any) {
-  const trip = await Trip.findById(tripId).lean() as any
+async function getTripForWrite(tripId: string, sub: string, res: Response): Promise<TripLean> {
+  const trip = await Trip.findById(tripId).lean() as TripLean
   if (!trip) { res.status(404).json({ error: 'Trip not found' }); return null }
   if (trip.ownerSub !== sub) { res.status(403).json({ error: 'Forbidden' }); return null }
   return trip

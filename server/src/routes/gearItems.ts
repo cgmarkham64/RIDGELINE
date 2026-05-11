@@ -9,7 +9,7 @@ router.get('/', async (req, res) => {
 })
 
 router.get('/:id', async (req, res) => {
-  const item = await GearItem.findById(req.params.id).lean() as any
+  const item = await GearItem.findById(req.params.id).lean() as { ownerSub: string } | null
   if (!item) return res.status(404).json({ error: 'Not found' })
   if (item.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
   res.json(item)
@@ -21,10 +21,11 @@ router.post('/', async (req, res) => {
 })
 
 router.put('/:id', async (req, res) => {
-  const item = await GearItem.findById(req.params.id).lean() as any
+  const item = await GearItem.findById(req.params.id).lean() as { ownerSub: string } | null
   if (!item) return res.status(404).json({ error: 'Not found' })
   if (item.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
-  const { ownerSub: _, ...rest } = req.body
+  const rest = { ...(req.body as Record<string, unknown>) }
+  delete rest.ownerSub
   const updated = await GearItem.findByIdAndUpdate(req.params.id, rest, {
     new: true,
     runValidators: true,
@@ -33,7 +34,7 @@ router.put('/:id', async (req, res) => {
 })
 
 router.delete('/:id', async (req, res) => {
-  const item = await GearItem.findById(req.params.id).lean() as any
+  const item = await GearItem.findById(req.params.id).lean() as { ownerSub: string } | null
   if (!item) return res.status(404).json({ error: 'Not found' })
   if (item.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
   await GearItem.findByIdAndDelete(req.params.id)
