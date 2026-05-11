@@ -16,7 +16,7 @@ export function ProgressBar({ value, tone = 'amber' }: ProgressBarProps) {
     <div className="w-full h-1 bg-surface-2 border border-border rounded-full overflow-hidden">
       <div
         className="h-full rounded-full transition-[width] duration-200"
-        style={{ width: `${value}%`, background: trackColors[tone] }}
+        style={{ width: `${Math.min(100, Math.max(0, value))}%`, background: trackColors[tone] }}
       />
     </div>
   )
