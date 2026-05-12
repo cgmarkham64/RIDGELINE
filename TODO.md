@@ -73,12 +73,10 @@ Stage status model: `done` / `active` / `pending` / `locked`. Drive from per-sta
 2. ✅ **Wizard shell** — `/plan` route, Plan icon in `IconRail`, left `StageRail`, shared `StageHeader`, `PlanOverview` (2×3 card grid + critical path), six stage stubs. `PlanWizard` manages view/stage state via `useState(createStages)`.
 3. ✅ **Stage 1 — Route** — MapTopo SVG, ElevationProfile chart, segments table with JumpChip to Days, locked banner, right rail (checklist + partners + source files).
 4. ✅ **Stage 2 — Days** — stat strip, clickable day list with exposure pills, selected-day detail (time inputs + waypoint timeline), helper banner with JumpChip to Food, right rail (checklist + forecast).
-5. **Stage 3 — Permits list view** (`PermitsListFirst` — primary path) ← **next**
-6. **Stage 3 — Permits map view** (`PermitsMapFirst` + section-header toggle)
-7. **Stage 3 — per-row map modal** (focused zone preview from a card/suggestion row)
-8. **Stage 4 — Food**
-9. **Stage 5 — Gear** (hold banner + loadout preview with locked styling)
-10. **Stage 6 — Depart**
+5. ✅ **Stage 3 — Permits** — list view + map view toggle + per-row map modal + free-form dialog + permit-free state
+6. **Stage 4 — Food** ← **next**
+7. **Stage 5 — Gear** (hold banner + loadout preview with locked styling)
+8. **Stage 6 — Depart**
 
 #### Stage 1 — Route
 - Hero card: locked route summary, planned-route map placeholder, 4 stat fields (Distance / Gain / Loss / Segments).
@@ -106,9 +104,17 @@ Section header has a **List ⇄ Map** toggle (sticky per session). List is the d
 **Map view** (`PermitsMapFirst`):
 - Full-pane map with permit zones as overlays. Tapping a zone or list item opens its detail card in a side panel.
 
+**Free-form add — AI-assisted permit fill:**
+The "Free-form" button in the Add section opens a two-step dialog:
+1. **Step 1 — Type**: pick permit type from a 9-option grid (lottery, reservation, walk-up, self-issue, zone-nights, hut, parking, fishing, vehicle).
+2. **Step 2 — Details**: fill in name, agency/issuer, and notes manually.
+
+Future: wire step 2 to Claude API. When the user types a permit name, call Claude to look up key dates, agency info, confirmation steps, and booking links, then show a diff for the user to accept/edit before adding. The user must always be able to fill in all fields themselves — AI is an accelerator, not a gate. Implemented in `server/src/routes/` (new endpoint) + `src/lib/permits.ts`.
+
 **Engineering notes:**
-- Lift `view` state to `PermitsStage`; both child components accept the same `profile` prop and emit `onAdd`, `onDismiss`, `onJump`.
-- Per-row "View on map" opens a **modal** centered on the permit zone — does not trigger the full section toggle.
+- `view` state lifted to `PermitsStage`; both child views accept the same permit/suggestion lists and emit `onAccept`, `onReject`, `onViewMap`, `onJump`.
+- Per-row "View on map" opens a **modal** (`MapModal`) centered on the permit's zone — does not trigger the full section toggle.
+- "Mark as permit-free" sets local `permitFree` state → right-rail checklist shows 5/5 + pine progress bar. Reversible via ✕ button.
 
 #### Stage 4 — Food
 - Daily targets card: kcal/day, protein/day, water/day, pack-out/day + JumpChip to Days.
