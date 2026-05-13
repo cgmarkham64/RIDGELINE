@@ -124,16 +124,39 @@ function WaypointRow({ time, name, loc, icon, last }: {
 
 export function DaysStage({ onJump, plan }: StageBodyProps) {
   const days = plan?.days?.days ?? DAYS
-  const [sel, setSel] = useState(Math.min(3, days.length - 1))
+  const [sel, setSel] = useState(Math.min(3, Math.max(0, days.length - 1)))
 
   const d = days[sel]
-  if (!d) return null
 
   const totalMi   = days.reduce((a, x) => a + x.mi, 0)
   const totalGain = days.reduce((a, x) => a + x.gain, 0)
-  const longest   = Math.max(...days.map(x => x.mi))
-  const campCount = days.length - 1  // last day exits, no camp
+  const longest   = days.length > 0 ? Math.max(...days.map(x => x.mi)) : 0
+  const campCount = Math.max(0, days.length - 1)
   const longDays  = days.filter(x => x.mi > 20)
+
+  if (days.length === 0) {
+    return (
+      <div className="flex-1 overflow-y-auto p-8">
+        <div className="max-w-[520px] mx-auto mt-16 text-center">
+          <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-3">Stage 2 · Days</div>
+          <h2 className="font-heading text-[22px] font-extrabold text-text mb-2">No days planned yet.</h2>
+          <p className="text-[13px] text-text-mid leading-relaxed mb-6">
+            Days are generated from your route segments. Finish{' '}
+            <button
+              type="button"
+              onClick={() => onJump('route')}
+              className="text-amber underline underline-offset-2 cursor-pointer bg-transparent border-none"
+            >
+              Stage 1 · Route
+            </button>
+            {' '}first, or add days manually once that stage is wired to the backend.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!d) return null
 
   return (
     <div className="flex-1 overflow-y-auto p-8 pb-20">

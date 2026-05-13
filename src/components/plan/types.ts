@@ -74,6 +74,18 @@ export interface PlanGearCategoryEntry {
   items: PlanGearItemEntry[]
 }
 
+// ─── Plan metadata — shown in StageRail / StageHeader ────────────────────────
+
+export interface PlanMeta {
+  title: string
+  location: string
+  dateRange: string
+  miles: number | null
+  elev: string
+  days: number
+  weight: string
+}
+
 export type ReminderTone = 'amber' | 'sky' | 'pine'
 export type ContactTone  = 'amber' | 'sky' | 'pine' | 'red'
 
@@ -112,4 +124,5 @@ export interface PlanData {
 export interface StageBodyProps {
   onJump: (id: string) => void
   plan?: PlanData
+  onChange?: (patch: Partial<PlanData>) => void
 }

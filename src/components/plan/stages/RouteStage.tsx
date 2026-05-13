@@ -152,8 +152,8 @@ function StatField({ label, value }: { label: string; value: string }) {
 // ─── Route Stage ─────────────────────────────────────────────────────────────
 
 export function RouteStage({ onJump, plan }: StageBodyProps) {
-  const segments    = plan?.route?.segments    ?? SEGMENTS
-  const sourceFiles = plan?.route?.sourceFiles ?? SOURCE_FILES
+  const segments    = plan?.route?.segments    ?? (plan !== undefined ? [] : SEGMENTS)
+  const sourceFiles = plan?.route?.sourceFiles ?? (plan !== undefined ? [] : SOURCE_FILES)
 
   return (
     <div className="flex-1 overflow-y-auto p-8 pb-20">

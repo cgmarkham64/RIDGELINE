@@ -1,4 +1,4 @@
-import { useState, useId } from 'react'
+import { useState, useId, useEffect, useRef } from 'react'
 import { JumpChip } from '../JumpChip'
 import { ProgressBar } from '../ProgressBar'
 import { CheckItem } from '../CheckItem'
@@ -979,7 +979,7 @@ function DateRow({ date, label, tone, last }: { date: string; label: string; ton
 
 // ─── PermitsStage ─────────────────────────────────────────────────────────────
 
-export function PermitsStage({ onJump, plan }: StageBodyProps) {
+export function PermitsStage({ onJump, plan, onChange }: StageBodyProps) {
   const [viewMode, setViewMode]         = useState<ViewMode>('list')
   const [permits, setPermits]           = useState<Permit[]>(() => (plan?.permits?.permits as Permit[] | undefined) ?? INITIAL_PERMITS)
   const [suggestions, setSuggestions]   = useState<Permit[]>(INITIAL_SUGGESTIONS)
@@ -989,6 +989,14 @@ export function PermitsStage({ onJump, plan }: StageBodyProps) {
   const [partyConfirmed, setPartyConfirmed] = useState(false)
   const remindersSet  = false  // wired when reminders UI is built
   const backupPlanned = false  // wired when walk-up backup UI is built
+
+  const isMounted   = useRef(false)
+  const onChangeRef = useRef(onChange)
+  useEffect(() => { onChangeRef.current = onChange })
+  useEffect(() => {
+    if (!isMounted.current) { isMounted.current = true; return }
+    onChangeRef.current?.({ permits: { permits: permits as unknown as import('../types').PlanPermitEntry[], permitFree } })
+  }, [permits, permitFree])
 
   function accept(p: Permit) {
     setPermits(prev => prev.some(x => x.id === p.id) ? prev : [...prev, p])

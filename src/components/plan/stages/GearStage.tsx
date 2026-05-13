@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { JumpChip } from '../JumpChip'
 import { Pill } from '../Pill'
 import { ProgressBar } from '../ProgressBar'
@@ -46,20 +46,20 @@ const DEFAULT_CATEGORIES: GearCategory[] = [
     id: 'worn',
     label: 'Worn',
     items: [
-      { name: 'Shoes · Lone Peak 8',     weight: 22.0, checked: true },
-      { name: 'Sun hoody',               weight:  6.0, checked: true },
-      { name: 'Shorts',                  weight:  5.0, checked: true },
-      { name: 'Sun hat',                 weight:  2.0, checked: true },
+      { name: 'Shoes · Lone Peak 8',   weight: 22.0, checked: true },
+      { name: 'Sun hoody',             weight:  6.0, checked: true },
+      { name: 'Shorts',                weight:  5.0, checked: true },
+      { name: 'Sun hat',               weight:  2.0, checked: true },
     ],
   },
   {
     id: 'safety',
     label: 'Safety / Nav',
     items: [
-      { name: 'Garmin inReach Mini',      weight: 3.6, checked: true  },
-      { name: 'First aid kit',            weight: 4.5, checked: true  },
-      { name: 'Emergency bivy',           weight: 2.8, checked: false },
-      { name: 'Headlamp · Petzl Actik',   weight: 2.6, checked: true  },
+      { name: 'Garmin inReach Mini',    weight: 3.6, checked: true  },
+      { name: 'First aid kit',          weight: 4.5, checked: true  },
+      { name: 'Emergency bivy',         weight: 2.8, checked: false },
+      { name: 'Headlamp · Petzl Actik', weight: 2.6, checked: true  },
     ],
   },
 ]
@@ -156,13 +156,23 @@ function CategoryCard({ category, onToggleItem }: {
 
 // ─── GearStage ────────────────────────────────────────────────────────────────
 
-export function GearStage({ onJump, plan }: StageBodyProps) {
+export function GearStage({ onJump, plan, onChange }: StageBodyProps) {
   const [categories, setCategories] = useState<GearCategory[]>(() =>
-    plan?.gear?.categories ? fromPlanCategories(plan.gear.categories) : DEFAULT_CATEGORIES
+    plan?.gear?.categories ? fromPlanCategories(plan.gear.categories)
+      : plan !== undefined  ? []
+      : DEFAULT_CATEGORIES
   )
   const [unlockChecklist, setUnlockChecklist] = useState<{ text: string; done: boolean }[]>(() =>
     plan?.gear?.unlockChecklist ?? DEFAULT_UNLOCK_CHECKLIST
   )
+
+  const isMounted   = useRef(false)
+  const onChangeRef = useRef(onChange)
+  useEffect(() => { onChangeRef.current = onChange })
+  useEffect(() => {
+    if (!isMounted.current) { isMounted.current = true; return }
+    onChangeRef.current?.({ gear: { categories, unlockChecklist } })
+  }, [categories, unlockChecklist])
 
   function toggleItem(catIdx: number, itemIdx: number) {
     setCategories(prev => prev.map((c, ci) =>
@@ -177,11 +187,11 @@ export function GearStage({ onJump, plan }: StageBodyProps) {
     setUnlockChecklist(prev => prev.map((c, i) => i !== idx ? c : { ...c, done: !c.done }))
   }
 
-  const allItems    = categories.flatMap(c => c.items)
+  const allItems     = categories.flatMap(c => c.items)
   const checkedCount = allItems.filter(i => i.checked).length
-  const totalCount  = allItems.length
-  const baseOz      = allItems.filter(i => i.checked).reduce((s, i) => s + i.weight, 0)
-  const baseLb      = (baseOz / 16).toFixed(1)
+  const totalCount   = allItems.length
+  const baseOz       = allItems.filter(i => i.checked).reduce((s, i) => s + i.weight, 0)
+  const baseLb       = (baseOz / 16).toFixed(1)
 
   // Stubs — future: pull from Food stage state
   const foodLb  = '16.4'

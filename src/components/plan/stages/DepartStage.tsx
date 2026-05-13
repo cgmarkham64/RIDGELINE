@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ProgressBar } from '../ProgressBar'
 import type { StageBodyProps, ReminderTone, ContactTone, PlanDayEntry } from '../types'
 
@@ -56,15 +56,14 @@ const DEFAULT_MAP_LAYERS: MapLayer[] = [
 ]
 
 const DEFAULT_CHECKLIST: ChecklistItem[] = [
-  { text: 'Trip one-pager (PDF)',          done: true,  pending: false },
-  { text: 'Offline maps · CalTopo',        done: true,  pending: false },
-  { text: 'Emergency contacts shared',     done: true,  pending: false },
-  { text: 'Garmin inReach plan paid',      done: true,  pending: false },
-  { text: 'Car parked at Whitney Portal',  done: false, pending: true  },
-  { text: 'Keys handed off',               done: false, pending: false },
+  { text: 'Trip one-pager (PDF)',         done: true,  pending: false },
+  { text: 'Offline maps · CalTopo',       done: true,  pending: false },
+  { text: 'Emergency contacts shared',    done: true,  pending: false },
+  { text: 'Garmin inReach plan paid',     done: true,  pending: false },
+  { text: 'Car parked at Whitney Portal', done: false, pending: true  },
+  { text: 'Keys handed off',              done: false, pending: false },
 ]
 
-// Default day rows used in the one-pager preview when no plan is provided
 const DEFAULT_DAY_ROWS = [
   'D1 Onion Valley → Charlotte · 12 mi',
   'D2 Charlotte → Rae Lakes · 14 mi',
@@ -76,7 +75,6 @@ const DEFAULT_DAY_ROWS = [
   'D8 Guitar → Whitney Portal · 17 mi · SUMMIT',
 ]
 
-// Tailwind class maps keyed by tone — avoids dynamic class generation
 const REMINDER_DATE_CLS: Record<ReminderTone, string> = {
   amber: 'text-amber',
   sky:   'text-sky',
@@ -220,13 +218,21 @@ function TakeItItem({ item, onToggle }: { item: ChecklistItem; onToggle: () => v
 
 // ─── DepartStage ──────────────────────────────────────────────────────────────
 
-export function DepartStage({ plan }: StageBodyProps) {
+export function DepartStage({ plan, onChange }: StageBodyProps) {
   const d = plan?.depart
 
-  const [reminders,  setReminders]  = useState<Reminder[]>(() => d?.reminders  ?? DEFAULT_REMINDERS)
-  const [contacts] = useState<Contact[]>(() => d?.contacts ?? DEFAULT_CONTACTS)
-  const [mapLayers,  setMapLayers]  = useState<MapLayer[]>(() => d?.mapLayers  ?? DEFAULT_MAP_LAYERS)
-  const [checklist,  setChecklist]  = useState<ChecklistItem[]>(() => d?.checklist  ?? DEFAULT_CHECKLIST)
+  const [reminders, setReminders] = useState<Reminder[]>(() => d?.reminders ?? DEFAULT_REMINDERS)
+  const [contacts]                = useState<Contact[]>(() => d?.contacts   ?? DEFAULT_CONTACTS)
+  const [mapLayers, setMapLayers] = useState<MapLayer[]>(() => d?.mapLayers ?? DEFAULT_MAP_LAYERS)
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(() => d?.checklist ?? DEFAULT_CHECKLIST)
+
+  const isMounted   = useRef(false)
+  const onChangeRef = useRef(onChange)
+  useEffect(() => { onChangeRef.current = onChange })
+  useEffect(() => {
+    if (!isMounted.current) { isMounted.current = true; return }
+    onChangeRef.current?.({ depart: { reminders, contacts, mapLayers, checklist } })
+  }, [reminders, contacts, mapLayers, checklist])
 
   const days = plan?.days?.days ?? null
 

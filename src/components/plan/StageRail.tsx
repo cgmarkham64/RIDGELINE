@@ -4,7 +4,7 @@ import { Ring } from './Ring'
 
 interface StageRailProps {
   stages: Stage[]
-  trip: { title: string; location: string; dateRange: string; miles: number; elev: string; days: number; weight: string }
+  trip: { title: string; location: string; dateRange: string; miles: number | null; elev: string; days: number; weight: string }
   activeStageIdx: number
   view: PlanView
   totalDone: number
@@ -119,10 +119,10 @@ export function StageRail({ stages, trip, activeStageIdx, view, totalDone, total
         <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2">Snapshot</div>
         <div className="grid grid-cols-2 gap-1.5">
           {[
-            { value: trip.miles,  label: 'miles' },
-            { value: trip.elev,   label: 'gain' },
-            { value: trip.days,   label: 'days' },
-            { value: trip.weight, label: 'base' },
+            { value: trip.miles ?? '—', label: 'miles' },
+            { value: trip.elev,         label: 'gain' },
+            { value: trip.days || '—',  label: 'days' },
+            { value: trip.weight,       label: 'base' },
           ].map(({ value, label }) => (
             <div key={label} className="bg-surface border border-border rounded p-2.5 text-center">
               <div className="font-heading text-[17px] font-extrabold text-amber leading-none mb-1">{value}</div>

@@ -1,16 +1,18 @@
 import type { Stage } from './types'
+import type { SaveState } from './PlanWizard'
 import { stageState, STAGE_TITLES, STAGE_SUBS, STAGES } from './constants'
 import { Pill } from './Pill'
 
 interface StageHeaderProps {
   stage: Stage
   stageIdx: number
+  saveState: SaveState
   onJump: (id: string) => void
   onPrev: () => void
   onNext: () => void
 }
 
-export function StageHeader({ stage, stageIdx, onJump, onPrev, onNext }: StageHeaderProps) {
+export function StageHeader({ stage, stageIdx, saveState, onJump, onPrev, onNext }: StageHeaderProps) {
   const state = stageState(stage)
 
   return (
@@ -30,7 +32,9 @@ export function StageHeader({ stage, stageIdx, onJump, onPrev, onNext }: StageHe
           Stage {stage.n} · {stage.label}
         </span>
         <span className="w-1 h-1 rounded-full bg-text-dim" />
-        <span className="font-mono text-[9px] text-text-dim">auto-saved</span>
+        <span className={`font-mono text-[9px] ${saveState === 'unsaved' ? 'text-amber' : 'text-text-dim'}`}>
+          {saveState === 'saving' ? 'saving…' : saveState === 'unsaved' ? 'unsaved' : 'saved'}
+        </span>
 
         <span className="ml-auto">
           {state === 'done'     && <Pill tone="pine">Locked</Pill>}

@@ -1,4 +1,4 @@
-import { useState, useRef, useId } from 'react'
+import { useState, useRef, useId, useEffect } from 'react'
 import { JumpChip } from '../JumpChip'
 import { Pill } from '../Pill'
 import { ProgressBar } from '../ProgressBar'
@@ -525,9 +525,9 @@ function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
 
 // ─── FoodStage ────────────────────────────────────────────────────────────────
 
-export function FoodStage({ onJump, plan }: StageBodyProps) {
+export function FoodStage({ onJump, plan, onChange }: StageBodyProps) {
   const f = plan?.food
-  const [meals, setMeals]             = useState<MealRow[]>(() => f?.meals ?? MEAL_PLAN)
+  const [meals, setMeals]             = useState<MealRow[]>(() => f?.meals ?? (plan !== undefined ? [] : MEAL_PLAN))
   const [mealsLocked, setMealsLocked] = useState(() => f?.mealsLocked ?? false)
   const [resupplyStatus, setResupply] = useState<'unconfirmed' | 'shipped'>(() => f?.resupplyStatus ?? 'unconfirmed')
   const [waterChecks, setWaterChecks] = useState(() => f?.waterChecks ?? { sources: true, cache: false, filter: false })
@@ -539,6 +539,14 @@ export function FoodStage({ onJump, plan }: StageBodyProps) {
   const [resupplyFields, setResupplyFields] = useState<Record<ResupplyField, string>>(() => f?.resupplyFields ?? {
     shipBy: '', daysInBox: '', holdAddress: '',
   })
+
+  const isMounted   = useRef(false)
+  const onChangeRef = useRef(onChange)
+  useEffect(() => { onChangeRef.current = onChange })
+  useEffect(() => {
+    if (!isMounted.current) { isMounted.current = true; return }
+    onChangeRef.current?.({ food: { meals, mealsLocked, resupplyStatus, waterChecks, selectedCanId, customCanName, targets, resupplyFields } })
+  }, [meals, mealsLocked, resupplyStatus, waterChecks, selectedCanId, customCanName, targets, resupplyFields])
 
   function toggleWater(key: 'sources' | 'cache' | 'filter') {
     setWaterChecks(prev => ({ ...prev, [key]: !prev[key] }))
