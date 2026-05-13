@@ -74,8 +74,8 @@ Stage status model: `done` / `active` / `pending` / `locked`. Drive from per-sta
 3. ✅ **Stage 1 — Route** — MapTopo SVG, ElevationProfile chart, segments table with JumpChip to Days, locked banner, right rail (checklist + partners + source files).
 4. ✅ **Stage 2 — Days** — stat strip, clickable day list with exposure pills, selected-day detail (time inputs + waypoint timeline), helper banner with JumpChip to Food, right rail (checklist + forecast).
 5. ✅ **Stage 3 — Permits** — list view + map view toggle + per-row map modal + free-form dialog + permit-free state
-6. **Stage 4 — Food** ← **next**
-7. **Stage 5 — Gear** (hold banner + loadout preview with locked styling)
+6. ✅ **Stage 4 — Food** — daily targets, click-to-edit meal grid with computed kcal, resupply card, water plan toggles, bear canister picker
+7. **Stage 5 — Gear** (hold banner + loadout preview with locked styling) ← **next**
 8. **Stage 6 — Depart**
 
 #### Stage 1 — Route
@@ -118,10 +118,22 @@ Future: wire step 2 to Claude API. When the user types a permit name, call Claud
 
 #### Stage 4 — Food
 - Daily targets card: kcal/day, protein/day, water/day, pack-out/day + JumpChip to Days.
-- Meal plan grid: rows × {Breakfast, Lunch, Dinner, Snacks, kcal} — kcal column color-coded (pine ≥ target, amber below).
-- Resupply card: pickup details + action buttons.
-- Water plan + Bear canister cards side by side: water-source checklist, 3-option canister picker with recommended state.
-- Right rail: checklist progress, totals (kcal / weight / protein / water), heads-up callout.
+- Meal plan grid: click-to-edit inline cells per meal column; kcal column is a manually-overridable computed total, color-coded (pine ≥ 3800, mid ≥ 3000, amber below); "Lock meals" button drives the "Trail meals locked" checklist item.
+- Resupply card: pickup details + action buttons; "Mark shipped" drives the "Resupply confirmed" checklist item.
+- Water plan + Bear canister cards side by side: water-source interactive toggles; bear canister click-to-select list (BV450/475/500, Ursack Major/AllMitey, Counter Assault Bear Keg, custom entry).
+- Right rail: checklist progress (6 items), totals (kcal computed from meal state / weight / protein / water), heads-up callout.
+
+**Future — AI food features (Claude API):**
+Wire Claude API to: (1) autopopulate per-day kcal from food selections entered in the meal grid; (2) recommend foods for each meal slot based on expected calorie needs (computed from Days stage: mileage, elevation gain, tough-day flags). User can always fill or override manually — AI is an accelerator, not a gate. Endpoint: `POST /api/plan/food-suggest`.
+
+**Future — bear canister ↔ permits cross-reference:**
+Cross-reference the selected bear canister type against permit requirements pulled from the Permits stage. Hard-sided containers (BV series, Counter Assault Bear Keg) are required at SEKI and some NPS wilderness areas; soft-sided (Ursack Major, Ursack AllMitey) are approved at some but not others. Flag mismatches in the Permits stage with an amber warning inline on the affected permit card.
+
+**Future — bear canister rental info:**
+bear canister choice should be linked to YOUR GEAR. You should also be able to select if you're renting one for a single trip - common for some locations. The renting should be on the Permits page I think along with info for where you're picking it up and returning it. Include that info in the Depart stage too.
+
+**Future - bear canister regulating agencies:**
+Bear canisters are approved by various different agencies for use in Grizzly country and elsewhere. Include that info in the app since it's important to know which are approved for what location. Inter Agency Grizzly Bear Committee is one I think.
 
 #### Stage 5 — Gear *(blocked, but still interactive)*
 - Hold banner: explains lock (depends on confirmed permits), shows unlock date. JumpChips: Check Permits, Confirm Food first, Skip ahead.
@@ -150,9 +162,21 @@ Collage/grid of all photos across all trips with basic metadata (trip name, date
 
 ### Gear (`/gear`)
 Categorized gear inventory management. Eventually links to loadouts attached to trips and supports weight calculations per trip.
+- FEATURE: Catalog of all gear in RIDGELINE across users, scrubbed of ownership but with info. De-dup alike entries. Verify stats like weight and such with AI. Augment stats on entry with AI (web crawl look up on manufacturer's website the data?)
+- FEATURE: Users build loadouts of gear on a user-by-user basis. They pull from the system catalog, their choices. If they add gear not yet in RIDGELINE, add it to the system catalog with the aforementioned requirements for stats augmentation.
+- FEATURE: Loadouts should be able to be selected for trips, as a user I should be able to build a three season backpacking loadout and a winter backpacking loadout.
+- FEATURE: Loadouts should be able to be modified on a trip by trip basis - Note that this should be specific to the trip unless the user states they want to update their loadout with the outside-loadout-selections.
+- FEATURE: Loadouts should be modifiable within the Plan Wizard menus as well as in the GEAR page. For the Plan Wizard menus, users should be able to add gear to specific trips and, when the gear selection is complete, asked if they would like to update the Loadout with their new additions or keep this as a trip specific setup.  
 
 ---
 
-## Ideas / Research
-
+## Ideas / Research / Jot Down For Later
 - Investigate OnX Backcountry integration options for personal app projects — import tracks, waypoints, or gear lists.
+- Investigate Garmin API integration for users - could use Vo2 maybe as a metric to determine a user's ability to execute on a plan...
+
+- Plan Wizard: Integrate the plan creation wizard flow with the "New Trip" button on the Trip Log page. When you start a plan it should be included in the list of trips. Each trip in the list should have a Status chip (e.g. In Planning, Completed, Ready to go, etc.). This will make it possible to plan over multiple days instead of having to do it in one session. It'll also allow you to update the status when a trip is completed, canceled, postponed or the like.
+- Plan Wizard: After we've built out every stage of the wizard I'll need to make each stage blank and populate with info. That info can be manually entered or, as applicable, AI suggested via API./re
+- Plan Wizard: Each table in the  needs a header for context - I don't know what "Low", "Medium", "High", and "Extreme" mean on the Days stage for instance. There should be hover popovers for the header or chips (you make the call based on UX best practices) probably that give the criteria explaining the rating.
+- Plan Wizard: As applicable, include stylized and icon equipped ADD, EDIT, REMOVE buttons on wizard tables, possibly in combination with row selection if the UX makes sense and is desirable. Have them pop open dialogs instead of editing in the table itself - the table can be a truncated version of what's in the dialog. For the Food stage in particular I want to have more granularity in the fields I'm filling in than just Breakfast, Lunch and Dinner as line items. I also don't like that if I remove the content from a table cell, there's no way for me to get content back if it's lost focus.
+- Plan Wizard: Include the Journaling workflow as a stage AFTER the "DEPART" stage and lock everything from the plans with the ability to selectively unlock in the event a user needs to make a change retroactively to a stage. We want to discourage this type of thing, but ultimately allow some retroactive adjustments for things like Gear which can change during a trip. 
+- Plan Wizard: When I come back to a trip whether it's in the PLANNING status, READY/DEPARTED, COMPLETED, etc. (use your best judgment and add these if there's no notion yet), the trip on re-entry should default to either the PLAN or JOURNAL as applicable.

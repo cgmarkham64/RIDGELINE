@@ -106,8 +106,7 @@ function WaypointRow({ time, name, loc, icon, last }: {
 }) {
   return (
     <div
-      className={`grid items-center gap-3 py-2 ${last ? '' : 'border-b border-border'}`}
-      style={{ gridTemplateColumns: '70px 22px 1fr' }}
+      className={`grid items-center gap-3 py-2 grid-cols-[70px_22px_1fr] ${last ? '' : 'border-b border-border'}`}
     >
       <span className="font-mono text-[10px] text-text-mid">{time}</span>
       {icon === 'tent'     && <IconTent />}
@@ -137,7 +136,7 @@ export function DaysStage({ onJump }: StageBodyProps) {
 
   return (
     <div className="flex-1 overflow-y-auto p-8 pb-20">
-      <div className="grid gap-7 max-w-[1100px]" style={{ gridTemplateColumns: '1fr 320px' }}>
+      <div className="grid gap-7 max-w-[1100px] grid-cols-[1fr_320px]">
 
         {/* ── Left column ── */}
         <div className="flex flex-col gap-[18px]">
@@ -164,13 +163,12 @@ export function DaysStage({ onJump }: StageBodyProps) {
                 key={dd.n}
                 onClick={() => setSel(i)}
                 className={[
-                  'w-full text-left grid items-center gap-3.5 px-4 py-3 border-l-2 transition-colors',
+                  'w-full text-left grid items-center gap-3.5 px-4 py-3 border-l-2 transition-colors grid-cols-[52px_1fr_70px_90px_70px_60px]',
                   i < DAYS.length - 1 ? 'border-b border-border' : '',
                   sel === i
                     ? 'bg-amber-glow border-l-amber'
                     : 'border-l-transparent hover:bg-surface-2',
                 ].join(' ')}
-                style={{ gridTemplateColumns: '52px 1fr 70px 90px 70px 60px' }}
               >
                 <span className="font-mono text-[10px] font-bold text-amber text-center py-1 px-2 bg-amber-dim border border-amber-border rounded">
                   D{dd.n}

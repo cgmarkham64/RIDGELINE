@@ -337,8 +337,7 @@ function PermitCard({ permit, onRemove, onViewMap, onOverrideParty }: {
             {(permit.zones ?? []).map(z => (
               <div
                 key={z.night}
-                className="grid items-center gap-2.5 px-3 py-2 bg-bg border border-border rounded"
-                style={{ gridTemplateColumns: '44px 1fr 72px' }}
+                className="grid items-center gap-2.5 px-3 py-2 bg-bg border border-border rounded grid-cols-[44px_1fr_72px]"
               >
                 <span className="font-mono text-[10px] font-bold text-amber text-center py-0.5 px-1.5 bg-amber-dim border border-amber-border rounded">
                   N{z.night}
@@ -372,8 +371,7 @@ function SuggestionRow({ permit, onAccept, onReject, onViewMap }: {
   const t = PERMIT_TYPES[permit.type]
   return (
     <div
-      className="grid items-start gap-3.5 px-4 py-3.5 bg-surface border border-border rounded-lg"
-      style={{ gridTemplateColumns: '32px 1fr auto' }}
+      className="grid items-start gap-3.5 px-4 py-3.5 bg-surface border border-border rounded-lg grid-cols-[32px_1fr_auto]"
     >
       <span className={`w-8 h-8 rounded-md flex items-center justify-center border shrink-0 ${TONE_CLS[t.tone]}`}>
         <PermitTypeIcon type={permit.type} size={15} />
@@ -1031,7 +1029,7 @@ export function PermitsStage({ onJump }: StageBodyProps) {
   return (
     <>
       <div className="flex-1 overflow-y-auto p-8 pb-20">
-        <div className="grid gap-7 max-w-[1100px]" style={{ gridTemplateColumns: '1fr 320px' }}>
+        <div className="grid gap-7 max-w-[1100px] grid-cols-[1fr_320px]">
 
           {/* ── Left column ── */}
           <div className="flex flex-col gap-[18px]">
