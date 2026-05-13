@@ -3,6 +3,7 @@ import { JumpChip } from '../JumpChip'
 import { Pill } from '../Pill'
 import { ProgressBar } from '../ProgressBar'
 import { CheckItem } from '../CheckItem'
+import { IconTent, IconMountain, IconWater, IconSun } from '../icons'
 import type { StageBodyProps } from '../types'
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
@@ -49,41 +50,6 @@ const EXP_CLS: Record<Exposure, string> = {
   med:     'text-sky border-sky-border bg-sky-dim',
   high:    'text-amber border-amber-border bg-amber-dim',
   extreme: 'text-red border-red-border bg-red-dim',
-}
-
-// ─── Icons ────────────────────────────────────────────────────────────────────
-
-function IconTent() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-amber shrink-0">
-      <path d="M3 21l9-15 9 15z" /><path d="M12 6v15" /><path d="M9 21l3-4 3 4" />
-    </svg>
-  )
-}
-function IconMountain() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-amber shrink-0">
-      <polyline points="3 20 9 8 13 14 17 6 21 20" />
-    </svg>
-  )
-}
-function IconWater() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-amber shrink-0">
-      <path d="M12 3s6 7 6 12a6 6 0 0 1-12 0c0-5 6-12 6-12z" />
-    </svg>
-  )
-}
-function IconSun() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="text-amber shrink-0">
-      <circle cx="12" cy="12" r="4" />
-      <line x1="12" y1="2" x2="12" y2="5" /><line x1="12" y1="19" x2="12" y2="22" />
-      <line x1="2" y1="12" x2="5" y2="12" /><line x1="19" y1="12" x2="22" y2="12" />
-      <line x1="5" y1="5" x2="7" y2="7" /><line x1="17" y1="17" x2="19" y2="19" />
-      <line x1="5" y1="19" x2="7" y2="17" /><line x1="17" y1="7" x2="19" y2="5" />
-    </svg>
-  )
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
