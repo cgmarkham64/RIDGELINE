@@ -122,17 +122,18 @@ function WaypointRow({ time, name, loc, icon, last }: {
 
 // ─── Days Stage ───────────────────────────────────────────────────────────────
 
-export function DaysStage({ onJump }: StageBodyProps) {
-  const [sel, setSel] = useState(3) // default to Day 4
+export function DaysStage({ onJump, plan }: StageBodyProps) {
+  const days = plan?.days?.days ?? DAYS
+  const [sel, setSel] = useState(Math.min(3, days.length - 1))
 
-  const d = DAYS[sel]
+  const d = days[sel]
   if (!d) return null
 
-  const totalMi   = DAYS.reduce((a, x) => a + x.mi, 0)
-  const totalGain = DAYS.reduce((a, x) => a + x.gain, 0)
-  const longest   = Math.max(...DAYS.map(x => x.mi))
-  const campCount = DAYS.length - 1  // last day exits, no camp
-  const longDays  = DAYS.filter(x => x.mi > 20)
+  const totalMi   = days.reduce((a, x) => a + x.mi, 0)
+  const totalGain = days.reduce((a, x) => a + x.gain, 0)
+  const longest   = Math.max(...days.map(x => x.mi))
+  const campCount = days.length - 1  // last day exits, no camp
+  const longDays  = days.filter(x => x.mi > 20)
 
   return (
     <div className="flex-1 overflow-y-auto p-8 pb-20">
@@ -158,13 +159,13 @@ export function DaysStage({ onJump }: StageBodyProps) {
 
           {/* Day list */}
           <div className="bg-surface border border-border rounded-lg overflow-hidden">
-            {DAYS.map((dd, i) => (
+            {days.map((dd, i) => (
               <button
                 key={dd.n}
                 onClick={() => setSel(i)}
                 className={[
                   'w-full text-left grid items-center gap-3.5 px-4 py-3 border-l-2 transition-colors grid-cols-[52px_1fr_70px_90px_70px_60px]',
-                  i < DAYS.length - 1 ? 'border-b border-border' : '',
+                  i < days.length - 1 ? 'border-b border-border' : '',
                   sel === i
                     ? 'bg-amber-glow border-l-amber'
                     : 'border-l-transparent hover:bg-surface-2',

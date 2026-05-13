@@ -525,17 +525,18 @@ function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
 
 // ─── FoodStage ────────────────────────────────────────────────────────────────
 
-export function FoodStage({ onJump }: StageBodyProps) {
-  const [meals, setMeals]             = useState<MealRow[]>(MEAL_PLAN)
-  const [mealsLocked, setMealsLocked] = useState(false)
-  const [resupplyStatus, setResupply] = useState<'unconfirmed' | 'shipped'>('unconfirmed')
-  const [waterChecks, setWaterChecks] = useState({ sources: true, cache: false, filter: false })
-  const [selectedCanId, setSelectedCan] = useState('')
-  const [customCanName, setCustomCan]   = useState('')
-  const [targets, setTargets] = useState<Record<TargetField, string>>({
+export function FoodStage({ onJump, plan }: StageBodyProps) {
+  const f = plan?.food
+  const [meals, setMeals]             = useState<MealRow[]>(() => f?.meals ?? MEAL_PLAN)
+  const [mealsLocked, setMealsLocked] = useState(() => f?.mealsLocked ?? false)
+  const [resupplyStatus, setResupply] = useState<'unconfirmed' | 'shipped'>(() => f?.resupplyStatus ?? 'unconfirmed')
+  const [waterChecks, setWaterChecks] = useState(() => f?.waterChecks ?? { sources: true, cache: false, filter: false })
+  const [selectedCanId, setSelectedCan] = useState(() => f?.selectedCanId ?? '')
+  const [customCanName, setCustomCan]   = useState(() => f?.customCanName ?? '')
+  const [targets, setTargets] = useState<Record<TargetField, string>>(() => f?.targets ?? {
     calories: '', protein: '', water: '', packOut: '',
   })
-  const [resupplyFields, setResupplyFields] = useState<Record<ResupplyField, string>>({
+  const [resupplyFields, setResupplyFields] = useState<Record<ResupplyField, string>>(() => f?.resupplyFields ?? {
     shipBy: '', daysInBox: '', holdAddress: '',
   })
 

@@ -1,4 +1,4 @@
-import type { Stage } from './types'
+import type { Stage, PlanData } from './types'
 import { stageState, STAGES, STAGE_DESCRIPTIONS } from './constants'
 import { Ring } from './Ring'
 import { Pill } from './Pill'
@@ -16,6 +16,7 @@ interface PlanOverviewProps {
   totalDone: number
   totalAll: number
   onJump: (id: string) => void
+  plan?: PlanData
 }
 
 export function PlanOverview({ stages, totalDone, totalAll, onJump }: PlanOverviewProps) {

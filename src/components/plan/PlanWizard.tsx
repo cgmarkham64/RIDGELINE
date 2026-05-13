@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { PlanView, StageId } from './types'
+import type { PlanView, StageId, PlanData } from './types'
 import { createStages } from './constants'
 import { StageRail } from './StageRail'
 import { StageHeader } from './StageHeader'
@@ -32,7 +32,7 @@ const STAGE_COMPONENTS: Record<StageId, React.ComponentType<StageBodyProps>> = {
   depart:  DepartStage,
 }
 
-export function PlanWizard() {
+export function PlanWizard({ plan }: { plan?: PlanData }) {
   const [view, setView] = useState<PlanView>('overview')
   const [stageIdx, setStageIdx] = useState(0)
 
@@ -69,6 +69,7 @@ export function PlanWizard() {
           totalDone={totalDone}
           totalAll={totalAll}
           onJump={jumpTo}
+          plan={plan}
         />
       ) : (
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -80,7 +81,7 @@ export function PlanWizard() {
             onNext={() => setStageIdx(i => Math.min(stages.length - 1, i + 1))}
           />
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <StageBody onJump={jumpTo} />
+            <StageBody onJump={jumpTo} plan={plan} />
           </div>
         </main>
       )}

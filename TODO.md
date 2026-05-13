@@ -75,8 +75,8 @@ Stage status model: `done` / `active` / `pending` / `locked`. Drive from per-sta
 4. ✅ **Stage 2 — Days** — stat strip, clickable day list with exposure pills, selected-day detail (time inputs + waypoint timeline), helper banner with JumpChip to Food, right rail (checklist + forecast).
 5. ✅ **Stage 3 — Permits** — list view + map view toggle + per-row map modal + free-form dialog + permit-free state
 6. ✅ **Stage 4 — Food** — daily targets, click-to-edit meal grid with computed kcal, resupply card, water plan toggles, bear canister picker
-7. **Stage 5 — Gear** (hold banner + loadout preview with locked styling) ← **next**
-8. **Stage 6 — Depart**
+7. ✅ **Stage 5 — Gear** (hold banner + loadout preview with locked styling)
+8. **Stage 6 — Depart** ← **next**
 
 #### Stage 1 — Route
 - Hero card: locked route summary, planned-route map placeholder, 4 stat fields (Distance / Gain / Loss / Segments).
@@ -146,6 +146,7 @@ Bear canisters are approved by various different agencies for use in Grizzly cou
 - Emergency contacts card: home base, SAR offices, Garmin IERCC — phone numbers, tone-coded avatars.
 - Offline maps card: map layers (CalTopo / Gaia / NOAA / OnX) with size, status, Download button.
 - Right rail: one-pager preview thumbnail (auto-generated from upstream stages) + PDF export button; Take-it-with-you checklist.
+- **Auto-populate**: accepts `plan?: PlanData` (same pattern as all prior stages). Seed reminders from `plan?.depart?.reminders`, contacts from `plan?.depart?.contacts`, map layers from `plan?.depart?.mapLayers`. Add `DepartData` to the `PlanData` interface in `plan/types.ts` when building this stage. The `PlanWizard` `plan` prop threads through automatically — no wizard changes needed.
 
 #### Open questions (design / backend)
 - **Map provider**: prototype uses stylized SVG. Pick Mapbox / MapLibre / Leaflet; define zone-rendering style that works at both modal and full-pane sizes. (App already uses Leaflet — use that.)

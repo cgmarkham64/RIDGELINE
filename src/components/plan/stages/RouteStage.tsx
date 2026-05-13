@@ -151,7 +151,10 @@ function StatField({ label, value }: { label: string; value: string }) {
 
 // ─── Route Stage ─────────────────────────────────────────────────────────────
 
-export function RouteStage({ onJump }: StageBodyProps) {
+export function RouteStage({ onJump, plan }: StageBodyProps) {
+  const segments    = plan?.route?.segments    ?? SEGMENTS
+  const sourceFiles = plan?.route?.sourceFiles ?? SOURCE_FILES
+
   return (
     <div className="flex-1 overflow-y-auto p-8 pb-20">
       <div className="grid gap-7 max-w-[1100px] grid-cols-[1fr_320px]">
@@ -207,7 +210,7 @@ export function RouteStage({ onJump }: StageBodyProps) {
             <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
               <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Segments</span>
               <span className="font-mono text-[9px] text-text-dim">
-                {SEGMENTS.length} · auto-pulls into{' '}
+                {segments.length} · auto-pulls into{' '}
                 <JumpChip to="days" onJump={onJump}>Days</JumpChip>
               </span>
               <button className="ml-auto inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase px-2.5 py-1.5 rounded border border-border text-text bg-transparent hover:border-border-mid transition-colors cursor-pointer">
@@ -218,10 +221,10 @@ export function RouteStage({ onJump }: StageBodyProps) {
                 Split segment
               </button>
             </div>
-            {SEGMENTS.map((s, i) => (
+            {segments.map((s, i) => (
               <div
                 key={s.n}
-                className={`grid items-center px-4 py-2.5 gap-3 grid-cols-[36px_1fr_56px_68px_52px_1.4fr] ${i < SEGMENTS.length - 1 ? 'border-b border-border' : ''} hover:bg-surface-2 transition-colors`}
+                className={`grid items-center px-4 py-2.5 gap-3 grid-cols-[36px_1fr_56px_68px_52px_1.4fr] ${i < segments.length - 1 ? 'border-b border-border' : ''} hover:bg-surface-2 transition-colors`}
               >
                 <span className="font-mono text-[9px] font-bold text-pine text-center py-0.5 rounded border border-pine-border bg-pine-dim">
                   S{s.n}
@@ -289,8 +292,8 @@ export function RouteStage({ onJump }: StageBodyProps) {
           {/* Source files */}
           <div className="bg-surface border border-border rounded-lg p-3.5">
             <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">Source files</div>
-            {SOURCE_FILES.map((f, i) => (
-              <div key={f.name} className={`grid items-center gap-2.5 py-1.5 grid-cols-[14px_1fr] ${i < SOURCE_FILES.length - 1 ? 'border-b border-border' : ''}`}>
+            {sourceFiles.map((f, i) => (
+              <div key={f.name} className={`grid items-center gap-2.5 py-1.5 grid-cols-[14px_1fr] ${i < sourceFiles.length - 1 ? 'border-b border-border' : ''}`}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-text-mid">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                   <polyline points="14 2 14 8 20 8" />
