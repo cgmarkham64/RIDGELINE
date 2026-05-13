@@ -1,7 +1,12 @@
 import { Router } from 'express'
+import { Types } from 'mongoose'
 import { Plan } from '../models/Plan'
 
 const router = Router()
+
+function validId(id: string) {
+  return Types.ObjectId.isValid(id)
+}
 
 router.get('/', async (req, res) => {
   try {
@@ -28,11 +33,11 @@ router.post('/', async (req, res) => {
 })
 
 router.get('/:id', async (req, res) => {
+  if (!validId(req.params.id)) return res.status(400).json({ error: 'Invalid id' })
   try {
-    const plan = await Plan.findById(req.params.id).lean()
+    const plan = await Plan.findById(req.params.id).lean<{ ownerSub: string }>()
     if (!plan) return res.status(404).json({ error: 'Not found' })
-    if ((plan as { ownerSub: string }).ownerSub !== req.user.sub)
-      return res.status(403).json({ error: 'Forbidden' })
+    if (plan.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
     res.json(plan)
   } catch (err) {
     console.error('GET /plans/:id error:', err)
@@ -41,6 +46,7 @@ router.get('/:id', async (req, res) => {
 })
 
 router.put('/:id', async (req, res) => {
+  if (!validId(req.params.id)) return res.status(400).json({ error: 'Invalid id' })
   try {
     const plan = await Plan.findById(req.params.id)
     if (!plan) return res.status(404).json({ error: 'Not found' })
@@ -56,6 +62,7 @@ router.put('/:id', async (req, res) => {
 })
 
 router.delete('/:id', async (req, res) => {
+  if (!validId(req.params.id)) return res.status(400).json({ error: 'Invalid id' })
   try {
     const plan = await Plan.findById(req.params.id)
     if (!plan) return res.status(404).json({ error: 'Not found' })

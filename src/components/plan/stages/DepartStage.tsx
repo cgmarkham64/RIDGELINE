@@ -227,6 +227,7 @@ export function DepartStage({ plan, onChange }: StageBodyProps) {
   const [checklist, setChecklist] = useState<ChecklistItem[]>(() => d?.checklist ?? DEFAULT_CHECKLIST)
 
   const isMounted   = useRef(false)
+  useEffect(() => () => { isMounted.current = false }, [])
   const onChangeRef = useRef(onChange)
   useEffect(() => { onChangeRef.current = onChange })
   useEffect(() => {

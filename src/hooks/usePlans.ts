@@ -23,9 +23,11 @@ export function useCreatePlan() {
 }
 
 export function useUpdatePlan() {
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: { meta?: Partial<PlanMeta>; stages?: PlanData } }) =>
       updatePlan(id, body),
+    onSuccess: (_, { id }) => qc.invalidateQueries({ queryKey: ['plan', id] }),
   })
 }
 

@@ -541,6 +541,9 @@ export function FoodStage({ onJump, plan, onChange }: StageBodyProps) {
   })
 
   const isMounted   = useRef(false)
+  // Cleanup resets isMounted so StrictMode's remount starts with false,
+  // preventing a spurious onChange + save on the second mount in dev.
+  useEffect(() => () => { isMounted.current = false }, [])
   const onChangeRef = useRef(onChange)
   useEffect(() => { onChangeRef.current = onChange })
   useEffect(() => {

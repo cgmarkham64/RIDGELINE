@@ -152,6 +152,8 @@ function StatField({ label, value }: { label: string; value: string }) {
 // ─── Route Stage ─────────────────────────────────────────────────────────────
 
 export function RouteStage({ onJump, plan }: StageBodyProps) {
+  // onChange not called: no controlled edit state yet (Edit/Split buttons are stubs).
+  // Wire it here when route editing is implemented.
   const segments    = plan?.route?.segments    ?? (plan !== undefined ? [] : SEGMENTS)
   const sourceFiles = plan?.route?.sourceFiles ?? (plan !== undefined ? [] : SOURCE_FILES)
 

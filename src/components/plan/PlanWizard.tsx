@@ -58,6 +58,10 @@ export function PlanWizard({ planId }: { planId: string }) {
     }
   }, [savedPlan])
 
+  // Clear the debounce timer on unmount so a pending save can't call
+  // setSaveState on an unmounted component or fire a stale network request.
+  useEffect(() => () => clearTimeout(saveTimer.current), [])
+
   const handleChange = useCallback((patch: Partial<PlanData>) => {
     stagesRef.current = { ...stagesRef.current, ...patch }
     setSaveState('unsaved')

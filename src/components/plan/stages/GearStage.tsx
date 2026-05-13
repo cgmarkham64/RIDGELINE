@@ -167,6 +167,7 @@ export function GearStage({ onJump, plan, onChange }: StageBodyProps) {
   )
 
   const isMounted   = useRef(false)
+  useEffect(() => () => { isMounted.current = false }, [])
   const onChangeRef = useRef(onChange)
   useEffect(() => { onChangeRef.current = onChange })
   useEffect(() => {

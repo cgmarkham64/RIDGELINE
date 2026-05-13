@@ -123,6 +123,8 @@ function WaypointRow({ time, name, loc, icon, last }: {
 // ─── Days Stage ───────────────────────────────────────────────────────────────
 
 export function DaysStage({ onJump, plan }: StageBodyProps) {
+  // onChange not called: days array comes from plan prop (no local edit state yet).
+  // Time fields use defaultValue (uncontrolled) — wire onChange when they become controlled.
   const days = plan?.days?.days ?? DAYS
   const [sel, setSel] = useState(Math.min(3, Math.max(0, days.length - 1)))
 

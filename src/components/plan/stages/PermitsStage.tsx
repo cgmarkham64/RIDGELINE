@@ -991,6 +991,7 @@ export function PermitsStage({ onJump, plan, onChange }: StageBodyProps) {
   const backupPlanned = false  // wired when walk-up backup UI is built
 
   const isMounted   = useRef(false)
+  useEffect(() => () => { isMounted.current = false }, [])
   const onChangeRef = useRef(onChange)
   useEffect(() => { onChangeRef.current = onChange })
   useEffect(() => {
