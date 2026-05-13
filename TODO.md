@@ -75,8 +75,9 @@ Stage status model: `done` / `active` / `pending` / `locked`. Drive from per-sta
 4. ✅ **Stage 2 — Days** — stat strip, clickable day list with exposure pills, selected-day detail (time inputs + waypoint timeline), helper banner with JumpChip to Food, right rail (checklist + forecast).
 5. ✅ **Stage 3 — Permits** — list view + map view toggle + per-row map modal + free-form dialog + permit-free state
 6. ✅ **Stage 4 — Food** — daily targets, click-to-edit meal grid with computed kcal, resupply card, water plan toggles, bear canister picker
-7. ✅ **Stage 5 — Gear** (hold banner + loadout preview with locked styling)
-8. **Stage 6 — Depart** ← **next**
+7. ✅ **Stage 5 — Gear** — hold banner, four interactive category cards (Shelter/Kitchen/Worn/Safety+Nav), right rail with live weight stats + unlock checklist
+8. ✅ **Stage 6 — Depart** — reminders + emergency contacts + offline maps cards, one-pager preview, take-it-with-you checklist
+9. **Blank state + persistence** — empty defaults for new plans; save plan state to backend so it survives a refresh ← **next**
 
 #### Stage 1 — Route
 - Hero card: locked route summary, planned-route map placeholder, 4 stat fields (Distance / Gain / Loss / Segments).
@@ -147,6 +148,49 @@ Bear canisters are approved by various different agencies for use in Grizzly cou
 - Offline maps card: map layers (CalTopo / Gaia / NOAA / OnX) with size, status, Download button.
 - Right rail: one-pager preview thumbnail (auto-generated from upstream stages) + PDF export button; Take-it-with-you checklist.
 - **Auto-populate**: accepts `plan?: PlanData` (same pattern as all prior stages). Seed reminders from `plan?.depart?.reminders`, contacts from `plan?.depart?.contacts`, map layers from `plan?.depart?.mapLayers`. Add `DepartData` to the `PlanData` interface in `plan/types.ts` when building this stage. The `PlanWizard` `plan` prop threads through automatically — no wizard changes needed.
+
+#### Stage completeness — known gaps
+
+All six stages render fully with internal state. The gaps below are UI stubs, disconnected wiring, or hardcoded values that need real data before the wizard is production-ready.
+
+**All stages**
+- ⚠ `Stage.done / Stage.total` in `createStages()` are static — `PlanOverview` ring progress never updates regardless of what the user does in any stage. The per-stage right-rail checklists drive local `doneCount` but that value is never written back to the wizard shell.
+- ⚠ `MOCK_TRIP` in `PlanWizard.tsx` is fully hardcoded (Sierra High Route, Aug 12–19, 78 mi…). `StageHeader` and `StageRail` always show this regardless of any data entered by the user.
+- ⚠ No plan persistence — all state is local `useState`; a page refresh loses everything. (`plan/types.ts` `PlanData` shape is defined and ready; needs a backend model + autosave.)
+
+**Stage 1 — Route**
+- ⚠ "Edit" button on the map card and "Split segment" on the table are stubs — no edit flow exists.
+- ⚠ Right-rail checklist is hard-wired to 6/6 done; it doesn't reflect whether the user has actually filled anything in.
+- ⚠ Source files list is mock display only — no GPX/KML upload or parsing is wired.
+
+**Stage 2 — Days**
+- ⚠ Time fields (Wake / On-trail / Camp by) use `defaultValue` — edits are not captured in state and will not persist.
+- ⚠ Right-rail checklist is hard-wired to 8/8 done.
+- ⚠ Exposure rating chips have no tooltip or popover explaining what Low / Med / High / Extreme mean (see Ideas section).
+- ⚠ Forecast card is fully hardcoded (72° / 38°, Aug 15, "Clear · light NW wind") — no weather API wired.
+
+**Stage 3 — Permits**
+- ⚠ "Re-scan" button on the detection banner does nothing.
+- ⚠ Party size "override" button on `PermitCard` renders but has no handler.
+- ⚠ `partyConfirmed` state is tracked but no UI renders for it once confirmed.
+
+**Stage 4 — Food**
+- ⚠ "Bulk edit" button is a stub — no dialog.
+- ⚠ "Generate label" and "Swap location" buttons on `ResupplyCard` are stubs.
+- ⚠ "Add cache" button on `WaterPlanCard` is a stub.
+- ⚠ Right-rail totals for food weight (14.2 lb), protein (864 g), and water (32 L) are hardcoded strings — not derived from meal state or targets.
+
+**Stage 5 — Gear**
+- ⚠ "Add item" button in each `CategoryCard` footer is a stub — no dialog or inline input.
+- ⚠ Food weight (16.4 lb) and water weight (4.4 lb) in the right-rail stats are hardcoded — not pulled from Food stage state.
+- ⚠ The "locked" state is purely visual and informational — the stage is always fully interactive. No actual dependency gate blocks editing.
+
+**Stage 6 — Depart**
+- ⚠ "+ Contact" button is a stub — no way to add or edit emergency contacts.
+- ⚠ "Download" button for pending map layers fakes completion (sets `ok: true` in local state only — no real download).
+- ⚠ "PDF" export button is a stub — no generation logic.
+- ⚠ "Set" reminder toggle only updates local state — no calendar or notification system is called.
+- ⚠ One-pager preview pulls day rows from `plan?.days` if provided, but party, entry/exit, and InReach fields are hardcoded strings in `OnePagerPreview`.
 
 #### Open questions (design / backend)
 - **Map provider**: prototype uses stylized SVG. Pick Mapbox / MapLibre / Leaflet; define zone-rendering style that works at both modal and full-pane sizes. (App already uses Leaflet — use that.)
