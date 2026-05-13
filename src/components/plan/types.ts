@@ -74,6 +74,16 @@ export interface PlanGearCategoryEntry {
   items: PlanGearItemEntry[]
 }
 
+export type ReminderTone = 'amber' | 'sky' | 'pine'
+export type ContactTone  = 'amber' | 'sky' | 'pine' | 'red'
+
+export interface PlanDepartData {
+  reminders: { date: string; description: string; tone: ReminderTone; set: boolean }[]
+  contacts:  { name: string; role: string; phone: string; tone: ContactTone }[]
+  mapLayers: { name: string; size: string; ok: boolean }[]
+  checklist: { text: string; done: boolean; pending?: boolean }[]
+}
+
 // ─── PlanData — top-level shape passed from PlanWizard to each stage ──────────
 
 export interface PlanData {
@@ -94,6 +104,7 @@ export interface PlanData {
     categories: PlanGearCategoryEntry[]
     unlockChecklist: { text: string; done: boolean }[]
   }
+  depart?: PlanDepartData
 }
 
 // ─── StageBodyProps ───────────────────────────────────────────────────────────
