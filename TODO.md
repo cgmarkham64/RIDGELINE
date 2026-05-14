@@ -137,7 +137,7 @@ The existing Journal (currently a separate tab/view) becomes **Stage 7 — Journ
 
 **Locking behaviour**
 - Stages 1–6 (Route through Depart): fully editable during `planning` / `ready`; frozen (read-only, "view only" banner) once the trip reaches `on-trail` to preserve the plan as a record.
-- Stage 7 — Journal: locked with a hold banner during `planning` / `ready` / `on-trail`. Unlocks at `wrap-up`. The lock is hard (not informational) — the stage renders the hold banner only, no journal content.
+- Stage 7 — Journal: locked with a hold banner during `planning` / `ready`. Unlocks at `on-trail` so users can journal while the trip is actively happening. The lock is hard (not informational) — the stage renders the hold banner only until the trip starts.
 
 **What the Journal stage contains**
 - Reuse the existing `JournalSection.tsx` / `DaySelector.tsx` components that are already built.
@@ -169,7 +169,7 @@ Three-column layout (desktop-first, 1200–1400px target):
 
 Stage status model: `done` / `active` / `pending` / `locked`. Drive from per-stage checklist completion + dependency graph (`gear` locks until `permits.resolved === true`).
 
-**Stage freeze** — Stages 1–6 become read-only once the trip transitions to `on-trail`. The stage rail still shows them and lets users navigate in, but a "View only — trip in progress" banner replaces any editable controls. Stage 7 (Journal) remains locked with a distinct "unlocks when you finish the trip" banner until `wrap-up`.
+**Stage freeze** — Stages 1–6 become read-only once the trip transitions to `on-trail`. The stage rail still shows them and lets users navigate in, but a "View only — trip in progress" banner replaces any editable controls. Stage 7 (Journal) unlocks at `on-trail` so entries can be written mid-trip; it shows a "Trip hasn't started yet" hold banner only during `planning` and `ready`.
 
 **JumpChips** — amber pill links that navigate between stages without losing scroll position. Use them to surface data dependencies inline (e.g. "Pulled from Days · 8 days" in Food).
 
