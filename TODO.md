@@ -77,7 +77,7 @@ Stage status model: `done` / `active` / `pending` / `locked`. Drive from per-sta
 6. ✅ **Stage 4 — Food** — daily targets, click-to-edit meal grid with computed kcal, resupply card, water plan toggles, bear canister picker
 7. ✅ **Stage 5 — Gear** — hold banner, four interactive category cards (Shelter/Kitchen/Worn/Safety+Nav), right rail with live weight stats + unlock checklist
 8. ✅ **Stage 6 — Depart** — reminders + emergency contacts + offline maps cards, one-pager preview, take-it-with-you checklist
-9. **Blank state + persistence** — empty defaults for new plans; save plan state to backend so it survives a refresh ← **next**
+9. ✅ **Blank state + persistence** — `Plan` model + `/api/plans` CRUD; `PlanWizard` loads via `usePlan`, autosaves (debounced 800 ms) via `onChange` callbacks on Permits/Food/Gear/Depart stages; `PlanPage` auto-creates a plan; `StageHeader` shows live save state; stages start blank for new plans
 
 #### Stage 1 — Route
 - Hero card: locked route summary, planned-route map placeholder, 4 stat fields (Distance / Gain / Loss / Segments).
@@ -155,8 +155,8 @@ All six stages render fully with internal state. The gaps below are UI stubs, di
 
 **All stages**
 - ⚠ `Stage.done / Stage.total` in `createStages()` are static — `PlanOverview` ring progress never updates regardless of what the user does in any stage. The per-stage right-rail checklists drive local `doneCount` but that value is never written back to the wizard shell.
-- ⚠ `MOCK_TRIP` in `PlanWizard.tsx` is fully hardcoded (Sierra High Route, Aug 12–19, 78 mi…). `StageHeader` and `StageRail` always show this regardless of any data entered by the user.
-- ⚠ No plan persistence — all state is local `useState`; a page refresh loses everything. (`plan/types.ts` `PlanData` shape is defined and ready; needs a backend model + autosave.)
+- ✅ ~~`MOCK_TRIP` hardcoded~~ — `StageHeader` and `StageRail` now read from `savedPlan.meta` (loaded from API).
+- ✅ ~~No plan persistence~~ — Plans persist to MongoDB via `/api/plans`; autosave on every stage change.
 
 **Stage 1 — Route**
 - ⚠ "Edit" button on the map card and "Split segment" on the table are stubs — no edit flow exists.

@@ -48,15 +48,24 @@ src/
                   #   gpx.ts, exif.ts, journalDays.ts, trips.ts (+ unshareTrip, leaveTrip),
                   #   users.ts (searchUsers by name/email, shareTrip),
                   #   notifications.ts (fetchNotifications, acceptInvite, declineInvite, markAllRead, dismissNotification),
+                  #   plans.ts (fetchPlans, fetchPlan, createPlan, updatePlan, deletePlan; PlanRecord type),
                   #   utils.ts (initials, extractApiError — shared across components)
   routes/         # TanStack Router — __root.tsx, _authenticated.tsx, index.tsx, login.tsx, register.tsx,
-                  #   map.tsx, photos.tsx, gear.tsx
-  pages/          # LoginPage, RegisterPage, HomePage, MapPage, PhotosPage, GearPage
+                  #   map.tsx, photos.tsx, gear.tsx,
+                  #   plan.tsx (validateSearch for ?id= param)
+  pages/          # LoginPage, RegisterPage, HomePage, MapPage, PhotosPage, GearPage,
+                  #   PlanPage (auto-creates a plan if no ?id= then renders PlanWizard)
   store/          # auth.ts (Zustand — token, user {id, email, name, avatarUrl}, updateUser, clearAuth)
   types/          # index.ts (Trip [+ ownerSub, sharedWith: {sub,name}[]], JournalDay [+ wildlife?, companions?],
                   #            AppNotification, Photo, GearItem, GearCategory, Loadout,
                   #            GpxTrack, GpxTrackEntry, Waypoint, WaypointType), auth.ts (User, AuthResponse)
   components/
+    icons.tsx     # Shared SVG icon library for the whole app — import from here, never define icons inline.
+                  #   Generic: IconCheck, IconPlus, IconX, IconSearch, IconList, IconLayers,
+                  #     IconChevronLeft/Right (size param), IconArrowLeft/Right, IconSparkle, IconMap,
+                  #     IconPackage, IconDroplets, IconPencil, IconLock, IconGear, IconBell (size param),
+                  #     IconDownload, IconFile, IconCircle.
+                  #   Waypoint/contextual (amber-colored): IconTent, IconMountain, IconWater, IconSun.
     journal/      # DaySelector.tsx, JournalSection.tsx (wildlife + companions panels;
                   #   companions always searches Ridgeline users as you type; amber chip = user; auto-shares on save)
     layout/       # IconRail.tsx (nav rail + notification bell + account avatar + sign-out),
@@ -64,13 +73,15 @@ src/
                   #   NotificationBell.tsx (badge + popover; accept/decline invites, dismiss, mark all read)
     map/          # MapTab.tsx, MapHelpers.tsx, MapEmptyState.tsx, WaypointIcon.tsx, leafletIcons.ts,
                   #   WaypointForm.tsx, WaypointChip.tsx, constants.ts
-    plan/         # PlanWizard.tsx (view/stage state, jumpTo, STAGE_COMPONENTS dispatch),
-                  #   StageRail.tsx (left 280px rail), StageHeader.tsx (shared header bar),
+    plan/         # PlanWizard.tsx (loads plan from API, debounced autosave, saveState indicator;
+                  #     accepts planId: string — PlanPage creates one if absent),
+                  #   StageRail.tsx (left 280px rail), StageHeader.tsx (shared header + save indicator),
                   #   PlanOverview.tsx (2×3 stage card grid + critical path timeline),
                   #   Ring.tsx, Pill.tsx, JumpChip.tsx, ProgressBar.tsx, CheckItem.tsx (shared atoms),
-                  #   types.ts, constants.ts (STAGES metadata, createStages(), stageState()),
-                  #   stages/ RouteStage.tsx ✅, DaysStage.tsx ✅,
-                  #           PermitsStage, FoodStage, GearStage, DepartStage (stubs)
+                  #   types.ts (PlanMeta, PlanData + per-stage slices, StageBodyProps with plan/onChange),
+                  #   constants.ts (STAGES metadata, createStages(), stageState()),
+                  #   stages/ RouteStage.tsx ✅, DaysStage.tsx ✅, PermitsStage.tsx ✅,
+                  #           FoodStage.tsx ✅, GearStage.tsx ✅, DepartStage.tsx ✅
     trip/         # TripDetail.tsx, TripHero.tsx (owner-gated Share/Delete; "Shared trip" badge for non-owners),
                   #   TripSidebar.tsx (search + filter popover: ownership, miles range, elev range, date range),
                   #   TripModal.tsx, TripRightPanel.tsx, ElevationProfile.tsx, GpxMapSection.tsx,
@@ -80,7 +91,8 @@ src/
     ui/           # HikerOverlay.tsx, MoonLoader.tsx (inline moon/mountain loading animation), sayings.ts
   hooks/          # useTrips.ts (+ useUnshareTrip, useLeaveTrip), useJournalDays.ts,
                   #   useNotifications.ts (useNotifications polls 30s, useAcceptInvite, useDeclineInvite, useMarkAllRead, useDismissNotification),
-                  #   useDebounce.ts (generic debounce hook used in search inputs)
+                  #   useDebounce.ts (generic debounce hook used in search inputs),
+                  #   usePlans.ts (usePlans, usePlan, useCreatePlan, useUpdatePlan, useDeletePlan)
   router.tsx      # TanStack Router instance
 ```
 
@@ -93,10 +105,12 @@ server/
     models/       # UserProfile.ts (sub, name, email, avatarUrl — upserted from JWT on every login),
                   #   Trip.ts (+ ownerSub, sharedWith[]), Loadout.ts (+ ownerSub),
                   #   GearItem.ts (+ ownerSub), JournalDay.ts (+ wildlife[], companions[]),
-                  #   Notification.ts (toSub, fromSub, fromName, type, tripId, tripTitle, read, status)
+                  #   Notification.ts (toSub, fromSub, fromName, type, tripId, tripTitle, read, status),
+                  #   Plan.ts (ownerSub, meta: PlanMeta, stages: Mixed, timestamps)
     routes/       # auth.ts (register + login local-dev only; GET /me, PUT/DELETE /me/avatar),
                   #   trips.ts, loadouts.ts, gearItems.ts, journalDays.ts, journalScan.ts,
-                  #   users.ts (GET /search?q=), notifications.ts (GET, POST accept/decline, DELETE, PATCH read-all)
+                  #   users.ts (GET /search?q=), notifications.ts (GET, POST accept/decline, DELETE, PATCH read-all),
+                  #   plans.ts (GET list, POST create, GET/:id, PUT/:id, DELETE/:id — owner-scoped; ObjectId validated)
     index.ts      # Express app, MongoDB connect; /api/auth public, all other routes behind requireAuth
   .env            # PORT=8000, MONGODB_URI, ANTHROPIC_API_KEY, JWT_SECRET, CORS_ORIGIN
   .env.example    # committed template — copy to .env and fill in secrets
@@ -162,6 +176,12 @@ docker compose.yml  # Four services on ridgeline-net:
 | DELETE | `/api/notifications/:id`        | Dismiss (delete) a notification                                                                                |
 | PATCH  | `/api/notifications/read-all`   | Mark all non-pending notifications as read (called on panel open)                                              |
 
+**Plans (all require JWT; scoped to ownerSub)**
+| Method         | Path             | Description                                                                                               |
+|----------------|------------------|-----------------------------------------------------------------------------------------------------------|
+| GET/POST       | `/api/plans`     | List user's plans (newest first) / create plan (`{ meta, stages }`)                                       |
+| GET/PUT/DELETE | `/api/plans/:id` | Read / update (`meta` and/or `stages` patched separately, `markModified` called) / delete. 400 on invalid ObjectId, 403 if not owner. |
+
 **Other**
 | Method | Path                | Description                                                                                                                   |
 |--------|---------------------|-------------------------------------------------------------------------------------------------------------------------------|
@@ -173,7 +193,7 @@ docker compose.yml  # Four services on ridgeline-net:
 See `TODO.md` for detailed task breakdowns. Feature direction:
 
 - **Tests** — Vitest unit tests (`utils.ts`, filter predicates, `useDebounce`) + Playwright E2E golden paths (register → trip → share → journal).
-- **Trip planning** *(Route + Days done, Permits next)* — Six-stage wizard (`Route → Days → Permits → Food → Gear → Depart`). Shell + Route + Days are live at `/plan` (`src/components/plan/`). Shared atoms: `Ring`, `Pill`, `JumpChip`, `ProgressBar`, `CheckItem`. Next: Permits stage (list-first + map toggle). Design handoff: `inspiration/design_handoff_plan_a_trip/` — prototype at `prototypes/Plan a Trip.html` (V3). Stage specs and build order in `TODO.md`. Flow: plan → execution → post-trip journal.
+- **Trip planning** *(all six stages complete + persistence)* — Six-stage wizard (`Route → Days → Permits → Food → Gear → Depart`) fully built at `/plan` (`src/components/plan/`). Plans are persisted to MongoDB via `/api/plans` and autosaved (debounced 800 ms) on any stage change. `PlanPage` auto-creates a plan on first visit and stores the ID in `?id=` search param. `StageHeader` shows live save state. Shared atoms: `Ring`, `Pill`, `JumpChip`, `ProgressBar`, `CheckItem`. Icons centralized in `src/components/icons.tsx`. Design handoff: `inspiration/design_handoff_plan_a_trip/`. Stage specs and known gaps in `TODO.md`. Flow: plan → execution → post-trip journal.
 - **PDF export** — Trip report from Share dialog: hero stats, journal entries, GPX map, gear summary, photos. Dark amber/mono aesthetic via `@react-pdf/renderer` or print stylesheet.
 - **Photo EXIF** — Parse EXIF client-side on upload (exifr): GPS coords, camera settings, timestamp. Store alongside photo in MongoDB.
 - **Gear loadouts** — CRUD gear inventory; weight calculations in Zustand; link loadouts to trips.
