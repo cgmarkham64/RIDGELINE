@@ -1,4 +1,4 @@
-export type StageId = 'route' | 'days' | 'permits' | 'food' | 'gear' | 'depart'
+export type StageId = 'route' | 'days' | 'permits' | 'food' | 'gear' | 'depart' | 'journal'
 
 export interface Stage {
   id: StageId
@@ -125,4 +125,5 @@ export interface StageBodyProps {
   onJump: (id: string) => void
   plan?: PlanData
   onChange?: (patch: Partial<PlanData>) => void
+  tripStatus?: string
 }

@@ -36,7 +36,7 @@ function StageRailItem({
           </span>
         </div>
         <div className="font-mono text-[8px] text-text-dim mt-0.5">
-          {state === 'blocked' ? 'waiting on permit' :
+          {state === 'blocked' ? (stage.blockedReason ?? 'waiting on upstream stage') :
            state === 'done'    ? 'complete' :
            state === 'idle'    ? 'not started' :
            `${stage.done} of ${stage.total} items`}

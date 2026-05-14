@@ -10,6 +10,7 @@ import { PermitsStage } from './stages/PermitsStage'
 import { FoodStage } from './stages/FoodStage'
 import { GearStage } from './stages/GearStage'
 import { DepartStage } from './stages/DepartStage'
+import { JournalStage } from './stages/JournalStage'
 import { MoonLoader } from '../ui/MoonLoader'
 import { TripSetupDialog } from './TripSetupDialog'
 import { usePlan, useUpdatePlan } from '../../hooks/usePlans'
@@ -24,6 +25,7 @@ const STAGE_COMPONENTS: Record<StageId, React.ComponentType<StageBodyProps>> = {
   food:    FoodStage,
   gear:    GearStage,
   depart:  DepartStage,
+  journal: JournalStage,
 }
 
 function formatDateRange(start: string, end: string): string {
