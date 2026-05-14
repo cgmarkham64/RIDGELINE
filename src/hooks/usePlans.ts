@@ -36,9 +36,13 @@ export function useUpdatePlan() {
         startDate?: string
         endDate?: string
         planStages?: object
+        status?: string
       }
     }) => updatePlan(id, body),
-    onSuccess: (data: Trip) => qc.invalidateQueries({ queryKey: ['plan', data._id] }),
+    onSuccess: (data: Trip) => {
+      qc.invalidateQueries({ queryKey: ['plan', data._id] })
+      qc.invalidateQueries({ queryKey: ['trips'] })
+    },
   })
 }
 

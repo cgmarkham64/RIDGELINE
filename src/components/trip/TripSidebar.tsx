@@ -84,8 +84,24 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
     return () => document.removeEventListener('mousedown', onMouseDown)
   }, [])
 
+  const STATUS_URGENCY: Record<string, number> = {
+    'on-trail': 0,
+    'wrap-up':  0,
+    'ready':    1,
+    'planning': 1,
+    'complete': 2,
+  }
+
   const sorted = trips
-    ? [...trips].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
+    ? [...trips].sort((a, b) => {
+        const aU = STATUS_URGENCY[a.status ?? 'complete'] ?? 2
+        const bU = STATUS_URGENCY[b.status ?? 'complete'] ?? 2
+        if (aU !== bU) return aU - bU
+        if (aU === 2) {
+          return new Date(b.endDate ?? b.startDate).getTime() - new Date(a.endDate ?? a.startDate).getTime()
+        }
+        return new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+      })
     : []
 
   const filtered = sorted.filter((trip) => {

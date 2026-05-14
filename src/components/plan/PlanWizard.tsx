@@ -14,6 +14,7 @@ import { JournalStage } from './stages/JournalStage'
 import { MoonLoader } from '../ui/MoonLoader'
 import { TripSetupDialog } from './TripSetupDialog'
 import { usePlan, useUpdatePlan } from '../../hooks/usePlans'
+import { useAuthStore } from '../../store/auth'
 import type { StageBodyProps } from './types'
 
 export type SaveState = 'saved' | 'saving' | 'unsaved'
@@ -56,6 +57,7 @@ function buildMeta(trip: { title?: string; location?: string; startDate?: string
 export function PlanWizard({ planId, initialStage }: { planId: string; initialStage?: number }) {
   const { data: savedPlan, isLoading } = usePlan(planId)
   const { mutateAsync: doUpdate } = useUpdatePlan()
+  const userId = useAuthStore((s) => s.user?.id)
 
   const [stages]                  = useState(createStages)
   const validStage = initialStage !== undefined && initialStage >= 1 && initialStage <= stages.length
@@ -94,6 +96,10 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
     }, 800)
   }, [planId, doUpdate])
 
+  const handleStatusChange = useCallback((newStatus: string) => {
+    doUpdate({ id: planId, body: { status: newStatus } })
+  }, [planId, doUpdate])
+
   const totalDone = stages.reduce((a, s) => a + s.done, 0)
   const totalAll  = stages.reduce((a, s) => a + s.total, 0)
 
@@ -115,6 +121,7 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
   // stage's useState initializer. After that, stage state is self-contained.
   const plan = (savedPlan.planStages as PlanData) ?? {}
   const meta = buildMeta(savedPlan)
+  const isOwner = !!userId && savedPlan.ownerSub === userId
 
   const activeStage = stages[stageIdx]
   if (!activeStage) return null
@@ -161,9 +168,12 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
             onJump={jumpTo}
             onPrev={() => setStageIdx(i => Math.max(0, i - 1))}
             onNext={() => setStageIdx(i => Math.min(stages.length - 1, i + 1))}
+            tripStatus={savedPlan.status}
+            isOwner={isOwner}
+            onStatusChange={handleStatusChange}
           />
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <StageBody onJump={jumpTo} plan={plan} onChange={handleChange} />
+            <StageBody onJump={jumpTo} plan={plan} onChange={handleChange} tripStatus={savedPlan.status} />
           </div>
         </main>
       )}
