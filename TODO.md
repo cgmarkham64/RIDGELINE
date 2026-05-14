@@ -27,20 +27,23 @@ Every trip in Ridgeline starts as a plan. The Plan Wizard IS how trips are creat
 
 3. **Surface status chips in the Trips list** — `TripSidebar.tsx` / `HomePage.tsx`: show a small tone-coded chip next to each trip card. Use the same Pill atom from `src/components/plan/Pill.tsx`. Tones: `planning` → amber, `ready` → sky, `on-trail` → pine, `wrap-up` → amber, `complete` → neutral.
 
-4. **Add status to the filter popover** — `TripSidebar.tsx` already has ownership/miles/date filters. Add a "Status" multi-select filter group.
+4. **Add status and collaborator-role filters to the filter popover** — `TripSidebar.tsx` already has ownership/miles/date filters. Add a "Status" multi-select filter group. Sorting and filtering remain client-side.
 
 **Phase 2 — Data model unification (Plan → Trip)**
 
-Currently `Plan` and `Trip` are separate MongoDB models with no link. The goal is to make the wizard create and edit a Trip directly, retiring the standalone Plan model.
+Currently `Plan` and `Trip` are separate MongoDB models with no link. The goal is to make the wizard create and edit a Trip directly, retiring the standalone Plan model. The direct migration path is chosen — no intermediate `tripId` FK bridge.
 
-1. **Add `planStages` (Mixed) and `planMeta` to Trip model** — mirror the `stages` and `meta` fields from `Plan.ts`. The Trip's own `title`, `location`, `startDate`, `endDate` serve as the canonical trip identity and eventually supersede `planMeta`.
+1. **Add `planStages` (Mixed) to the Trip model** — mirror the `stages` field from `Plan.ts`. Drop `planMeta`: Trip's own top-level `title`, `location`, `startDate`, `endDate` are the canonical identity fields. The wizard writes directly to those fields (not to a separate meta object). Remove `PlanMeta` from `plan/types.ts` once the wizard is wired to Trip fields.
 
-2. **Migrate `/api/plans` → use Trip** — when the Plan Wizard creates a "plan", it should `POST /api/trips` with `status: 'planning'` and `planStages: {}`. Update `src/lib/plans.ts` and `src/hooks/usePlans.ts` to target `/api/trips` filtered by status. The `PlanRecord` type can be replaced by the existing `Trip` type extended with `planStages`.
-   - Alternatively (lower risk): add a `tripId` foreign key to `Plan` and keep both models temporarily, then merge in a follow-up. Choose whichever feels safer at implementation time.
+2. **Add collaborator roles to `sharedWith`** — update `server/src/models/Trip.ts` so each entry is `{ sub: string, name: string, role: 'read' | 'edit' }`. Update the `ShareDialog` to let the owner pick a role when inviting. The accept-invite flow carries the role through. In the wizard, collaborators with `read` role see all stages read-only; `edit` role collaborators can write. Status transitions (Mark ready, Start trip, etc.) are owner-only regardless of role.
 
-3. **Journal attachment stays on Trip** — `JournalDay.tripId` already references the Trip `_id`. No change needed here; when a planning trip transitions to `on-trail` the journal starts populating against the same record.
+3. **Migrate existing Plan records → Trips** — write a one-time migration script (`server/scripts/migratePlans.ts`): for each `Plan` document, `POST /api/trips` with `status: 'complete'`, `planStages` copied from `Plan.stages`, and `title/location/startDate/endDate` copied from `Plan.meta`. All planning stages in these migrated trips are read-only (no editing — user cleans up via UI). Any `JournalDay` documents whose `tripId` already references the original Trip `_id` are unaffected; Plan documents that have no associated Trip simply produce a new Trip record. After verifying the migration, archive the standalone Plan documents.
 
-4. **Remove the Plan model** (after migration is verified) — delete `server/src/models/Plan.ts` and `server/src/routes/plans.ts`, remove from `index.ts`, archive `src/lib/plans.ts` and `src/hooks/usePlans.ts` or absorb into trips equivalents.
+4. **Migrate `/api/plans` → use Trip** — when the Plan Wizard creates a "plan", it should `POST /api/trips` with `status: 'planning'` and `planStages: {}`. Update `src/lib/plans.ts` and `src/hooks/usePlans.ts` to target `/api/trips` filtered by status. Replace the `PlanRecord` type with the existing `Trip` type extended with `planStages`.
+
+5. **Journal attachment stays on Trip** — `JournalDay.tripId` already references the Trip `_id`. No change needed here; when a planning trip transitions to `on-trail` the journal starts populating against the same record.
+
+6. **Remove the Plan model** (after migration is verified) — delete `server/src/models/Plan.ts` and `server/src/routes/plans.ts`, remove from `index.ts`, absorb `src/lib/plans.ts` and `src/hooks/usePlans.ts` into their trips equivalents.
 
 **Phase 3 — New Trip flow**
 
@@ -48,49 +51,56 @@ Currently `Plan` and `Trip` are separate MongoDB models with no link. The goal i
 
 2. **Remove `TripModal.tsx`** — the dialog that collects title/location/dates is no longer the entry point. Delete `src/components/trip/TripModal.tsx` and remove its import and usage from `HomePage.tsx`. The wizard's Stage 1 (Route) and trip metadata collected during planning replace this.
 
-3. **Trip metadata entry in the wizard** — the trip title, location, and date range currently live in `PlanMeta` (`PlanWizard`'s EMPTY_META). Wire the StageRail header (title + dates) to be editable inline or via a small "Edit trip details" dialog that writes back to `savedPlan.meta` → autosaves. This replaces what the old New Trip dialog collected.
+3. **Trip metadata entry in the wizard** — `title`, `location`, `startDate`, and `endDate` live on the Trip document directly (not in a separate meta object). Wire the StageRail header (title + dates) to be editable inline or via a small "Edit trip details" dialog that writes back to those Trip fields and triggers autosave. This replaces what the old New Trip dialog collected.
 
-4. **Re-entry behavior** — when a user opens a trip from the Trips list:
-   - `planning` or `ready` → open the Plan Wizard at `/plan?id=<tripId>`
-   - `on-trail` or `wrap-up` → open Stage 7 (Journal) directly
-   - `complete` → open Trip Detail in read-only mode
+4. **Stage deep-linking via URL param** — add a `?stage=<n>` search param to the `/plan` route (1–7, where 7 = Journal). `PlanWizard` reads this on mount and opens the specified stage. The overview is the default landing for every status prior to `on-trail`/`wrap-up`. Stage numbers map to: 1 Route, 2 Days, 3 Permits, 4 Food, 5 Gear, 6 Depart, 7 Journal.
+
+5. **Re-entry behavior** — when a user opens a trip from the Trips list:
+   - `planning` or `ready` → open the Plan Wizard at `/plan?id=<tripId>` (overview landing)
+   - `on-trail` or `wrap-up` → open the wizard at `/plan?id=<tripId>&stage=7` (Journal)
+   - `complete` → open the wizard at `/plan?id=<tripId>&stage=7` (Journal, fully read-only)
 
 **Phase 4 — Clear pre-filled demo data**
 
-Remove all Sierra High Route mock data from wizard stages so new plans start blank.
+Remove all Sierra High Route mock data from wizard stages so new plans start blank. The guard audit (2026-05-14) found the following status per stage:
 
-- `RouteStage.tsx` — `SEGMENTS = []`, `SOURCE_FILES = []`, `PARTNERS = []` (already blank for `plan !== undefined`, but confirm)
-- `DaysStage.tsx` — `DAYS = []` already triggers empty state; verify the empty-state UI message is correct
-- `PermitsStage.tsx` — `INITIAL_PERMITS = []`, `INITIAL_SUGGESTIONS = []`
-- `FoodStage.tsx` — `MEAL_PLAN = []` (already blank for `plan !== undefined`)
-- `GearStage.tsx` — `DEFAULT_CATEGORIES = []` (already blank for `plan !== undefined`)
-- `DepartStage.tsx` — `DEFAULT_REMINDERS = []`, `DEFAULT_CONTACTS = []`, `DEFAULT_MAP_LAYERS = []`, `DEFAULT_CHECKLIST = []`
+- `RouteStage.tsx` — `segments` ✅ guarded · `sourceFiles` ✅ guarded · `PARTNERS` ❌ hardcoded, renders mock data unconditionally — needs `plan !== undefined ? [] : PARTNERS` guard and plan storage for partners list
+- `DaysStage.tsx` — `days` ❌ uses `plan?.days?.days ?? DAYS` without a `plan !== undefined` ternary — falls back to 8 Sierra mock days when plan exists but Days stage is empty; fix to `plan?.days?.days ?? (plan !== undefined ? [] : DAYS)`
+- `PermitsStage.tsx` — `permits` ❌ uses `?? INITIAL_PERMITS` without plan check; `suggestions` ❌ always `INITIAL_SUGGESTIONS` with no plan check — both need `plan !== undefined ? [] : MOCK` guards
+- `FoodStage.tsx` — `meals` ✅ guarded
+- `GearStage.tsx` — `categories` ✅ guarded · `unlockChecklist` ❌ uses `?? DEFAULT_UNLOCK_CHECKLIST` without plan check — needs guard
+- `DepartStage.tsx` — `reminders`, `contacts`, `mapLayers`, `checklist` ❌ all use `?? DEFAULT_*` without plan check — all four need `plan !== undefined ? [] : DEFAULT_*` guards
 
-For each stage, the `plan !== undefined ? [] : MOCK_DATA` guard is already in place. The fix is to pass `plan` consistently from PlanWizard (which already does) and ensure the mock constants serve only as dev-mode fallbacks. Once Phase 2 is complete and the wizard always runs with a real Trip, these constants will never be used in production.
+Once Phase 2 is complete and the wizard always runs with a real Trip, the unguarded fallbacks will never fire in production. The guards eliminate Sierra mock data leaking into new trips in the interim.
 
 Add empty-state prompts to stages that would otherwise show a blank card with no guidance (PermitsStage suggestions pane already handles this; FoodStage meal grid and GearStage category list need "Add your first…" prompts similar to DaysStage's empty state).
 
+**Days stage is borderline mandatory** — the Journal stage keys day panels to the Days itinerary. Add a prominent nudge (amber banner or inline prompt) in the Days stage empty state encouraging the user to fill it in before going on trail. If the Days stage is still empty when the Journal stage is opened, fall back to generating one panel per calendar day between `startDate` and `endDate`.
+
 **Phase 5 — Status lifecycle UI**
 
-1. **Status transitions** — add a "Mark as…" control in the trip header (visible to the owner):
+Status transitions are owner-only. Collaborators (read or edit role) cannot change trip status.
+
+1. **Status transitions** — add a "Mark as…" control in `StageHeader` (visible to the trip owner only):
    - `planning` → "Mark ready" → sets `ready`
    - `ready` → "Start trip" → sets `on-trail`
    - `on-trail` → "Finish trip" → sets `wrap-up`
-   - `wrap-up` → "Complete" → sets `complete` (require at least one journal entry)
+   - `wrap-up` → "Complete" → sets `complete` (journal entries are optional but a strong nudge is shown if none exist — the button is not blocked)
    - Any status → "Back to planning" escape hatch (confirm dialog). Selective per-stage retroactive unlock is a future refinement — start with all-or-nothing.
 
 2. **PUT `/api/trips/:id`** already accepts arbitrary body fields — just add `status` to the update payload. No new endpoint needed.
 
-3. **Trips list ordering** — sort by status urgency then by date: `on-trail` and `wrap-up` first, then `planning`/`ready` by departure date, then `complete` by end date descending.
+3. **Trips list ordering** — client-side sort by status urgency then by date: `on-trail` and `wrap-up` first, then `planning`/`ready` by departure date, then `complete` by end date descending.
 
 **Phase 6 — Stage 7: Journal**
 
 The existing Journal (currently a separate tab/view) becomes **Stage 7 — Journal** in the wizard, sitting after Depart in the stage rail.
 
-- **Locking**: locked with a "Trip hasn't started yet" hold banner during `planning` and `ready`. Unlocks at `on-trail` so users can journal while the trip is actively happening. Stages 1–6 (Route through Depart) flip to read-only at `on-trail` with a "View only — trip in progress" banner to preserve the plan as a record.
-- **Content**: reuse `JournalSection.tsx` / `DaySelector.tsx`. One day panel per trip day (keyed to the Days stage itinerary) with conditions grid, narrative, photo attachments, wildlife and companions. Right rail: days completed count, photo count, "Trip report needed" nudge near `complete` transition.
-- **Engineering**: add `'journal'` to the `StageId` union in `plan/types.ts` and a `JournalStage` entry to `STAGE_COMPONENTS`. The stage body wraps `JournalSection` with a status guard. No new API endpoints — journal days already persist via `POST/PUT /api/journal-days`. This stage does not call `onChange` (journal data lives in its own collection, not in `planStages`).
-- **Gating**: `wrap-up` → `complete` transition requires at least one journal entry before the "Complete" control is enabled.
+- **Locking**: locked with a "Trip hasn't started yet" hold banner during `planning` and `ready`. Unlocks at `on-trail` so users can journal while the trip is actively happening. Stages 1–5 (Route through Gear) flip to read-only at `on-trail` with a "View only — trip in progress" banner to preserve the plan as a record. **Stage 6 (Depart) stays fully interactive at `on-trail`** — offline map downloads, PDF one-pager, and the take-it-with-you checklist are active-trip utilities.
+- **Content**: reuse `JournalSection.tsx` / `DaySelector.tsx`. One day panel per trip day — keyed to the Days stage itinerary if populated, otherwise generated from `startDate`/`endDate`. Each panel has conditions grid, narrative, photo attachments, wildlife and companions. Right rail: days completed count, photo count, nudge to add journal entries near the `complete` transition.
+- **Journal entries are optional but strongly encouraged** — the `wrap-up` → `complete` transition is never hard-blocked by journal count. Show a prominent amber nudge ("No journal entries yet — consider adding a trip report") if the user attempts to complete with zero entries, but allow them to proceed.
+- **Engineering**: add `'journal'` to the `StageId` union in `plan/types.ts` and a `JournalStage` entry to `STAGE_COMPONENTS`. The stage body wraps `JournalSection` with a status guard. No new API endpoints — journal days already persist via `POST/PUT /api/journal-days`. Because journal data lives in its own collection (not in `planStages`), `JournalStage` does not call `onChange` and the `StageHeader` save indicator does not reflect journal saves. Add a dedicated per-entry save indicator inside `JournalStage` (e.g., "Saved" / "Saving…" inline below the entry form) so users have clear feedback.
+- **Collaborator access**: read-role collaborators see all journal entries but cannot edit. Edit-role collaborators can add and edit entries.
 
 ---
 
