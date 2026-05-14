@@ -34,12 +34,12 @@ export const STAGE_SUBS: Record<StageId, string> = {
 }
 
 export const STAGE_DESCRIPTIONS: Record<StageId, string> = {
-  route:   '149 mi · Onion Valley → Whitney Portal · 8 days · approved by partners',
-  days:    '8 days laid out · 7 camps · longest day 22 mi · matches route exactly',
-  permits: 'Whitney lottery scheduled. Need: return shuttle, backup route, reminders.',
-  food:    '2 of 6 done. Resupply at Kearsarge unconfirmed. No water cache plan yet.',
-  gear:    'Locked until permit results (bear-can size depends on resupply).',
-  depart:  'Pre-flight checklist, offline maps, emergency contacts — closest to start.',
+  route:   'Entry and exit trailheads, segments with mileage and elevation gain, trip partners, and GPS source files for the map and elevation profile.',
+  days:    'Day-by-day itinerary: camp locations, daily mileage, water sources, exposure ratings, and time targets for each day on trail.',
+  permits: 'Every permit, pass, and access requirement — lottery windows, reservation dates, party sizes, and zone assignments.',
+  food:    'Calorie targets and meal planning for each day, resupply logistics, water source confirmation, and bear canister selection.',
+  gear:    'Full loadout by category with item weights. Depends on Permits and Food being confirmed first for accurate bear-can sizing.',
+  depart:  'Pre-departure reminders, emergency contacts, offline map downloads, and a printable one-pager to take on trail.',
 }
 
 export function stageState(s: Stage) {
