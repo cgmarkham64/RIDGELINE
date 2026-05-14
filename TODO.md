@@ -131,15 +131,34 @@ Add empty-state prompts to stages that would otherwise show a blank card with no
 
 3. **Trips list ordering** — sort by status urgency then by date: `on-trail` and `wrap-up` first, then `planning`/`ready` by departure date, then `complete` by end date descending.
 
+### Phase 6 — Stage 7: Journal
+
+The existing Journal (currently a separate tab/view) becomes **Stage 7 — Journal** in the wizard, sitting after Depart in the stage rail. It is locked during `planning`, `ready`, and `on-trail` statuses and unlocks automatically when the trip transitions to `wrap-up`.
+
+**Locking behaviour**
+- Stages 1–6 (Route through Depart): fully editable during `planning` / `ready`; frozen (read-only, "view only" banner) once the trip reaches `on-trail` to preserve the plan as a record.
+- Stage 7 — Journal: locked with a hold banner during `planning` / `ready` / `on-trail`. Unlocks at `wrap-up`. The lock is hard (not informational) — the stage renders the hold banner only, no journal content.
+
+**What the Journal stage contains**
+- Reuse the existing `JournalSection.tsx` / `DaySelector.tsx` components that are already built.
+- One day panel per trip day (keyed to the Days stage itinerary). Each panel has: conditions grid (temp hi/lo, weather, mileage), narrative text area, photo attachments, wildlife and companions fields.
+- Right rail: days completed count, "Trip report needed" reminder if approaching `complete` transition, photo count.
+
+**Engineering notes**
+- Add `'journal'` to the `StageId` union in `plan/types.ts` and a `JournalStage` entry to `STAGE_COMPONENTS` in `PlanWizard.tsx`.
+- The stage body wraps `JournalSection` with a locked-banner guard that checks `trip.status`. No new API endpoints — journal days already persist via `POST/PUT /api/journal-days`.
+- The Journal stage does not call `onChange` (journal data lives in its own collection keyed by `tripId`, not in `trip.planStages`).
+- Transition from `wrap-up` → `complete` can be gated: require at least one journal entry (or all days covered) before the "Complete" control is enabled.
+
 ---
 
 ## Pages (sidebar nav)
 
-### Plan a Trip — six-stage wizard
+### Plan a Trip — seven-stage wizard
 
 Design handoff: `inspiration/design_handoff_plan_a_trip/`. Reference the prototype at `prototypes/Plan a Trip.html` (open in browser, keep on V3). Port only: `ridgeline-tokens.css`, `prototype.css`, `rdgln-shared.jsx`, `v3-stages.jsx`, `permits-flow.jsx`. Ignore: `app.jsx`, `design-canvas.jsx`, `v1-brief.jsx`, `v2-spine.jsx`.
 
-Flow: plan → execution → post-trip journal (what's already built).
+Flow: plan → execution → journal (Stage 7, unlocks at wrap-up) → complete.
 
 #### Layout shell
 Three-column layout (desktop-first, 1200–1400px target):
@@ -149,6 +168,8 @@ Three-column layout (desktop-first, 1200–1400px target):
 - **Right rail** (~320px): per-stage checklist, progress bar, helper sidecar.
 
 Stage status model: `done` / `active` / `pending` / `locked`. Drive from per-stage checklist completion + dependency graph (`gear` locks until `permits.resolved === true`).
+
+**Stage freeze** — Stages 1–6 become read-only once the trip transitions to `on-trail`. The stage rail still shows them and lets users navigate in, but a "View only — trip in progress" banner replaces any editable controls. Stage 7 (Journal) remains locked with a distinct "unlocks when you finish the trip" banner until `wrap-up`.
 
 **JumpChips** — amber pill links that navigate between stages without losing scroll position. Use them to surface data dependencies inline (e.g. "Pulled from Days · 8 days" in Food).
 
