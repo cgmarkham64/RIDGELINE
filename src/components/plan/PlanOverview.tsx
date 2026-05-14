@@ -20,7 +20,7 @@ interface PlanOverviewProps {
   plan?: PlanData
 }
 
-export function PlanOverview({ stages, totalDone, totalAll, onJump }: PlanOverviewProps) {
+export function PlanOverview({ stages, totalDone, totalAll, onJump, plan }: PlanOverviewProps) {
   return (
     <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
       {/* Header */}
@@ -93,28 +93,37 @@ export function PlanOverview({ stages, totalDone, totalAll, onJump }: PlanOvervi
 
         {/* Critical path */}
         <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-3">Critical path</div>
-        <div className="bg-surface border border-border rounded-lg overflow-hidden">
-          {CRITICAL_PATH.map((row, i) => (
-            <button
-              key={row.label}
-              onClick={() => onJump(row.stageId)}
-              className={[
-                'w-full grid items-center px-4 py-3 bg-transparent border-none cursor-pointer text-left hover:bg-surface-2 transition-colors',
-                i < CRITICAL_PATH.length - 1 ? 'border-b border-border' : '',
-              ].join(' ')}
-              style={{ gridTemplateColumns: '70px 1fr 110px 18px', gap: 14 }}
-            >
-              <span className={`font-mono text-[10px] font-semibold text-center px-1.5 py-1 rounded border ${row.cls}`}>
-                {row.d}
-              </span>
-              <span className="text-[12px] text-text">{row.label}</span>
-              <span className="font-mono text-[9px] text-text-dim text-right">
-                {STAGES.find(s => s.id === row.stageId)?.label}
-              </span>
-              <IconChevronRight size={11} />
-            </button>
-          ))}
-        </div>
+        {plan !== undefined ? (
+          <div className="bg-surface border border-border rounded-lg px-4 py-6 text-center">
+            <p className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-1.5">No critical dates yet</p>
+            <p className="text-[12px] text-text-mid">
+              Permit deadlines from Stage 3 · Permits and reminders from Stage 6 · Depart will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-surface border border-border rounded-lg overflow-hidden">
+            {CRITICAL_PATH.map((row, i) => (
+              <button
+                key={row.label}
+                onClick={() => onJump(row.stageId)}
+                className={[
+                  'w-full grid items-center px-4 py-3 bg-transparent border-none cursor-pointer text-left hover:bg-surface-2 transition-colors',
+                  i < CRITICAL_PATH.length - 1 ? 'border-b border-border' : '',
+                ].join(' ')}
+                style={{ gridTemplateColumns: '70px 1fr 110px 18px', gap: 14 }}
+              >
+                <span className={`font-mono text-[10px] font-semibold text-center px-1.5 py-1 rounded border ${row.cls}`}>
+                  {row.d}
+                </span>
+                <span className="text-[12px] text-text">{row.label}</span>
+                <span className="font-mono text-[9px] text-text-dim text-right">
+                  {STAGES.find(s => s.id === row.stageId)?.label}
+                </span>
+                <IconChevronRight size={11} />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </main>
   )

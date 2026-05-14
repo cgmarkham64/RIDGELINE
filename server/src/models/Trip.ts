@@ -6,7 +6,7 @@ const TripSchema = new Schema(
     description: String,
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
-    location: { type: String, required: true },
+    location: String,
     distanceMiles: Number,
     elevationGainFt: Number,
     gpxFileUrl: String,
@@ -18,10 +18,9 @@ const TripSchema = new Schema(
     planStages: { type: Schema.Types.Mixed, default: {} },
     status: { type: String, enum: ['planning', 'ready', 'on-trail', 'wrap-up', 'complete'], default: 'complete' },
     ownerSub: { type: String, required: true, index: true },
-    sharedWith: {
-      type: [{ _id: false, sub: String, role: { type: String, default: 'edit' } }],
-      default: [],
-    },
+    // Mixed rather than a typed subdocument — normalizeShared() in trips.ts handles
+    // both legacy string entries and the new { sub, role } shape.
+    sharedWith: { type: [Schema.Types.Mixed], default: [] },
   },
   { timestamps: true }
 )

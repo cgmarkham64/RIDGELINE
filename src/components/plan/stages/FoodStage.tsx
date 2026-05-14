@@ -206,7 +206,12 @@ function MealGrid({ meals, onMealsChange, mealsLocked, onToggleLock }: {
         <span className="text-right">kcal</span>
       </div>
 
-      {meals.map((m, rowIdx) => (
+      {meals.length === 0 ? (
+        <div className="px-4 py-10 text-center">
+          <p className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-2">No meals planned yet</p>
+          <p className="text-[12px] text-text-mid">Fill in Stage 2 · Days first — one meal row per trip day.</p>
+        </div>
+      ) : meals.map((m, rowIdx) => (
         <div
           key={m.n}
           className={`grid items-center px-4 gap-2 grid-cols-[44px_1fr_1fr_1fr_1fr_64px] ${rowIdx < meals.length - 1 ? 'border-b border-border' : ''}`}

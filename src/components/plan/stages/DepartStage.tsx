@@ -168,10 +168,10 @@ function TakeItItem({ item, onToggle }: { item: ChecklistItem; onToggle: () => v
 export function DepartStage({ plan, onChange }: StageBodyProps) {
   const d = plan?.depart
 
-  const [reminders, setReminders] = useState<Reminder[]>(() => d?.reminders ?? DEFAULT_REMINDERS)
-  const [contacts]                = useState<Contact[]>(() => d?.contacts   ?? DEFAULT_CONTACTS)
-  const [mapLayers, setMapLayers] = useState<MapLayer[]>(() => d?.mapLayers ?? DEFAULT_MAP_LAYERS)
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(() => d?.checklist ?? DEFAULT_CHECKLIST)
+  const [reminders, setReminders] = useState<Reminder[]>(() => d?.reminders ?? (plan !== undefined ? [] : DEFAULT_REMINDERS))
+  const [contacts]                = useState<Contact[]>(() => d?.contacts   ?? (plan !== undefined ? [] : DEFAULT_CONTACTS))
+  const [mapLayers, setMapLayers] = useState<MapLayer[]>(() => d?.mapLayers ?? (plan !== undefined ? [] : DEFAULT_MAP_LAYERS))
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(() => d?.checklist ?? (plan !== undefined ? [] : DEFAULT_CHECKLIST))
 
   const isMounted   = useRef(false)
   useEffect(() => () => { isMounted.current = false }, [])

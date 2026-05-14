@@ -8,23 +8,6 @@
 
 Every trip in Ridgeline starts as a plan. The Plan Wizard IS how trips are created. The "Trip Log" becomes "Trips" — a unified list of everything from active plans through completed expeditions, each with a status chip. This work retires the old New Trip dialog and tightly couples the Plan model to the Trip model so journals, gear, and the wizard all share one record.
 
-**Phase 4 — Clear pre-filled demo data**
-
-Remove all Sierra High Route mock data from wizard stages so new plans start blank. The guard audit (2026-05-14) found the following status per stage:
-
-- `RouteStage.tsx` — `segments` ✅ guarded · `sourceFiles` ✅ guarded · `PARTNERS` ❌ hardcoded, renders mock data unconditionally — needs `plan !== undefined ? [] : PARTNERS` guard and plan storage for partners list
-- `DaysStage.tsx` — `days` ❌ uses `plan?.days?.days ?? DAYS` without a `plan !== undefined` ternary — falls back to 8 Sierra mock days when plan exists but Days stage is empty; fix to `plan?.days?.days ?? (plan !== undefined ? [] : DAYS)`
-- `PermitsStage.tsx` — `permits` ❌ uses `?? INITIAL_PERMITS` without plan check; `suggestions` ❌ always `INITIAL_SUGGESTIONS` with no plan check — both need `plan !== undefined ? [] : MOCK` guards
-- `FoodStage.tsx` — `meals` ✅ guarded
-- `GearStage.tsx` — `categories` ✅ guarded · `unlockChecklist` ❌ uses `?? DEFAULT_UNLOCK_CHECKLIST` without plan check — needs guard
-- `DepartStage.tsx` — `reminders`, `contacts`, `mapLayers`, `checklist` ❌ all use `?? DEFAULT_*` without plan check — all four need `plan !== undefined ? [] : DEFAULT_*` guards
-
-Once Phase 2 is complete and the wizard always runs with a real Trip, the unguarded fallbacks will never fire in production. The guards eliminate Sierra mock data leaking into new trips in the interim.
-
-Add empty-state prompts to stages that would otherwise show a blank card with no guidance (PermitsStage suggestions pane already handles this; FoodStage meal grid and GearStage category list need "Add your first…" prompts similar to DaysStage's empty state).
-
-**Days stage is borderline mandatory** — the Journal stage keys day panels to the Days itinerary. Add a prominent nudge (amber banner or inline prompt) in the Days stage empty state encouraging the user to fill it in before going on trail. If the Days stage is still empty when the Journal stage is opened, fall back to generating one panel per calendar day between `startDate` and `endDate`.
-
 **Phase 5 — Status lifecycle UI**
 
 Status transitions are owner-only. Collaborators (read or edit role) cannot change trip status.
@@ -197,3 +180,4 @@ Full gear inventory system:
 - **Unification Phase 1** — Renamed "Trip Log" → "Trips" in nav rail. Added `status` field to Trip model (`planning/ready/on-trail/wrap-up/complete`, default `complete`). Added `status` to frontend `Trip` type. Tone-coded Pill chips on trip cards in sidebar. Status multi-select filter added to filter popover.
 - **Unification Phase 2** — Added `planStages` (Mixed) to Trip model. `sharedWith` migrated from `[String]` to `[{sub, role}]`; `role` field added to Notification model; accept-invite uses stored role. `ShareDialog` now has a "Can edit / Can view" role toggle when inviting; role badge shown next to each collaborator. `src/lib/plans.ts` and `src/hooks/usePlans.ts` retargeted to `/api/trips`; `PlanRecord` type retired in favour of `Trip`. `PlanWizard` reads `planStages` and derives header metadata from Trip top-level fields. `PlanPage` pops `TripSetupDialog` (title/location/dates) immediately after a new planning trip is created. Migration script at `server/scripts/migratePlans.ts` handles `sharedWith` string→object conversion and Plan→Trip backfill with date parsing. `/api/plans` route stays live until migration is verified (Phase 2 step 6 deferred).
 - **Unification Phase 3** — `TripModal.tsx` deleted. "New trip" button and empty-state CTA both navigate to `/plan` (auto-creates planning Trip). `planning`/`ready` trips in the sidebar navigate to the wizard on click; `complete`/`on-trail`/`wrap-up` keep opening `TripDetail`. Edit button on all trip cards navigates to the wizard. `?stage=<n>` search param added to `/plan` route; `PlanWizard` opens at the specified stage (1-indexed) on mount, defaulting to overview. `StageRail` trip-identity header gains a pencil button that opens `TripSetupDialog` pre-populated with current title/location/dates for in-wizard editing.
+- **Unification Phase 4** — All Sierra High Route mock data guarded: `RouteStage` partners, `DaysStage` days, `PermitsStage` permits + suggestions, `GearStage` unlockChecklist, `DepartStage` reminders/contacts/mapLayers/checklist — all now start empty for real plans and fall back to demo data only when `plan === undefined`. Empty-state prompts added: `FoodStage` meal grid and `GearStage` category list. Amber nudge banner added to `DaysStage` empty state explaining the Journal dependency.

@@ -136,7 +136,7 @@ export function GearStage({ onJump, plan, onChange }: StageBodyProps) {
       : DEFAULT_CATEGORIES
   )
   const [unlockChecklist, setUnlockChecklist] = useState<{ text: string; done: boolean }[]>(() =>
-    plan?.gear?.unlockChecklist ?? DEFAULT_UNLOCK_CHECKLIST
+    plan?.gear?.unlockChecklist ?? (plan !== undefined ? [] : DEFAULT_UNLOCK_CHECKLIST)
   )
 
   const isMounted   = useRef(false)
@@ -204,7 +204,12 @@ export function GearStage({ onJump, plan, onChange }: StageBodyProps) {
           </div>
 
           {/* Category cards */}
-          {categories.map((cat, ci) => (
+          {categories.length === 0 ? (
+            <div className="px-4 py-8 text-center border border-dashed border-border rounded-lg">
+              <p className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-2">No categories yet</p>
+              <p className="text-[12px] text-text-mid">Add your first gear category to start building your kit.</p>
+            </div>
+          ) : categories.map((cat, ci) => (
             <CategoryCard
               key={cat.id}
               category={cat}

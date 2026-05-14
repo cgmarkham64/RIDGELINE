@@ -3,15 +3,23 @@ import { useNavigate } from '@tanstack/react-router'
 import { Route } from '../routes/plan'
 import { PlanWizard } from '../components/plan/PlanWizard'
 import { TripSetupDialog } from '../components/plan/TripSetupDialog'
-import { useCreatePlan } from '../hooks/usePlans'
+import { useCreatePlan, useDeletePlan } from '../hooks/usePlans'
 import { MoonLoader } from '../components/ui/MoonLoader'
 
 export function PlanPage() {
   const { id, stage } = Route.useSearch()
   const navigate = useNavigate({ from: '/plan' })
   const { mutateAsync: createPlan } = useCreatePlan()
+  const { mutateAsync: deletePlan } = useDeletePlan()
   const [createError, setCreateError] = useState(false)
   const [showSetup, setShowSetup] = useState(false)
+
+  async function handleCancelSetup() {
+    if (id) {
+      try { await deletePlan(id) } catch { /* ignore — trip may not exist */ }
+    }
+    navigate({ to: '/' })
+  }
 
   // Ref guard prevents StrictMode's double-fire from creating two trips.
   const creating = useRef(false)
@@ -37,7 +45,7 @@ export function PlanPage() {
   return (
     <>
       <PlanWizard planId={id} initialStage={stage} />
-      {showSetup && <TripSetupDialog tripId={id} onClose={() => setShowSetup(false)} />}
+      {showSetup && <TripSetupDialog tripId={id} onClose={() => setShowSetup(false)} onCancel={handleCancelSetup} />}
     </>
   )
 }

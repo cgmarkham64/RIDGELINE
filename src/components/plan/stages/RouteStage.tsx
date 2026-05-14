@@ -156,6 +156,7 @@ export function RouteStage({ onJump, plan }: StageBodyProps) {
   // Wire it here when route editing is implemented.
   const segments    = plan?.route?.segments    ?? (plan !== undefined ? [] : SEGMENTS)
   const sourceFiles = plan?.route?.sourceFiles ?? (plan !== undefined ? [] : SOURCE_FILES)
+  const partners    = plan !== undefined ? [] : PARTNERS
 
   return (
     <div className="flex-1 overflow-y-auto p-8 pb-20">
@@ -270,9 +271,11 @@ export function RouteStage({ onJump, plan }: StageBodyProps) {
 
           {/* Partners */}
           <div className="bg-surface border border-border rounded-lg p-3.5">
-            <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">Partners ({PARTNERS.length})</div>
-            {PARTNERS.map((p, i) => (
-              <div key={p.initials} className={`flex items-center gap-2.5 py-2 ${i < PARTNERS.length - 1 ? 'border-b border-border' : ''}`}>
+            <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">Partners ({partners.length})</div>
+            {partners.length === 0 ? (
+              <p className="font-mono text-[10px] text-text-dim italic">No partners added yet.</p>
+            ) : partners.map((p, i) => (
+              <div key={p.initials} className={`flex items-center gap-2.5 py-2 ${i < partners.length - 1 ? 'border-b border-border' : ''}`}>
                 <span className="w-[26px] h-[26px] rounded-full bg-surface-3 border border-border-mid flex items-center justify-center font-heading text-[10px] font-extrabold text-amber shrink-0">
                   {p.initials}
                 </span>

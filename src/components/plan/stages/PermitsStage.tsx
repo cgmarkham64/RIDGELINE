@@ -910,8 +910,8 @@ function DateRow({ date, label, tone, last }: { date: string; label: string; ton
 
 export function PermitsStage({ onJump, plan, onChange }: StageBodyProps) {
   const [viewMode, setViewMode]         = useState<ViewMode>('list')
-  const [permits, setPermits]           = useState<Permit[]>(() => (plan?.permits?.permits as Permit[] | undefined) ?? INITIAL_PERMITS)
-  const [suggestions, setSuggestions]   = useState<Permit[]>(INITIAL_SUGGESTIONS)
+  const [permits, setPermits]           = useState<Permit[]>(() => (plan?.permits?.permits as Permit[] | undefined) ?? (plan !== undefined ? [] : INITIAL_PERMITS))
+  const [suggestions, setSuggestions]   = useState<Permit[]>(() => plan !== undefined ? [] : INITIAL_SUGGESTIONS)
   const [mapModalPermit, setMapModal]   = useState<Permit | null>(null)
   const [freeformOpen, setFreeformOpen] = useState(false)
   const [permitFree, setPermitFree]     = useState(() => plan?.permits?.permitFree ?? false)
