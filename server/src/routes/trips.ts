@@ -6,20 +6,27 @@ import { Notification } from '../models/Notification'
 
 const router = Router()
 
+type SharedEntry = { sub: string; role: string }
+
+// Normalise sharedWith — handles both old string entries and new { sub, role } objects
+function normalizeShared(sw: Array<SharedEntry | string>): SharedEntry[] {
+  return (sw ?? []).map((e) => (typeof e === 'string' ? { sub: e, role: 'edit' } : e))
+}
+
 // Returns true if the requesting user can read this trip (owner or shared)
-function canRead(trip: { ownerSub: string; sharedWith: string[] }, sub: string) {
-  return trip.ownerSub === sub || trip.sharedWith.includes(sub)
+function canRead(trip: { ownerSub: string; sharedWith: Array<SharedEntry | string> }, sub: string) {
+  return trip.ownerSub === sub || normalizeShared(trip.sharedWith).some((e) => e.sub === sub)
 }
 
 interface TripLean extends Record<string, unknown> {
   ownerSub: string
-  sharedWith: string[]
+  sharedWith: Array<SharedEntry | string>
 }
 
-// Populates sharedWith as { sub, name }[] and adds ownerName — single User query covers both
+// Populates sharedWith as { sub, name, role }[] and adds ownerName
 async function populateTripUsers(trip: TripLean) {
-  const subs: string[] = trip.sharedWith ?? []
-  const toFetch = [...new Set([...subs, trip.ownerSub].filter(Boolean))]
+  const entries = normalizeShared(trip.sharedWith)
+  const toFetch = [...new Set([...entries.map((e) => e.sub), trip.ownerSub].filter(Boolean))]
   const users = toFetch.length
     ? await UserProfile.find({ sub: { $in: toFetch } }).select('sub name').lean<{ sub: string; name: string }[]>()
     : []
@@ -27,9 +34,9 @@ async function populateTripUsers(trip: TripLean) {
   return {
     ...trip,
     ownerName: owner?.name ?? 'Unknown',
-    sharedWith: subs.map((s) => {
-      const u = users.find((u) => u.sub === s)
-      return u ? { sub: u.sub, name: u.name } : { sub: s, name: 'Unknown' }
+    sharedWith: entries.map((entry) => {
+      const u = users.find((u) => u.sub === entry.sub)
+      return { sub: entry.sub, name: u?.name ?? 'Unknown', role: entry.role }
     }),
   }
 }
@@ -89,6 +96,7 @@ router.put('/:id', async (req, res) => {
 
     trip.set(rest)
     if ('gpxPlanned' in rest) trip.markModified('gpxPlanned')
+    if ('planStages' in rest) trip.markModified('planStages')
     await trip.save()
 
     const directUpdate: Record<string, unknown> = {}
@@ -112,15 +120,17 @@ router.post('/:id/share', async (req, res) => {
     if (!trip) return res.status(404).json({ error: 'Not found' })
     if (trip.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
 
-    const { sub } = req.body
+    const { sub, role = 'edit' } = req.body
     if (!sub) return res.status(400).json({ error: 'sub required' })
+    if (!['read', 'edit'].includes(role)) return res.status(400).json({ error: 'role must be read or edit' })
     if (sub === req.user.sub) return res.status(400).json({ error: 'Cannot share with yourself' })
 
     const target = await UserProfile.findOne({ sub }).lean()
     if (!target) return res.status(404).json({ error: 'User not found' })
 
     // Already has access — no-op
-    if (trip.sharedWith.includes(sub)) return res.json({ ok: true, name: target.name })
+    const alreadyShared = normalizeShared(trip.sharedWith as Array<SharedEntry | string>).some((e) => e.sub === sub)
+    if (alreadyShared) return res.json({ ok: true, name: target.name })
 
     // Avoid duplicate pending invites
     const existing = await Notification.findOne({
@@ -135,6 +145,7 @@ router.post('/:id/share', async (req, res) => {
         type: 'trip_share_invite',
         tripId: trip._id.toString(),
         tripTitle: trip.title,
+        role,
       })
     }
 
@@ -150,10 +161,10 @@ router.delete('/:id/leave', async (req, res) => {
     const trip = await Trip.findById(req.params.id)
     if (!trip) return res.status(404).json({ error: 'Not found' })
     if (trip.ownerSub === req.user.sub) return res.status(400).json({ error: 'Owner cannot leave their own trip' })
-    if (!trip.sharedWith.includes(req.user.sub)) return res.status(400).json({ error: 'Not a collaborator' })
+    const shared = normalizeShared(trip.sharedWith as Array<SharedEntry | string>)
+    if (!shared.some((e) => e.sub === req.user.sub)) return res.status(400).json({ error: 'Not a collaborator' })
 
-    trip.sharedWith = (trip.sharedWith as string[]).filter((s) => s !== req.user.sub)
-    await trip.save()
+    await Trip.collection.updateOne({ _id: trip._id }, { $pull: { sharedWith: { sub: req.user.sub } } } as never)
     res.status(204).send()
   } catch (err) {
     console.error('DELETE /trips/:id/leave error:', err)
@@ -167,8 +178,7 @@ router.delete('/:id/share/:sub', async (req, res) => {
     if (!trip) return res.status(404).json({ error: 'Not found' })
     if (trip.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
 
-    trip.sharedWith = (trip.sharedWith as string[]).filter((s) => s !== req.params.sub)
-    await trip.save()
+    await Trip.collection.updateOne({ _id: trip._id }, { $pull: { sharedWith: { sub: req.params.sub } } } as never)
 
     // Cancel any pending invite so the removed user can't accept it after revocation
     await Notification.deleteMany({

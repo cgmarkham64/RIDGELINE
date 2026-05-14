@@ -14,16 +14,6 @@ import { MoonLoader } from '../ui/MoonLoader'
 import { usePlan, useUpdatePlan } from '../../hooks/usePlans'
 import type { StageBodyProps } from './types'
 
-const EMPTY_META: PlanMeta = {
-  title: 'New Plan',
-  location: '—',
-  dateRange: '—',
-  miles: null,
-  elev: '—',
-  days: 0,
-  weight: '—',
-}
-
 export type SaveState = 'saved' | 'saving' | 'unsaved'
 
 const STAGE_COMPONENTS: Record<StageId, React.ComponentType<StageBodyProps>> = {
@@ -33,6 +23,31 @@ const STAGE_COMPONENTS: Record<StageId, React.ComponentType<StageBodyProps>> = {
   food:    FoodStage,
   gear:    GearStage,
   depart:  DepartStage,
+}
+
+function formatDateRange(start: string, end: string): string {
+  const fmt = (d: string) =>
+    new Date(d.slice(0, 10) + 'T00:00:00').toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+    })
+  return `${fmt(start)} – ${fmt(end)}`
+}
+
+function tripDays(start: string, end: string): number {
+  return Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86_400_000) + 1
+}
+
+function buildMeta(trip: { title?: string; location?: string; startDate?: string; endDate?: string; distanceMiles?: number; elevationGainFt?: number }): PlanMeta {
+  const hasDate = !!(trip.startDate && trip.endDate)
+  return {
+    title:     trip.title    ?? 'Untitled Trip',
+    location:  trip.location ?? '—',
+    dateRange: hasDate ? formatDateRange(trip.startDate!, trip.endDate!) : '—',
+    miles:     trip.distanceMiles  ?? null,
+    elev:      trip.elevationGainFt ? `+${trip.elevationGainFt.toLocaleString()} ft` : '—',
+    days:      hasDate ? tripDays(trip.startDate!, trip.endDate!) : 0,
+    weight:    '—',
+  }
 }
 
 export function PlanWizard({ planId }: { planId: string }) {
@@ -54,7 +69,7 @@ export function PlanWizard({ planId }: { planId: string }) {
   useEffect(() => {
     if (savedPlan && !initialized.current) {
       initialized.current = true
-      stagesRef.current = (savedPlan.stages as PlanData) ?? {}
+      stagesRef.current = (savedPlan.planStages as PlanData) ?? {}
     }
   }, [savedPlan])
 
@@ -68,7 +83,7 @@ export function PlanWizard({ planId }: { planId: string }) {
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => {
       setSaveState('saving')
-      doUpdate({ id: planId, body: { stages: stagesRef.current } })
+      doUpdate({ id: planId, body: { planStages: stagesRef.current } })
         .then(() => setSaveState('saved'))
         .catch(() => setSaveState('unsaved'))
     }, 800)
@@ -91,10 +106,10 @@ export function PlanWizard({ planId }: { planId: string }) {
     )
   }
 
-  // Read stages directly from savedPlan for the initial seed passed to each
+  // Read planStages directly from savedPlan for the initial seed passed to each
   // stage's useState initializer. After that, stage state is self-contained.
-  const plan = (savedPlan.stages as PlanData) ?? {}
-  const meta = savedPlan.meta ?? EMPTY_META
+  const plan = (savedPlan.planStages as PlanData) ?? {}
+  const meta = buildMeta(savedPlan)
 
   const activeStage = stages[stageIdx]
   if (!activeStage) return null

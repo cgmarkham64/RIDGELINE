@@ -12,8 +12,9 @@ interface Props {
 
 export function ShareDialog({ trip, onClose }: Props) {
   const [collaborators, setCollaborators] = useState(
-    (trip.sharedWith ?? []).filter((c): c is { sub: string; name: string } => typeof c === 'object' && c !== null)
+    (trip.sharedWith ?? []).filter((c): c is { sub: string; name: string; role?: 'read' | 'edit' } => typeof c === 'object' && c !== null)
   )
+  const [inviteRole, setInviteRole] = useState<'read' | 'edit'>('edit')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<UserSearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -67,10 +68,10 @@ export function ShareDialog({ trip, onClose }: Props) {
     setInviteError(null)
     setInviteSuccess(null)
     try {
-      await shareTrip(trip._id, user.sub)
+      await shareTrip(trip._id, user.sub, inviteRole)
       setCollaborators((prev) => {
         if (prev.some((c) => c.sub === user.sub)) return prev
-        return [...prev, { sub: user.sub, name: user.name }]
+        return [...prev, { sub: user.sub, name: user.name, role: inviteRole }]
       })
       setInviteSuccess(`Invite sent to ${user.name}`)
       setQuery('')
@@ -151,6 +152,9 @@ export function ShareDialog({ trip, onClose }: Props) {
                     {initials(c.name)}
                   </div>
                   <span className="flex-1 font-sans text-[13px] text-text">{c.name}</span>
+                  <span className="font-mono text-[9px] text-text-dim mr-1">
+                    {c.role === 'read' ? 'Viewer' : 'Editor'}
+                  </span>
                   <button
                     onClick={() => handleRemove(c.sub)}
                     className="font-mono text-[9px] text-text-dim hover:text-red transition-colors duration-100"
@@ -166,8 +170,27 @@ export function ShareDialog({ trip, onClose }: Props) {
 
         {/* Invite */}
         <div className="px-5 py-4 border-b border-border">
-          <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-2">
-            Invite someone
+          <div className="flex items-center justify-between mb-2">
+            <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">
+              Invite someone
+            </div>
+            <div className="flex gap-1">
+              {(['edit', 'read'] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setInviteRole(r)}
+                  className="px-2 py-[3px] font-mono text-[9px] rounded-sm border transition-colors duration-100"
+                  style={{
+                    background:   inviteRole === r ? 'var(--amber-dim)'    : 'var(--surface-2)',
+                    borderColor:  inviteRole === r ? 'var(--amber-border)' : 'var(--border)',
+                    color:        inviteRole === r ? 'var(--amber)'        : 'var(--text-dim)',
+                  }}
+                >
+                  {r === 'edit' ? 'Can edit' : 'Can view'}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="relative">
             <input

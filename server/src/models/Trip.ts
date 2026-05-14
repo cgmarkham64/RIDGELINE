@@ -15,9 +15,13 @@ const TripSchema = new Schema(
     waypoints: Schema.Types.Mixed,
     coverPhotoId: String,
     loadoutId: { type: Schema.Types.ObjectId, ref: 'Loadout' },
+    planStages: { type: Schema.Types.Mixed, default: {} },
     status: { type: String, enum: ['planning', 'ready', 'on-trail', 'wrap-up', 'complete'], default: 'complete' },
     ownerSub: { type: String, required: true, index: true },
-    sharedWith: { type: [String], default: [] },
+    sharedWith: {
+      type: [{ _id: false, sub: String, role: { type: String, default: 'edit' } }],
+      default: [],
+    },
   },
   { timestamps: true }
 )

@@ -144,9 +144,10 @@ export interface Trip {
   coverPhotoId?: string
   loadoutId?: string
   status?: 'planning' | 'ready' | 'on-trail' | 'wrap-up' | 'complete'
+  planStages?: Record<string, unknown>
   ownerSub?: string
   ownerName?: string
-  sharedWith?: { sub: string; name: string }[]
+  sharedWith?: { sub: string; name: string; role?: 'read' | 'edit' }[]
   journalDays?: JournalDay[]
   photos?: Photo[]
   createdAt: string

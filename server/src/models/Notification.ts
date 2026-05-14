@@ -10,6 +10,7 @@ const NotificationSchema = new Schema(
     tripTitle: { type: String, required: true },
     read:      { type: Boolean, default: false },
     status:    { type: String, enum: ['pending', 'accepted', 'declined'], default: 'pending' },
+    role:      { type: String, enum: ['read', 'edit'], default: 'edit' },
   },
   { timestamps: true }
 )

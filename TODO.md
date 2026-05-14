@@ -8,22 +8,6 @@
 
 Every trip in Ridgeline starts as a plan. The Plan Wizard IS how trips are created. The "Trip Log" becomes "Trips" — a unified list of everything from active plans through completed expeditions, each with a status chip. This work retires the old New Trip dialog and tightly couples the Plan model to the Trip model so journals, gear, and the wizard all share one record.
 
-**Phase 2 — Data model unification (Plan → Trip)**
-
-Currently `Plan` and `Trip` are separate MongoDB models with no link. The goal is to make the wizard create and edit a Trip directly, retiring the standalone Plan model. The direct migration path is chosen — no intermediate `tripId` FK bridge.
-
-1. **Add `planStages` (Mixed) to the Trip model** — mirror the `stages` field from `Plan.ts`. Drop `planMeta`: Trip's own top-level `title`, `location`, `startDate`, `endDate` are the canonical identity fields. The wizard writes directly to those fields (not to a separate meta object). Remove `PlanMeta` from `plan/types.ts` once the wizard is wired to Trip fields.
-
-2. **Add collaborator roles to `sharedWith`** — update `server/src/models/Trip.ts` so each entry is `{ sub: string, name: string, role: 'read' | 'edit' }`. Update the `ShareDialog` to let the owner pick a role when inviting. The accept-invite flow carries the role through. In the wizard, collaborators with `read` role see all stages read-only; `edit` role collaborators can write. Status transitions (Mark ready, Start trip, etc.) are owner-only regardless of role.
-
-3. **Migrate existing Plan records → Trips** — write a one-time migration script (`server/scripts/migratePlans.ts`): for each `Plan` document, `POST /api/trips` with `status: 'complete'`, `planStages` copied from `Plan.stages`, and `title/location/startDate/endDate` copied from `Plan.meta`. All planning stages in these migrated trips are read-only (no editing — user cleans up via UI). Any `JournalDay` documents whose `tripId` already references the original Trip `_id` are unaffected; Plan documents that have no associated Trip simply produce a new Trip record. After verifying the migration, archive the standalone Plan documents.
-
-4. **Migrate `/api/plans` → use Trip** — when the Plan Wizard creates a "plan", it should `POST /api/trips` with `status: 'planning'` and `planStages: {}`. Update `src/lib/plans.ts` and `src/hooks/usePlans.ts` to target `/api/trips` filtered by status. Replace the `PlanRecord` type with the existing `Trip` type extended with `planStages`.
-
-5. **Journal attachment stays on Trip** — `JournalDay.tripId` already references the Trip `_id`. No change needed here; when a planning trip transitions to `on-trail` the journal starts populating against the same record.
-
-6. **Remove the Plan model** (after migration is verified) — delete `server/src/models/Plan.ts` and `server/src/routes/plans.ts`, remove from `index.ts`, absorb `src/lib/plans.ts` and `src/hooks/usePlans.ts` into their trips equivalents.
-
 **Phase 3 — New Trip flow**
 
 1. **"New Trip" button → opens Plan Wizard** — in `HomePage.tsx`, replace the `TripModal` open handler with `navigate({ to: '/plan' })` (which auto-creates a planning trip via `PlanPage`). The `?id=` search param will carry the new trip's ID.
@@ -226,3 +210,4 @@ Full gear inventory system:
 - **Auto-populate** — `PlanData` type + per-stage slices in `plan/types.ts`. All stages accept `plan?: PlanData` and seed their `useState` initializers from it. `PlanWizard` passes the loaded plan down; new plans start blank.
 - **`MOCK_TRIP` replaced** — `StageHeader` and `StageRail` read from `savedPlan.meta`; `EMPTY_META` is shown for new plans.
 - **Unification Phase 1** — Renamed "Trip Log" → "Trips" in nav rail. Added `status` field to Trip model (`planning/ready/on-trail/wrap-up/complete`, default `complete`). Added `status` to frontend `Trip` type. Tone-coded Pill chips on trip cards in sidebar. Status multi-select filter added to filter popover.
+- **Unification Phase 2** — Added `planStages` (Mixed) to Trip model. `sharedWith` migrated from `[String]` to `[{sub, role}]`; `role` field added to Notification model; accept-invite uses stored role. `ShareDialog` now has a "Can edit / Can view" role toggle when inviting; role badge shown next to each collaborator. `src/lib/plans.ts` and `src/hooks/usePlans.ts` retargeted to `/api/trips`; `PlanRecord` type retired in favour of `Trip`. `PlanWizard` reads `planStages` and derives header metadata from Trip top-level fields. `PlanPage` pops `TripSetupDialog` (title/location/dates) immediately after a new planning trip is created. Migration script at `server/scripts/migratePlans.ts` handles `sharedWith` string→object conversion and Plan→Trip backfill with date parsing. `/api/plans` route stays live until migration is verified (Phase 2 step 6 deferred).

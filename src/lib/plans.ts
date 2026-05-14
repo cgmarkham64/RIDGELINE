@@ -1,39 +1,47 @@
 import { api } from './api'
-import type { PlanMeta, PlanData } from '../components/plan/types'
+import type { Trip } from '../types'
 
-export interface PlanRecord {
-  _id: string
-  ownerSub: string
-  meta: PlanMeta
-  stages: PlanData
-  createdAt: string
-  updatedAt: string
+function todayIso() {
+  return new Date().toISOString().slice(0, 10)
 }
 
-export async function fetchPlans(): Promise<PlanRecord[]> {
-  const { data } = await api.get<PlanRecord[]>('/api/plans')
+export async function fetchPlans(): Promise<Trip[]> {
+  const { data } = await api.get<Trip[]>('/api/trips')
+  return data.filter((t) => t.status === 'planning' || t.status === 'ready')
+}
+
+export async function fetchPlan(id: string): Promise<Trip> {
+  const { data } = await api.get<Trip>(`/api/trips/${id}`)
   return data
 }
 
-export async function fetchPlan(id: string): Promise<PlanRecord> {
-  const { data } = await api.get<PlanRecord>(`/api/plans/${id}`)
-  return data
-}
-
-export async function createPlan(meta?: Partial<PlanMeta>): Promise<PlanRecord> {
-  meta = meta ?? {}
-  const { data } = await api.post<PlanRecord>('/api/plans', { meta, stages: {} })
+export async function createPlan(): Promise<Trip> {
+  const today = todayIso()
+  const { data } = await api.post<Trip>('/api/trips', {
+    title: 'Untitled Trip',
+    location: '',
+    startDate: today,
+    endDate: today,
+    status: 'planning',
+    planStages: {},
+  })
   return data
 }
 
 export async function updatePlan(
   id: string,
-  body: { meta?: Partial<PlanMeta>; stages?: PlanData }
-): Promise<PlanRecord> {
-  const { data } = await api.put<PlanRecord>(`/api/plans/${id}`, body)
+  body: {
+    title?: string
+    location?: string
+    startDate?: string
+    endDate?: string
+    planStages?: object
+  }
+): Promise<Trip> {
+  const { data } = await api.put<Trip>(`/api/trips/${id}`, body)
   return data
 }
 
 export async function deletePlan(id: string): Promise<void> {
-  await api.delete(`/api/plans/${id}`)
+  await api.delete(`/api/trips/${id}`)
 }

@@ -20,9 +20,15 @@ router.post('/:id/accept', async (req, res) => {
       return res.status(400).json({ error: 'Nothing to accept' })
 
     const trip = await Trip.findById(note.tripId)
-    if (trip && !trip.sharedWith.includes(req.user.sub)) {
-      trip.sharedWith.push(req.user.sub)
-      await trip.save()
+    if (trip) {
+      const alreadyIn = (trip.sharedWith as Array<{ sub: string } | string>)
+        .some((e) => (typeof e === 'string' ? e : e.sub) === req.user.sub)
+      if (!alreadyIn) {
+        await Trip.collection.updateOne(
+          { _id: trip._id },
+          { $push: { sharedWith: { sub: req.user.sub, role: (note as { role?: string }).role ?? 'edit' } } }
+        )
+      }
     }
 
     note.status = 'accepted'

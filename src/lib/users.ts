@@ -10,6 +10,6 @@ export async function searchUsers(q: string): Promise<UserSearchResult[]> {
   return data
 }
 
-export async function shareTrip(tripId: string, sub: string): Promise<void> {
-  await api.post(`/api/trips/${tripId}/share`, { sub })
+export async function shareTrip(tripId: string, sub: string, role: 'read' | 'edit' = 'edit'): Promise<void> {
+  await api.post(`/api/trips/${tripId}/share`, { sub, role })
 }
