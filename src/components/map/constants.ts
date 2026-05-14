@@ -1,6 +1,15 @@
 import type { CSSProperties } from 'react'
 import type { GpxTrackEntry, WaypointType } from '../../types'
 
+// ─── Tile layer ───────────────────────────────────────────────────────────────
+
+export const CARTO_DARK_TILE = {
+  url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  subdomains: 'abcd',
+  maxZoom: 19,
+  detectRetina: true,
+} as const
+
 // ─── Start / end point resolution ────────────────────────────────────────────
 
 /** Returns the overall [lat, lon] start and end of the trip's tracks.

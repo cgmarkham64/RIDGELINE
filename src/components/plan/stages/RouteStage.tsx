@@ -11,7 +11,7 @@ import { searchUsers, shareTrip, type UserSearchResult } from '../../../lib/user
 import { api } from '../../../lib/api'
 import { parseGpx } from '../../../lib/gpx'
 import { ElevationProfile } from '../../trip/ElevationProfile'
-import { PLANNED_COLOR, resolveStartEnd } from '../../map/constants'
+import { PLANNED_COLOR, resolveStartEnd, CARTO_DARK_TILE } from '../../map/constants'
 import { makeStartIcon, makeEndIcon } from '../../map/leafletIcons'
 import { IconPlus, IconMap, IconDownload, IconFile, IconX } from '../../icons'
 import type { StageBodyProps } from '../types'
@@ -460,10 +460,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                     attributionControl={false}
                   >
                     <TileLayer
-                      url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                      subdomains="abcd"
-                      maxZoom={19}
-                      detectRetina
+                      {...CARTO_DARK_TILE}
                     />
                     {plannedLatLngs.length > 1 && (
                       <Polyline positions={plannedLatLngs} color={PLANNED_COLOR} weight={4} opacity={0.9} dashArray="10 6" />

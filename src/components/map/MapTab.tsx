@@ -5,7 +5,7 @@ import L, { type LatLngBoundsExpression } from 'leaflet'
 import type { GpxTrack, GpxTrackEntry, Trip, Waypoint, WaypointType } from '../../types'
 import { api } from '../../lib/api'
 import { GpxMapSection } from '../trip/GpxMapSection'
-import { DEFAULT_FORM, PLANNED_COLOR, mono, trackColor, resolveStartEnd } from './constants'
+import { DEFAULT_FORM, PLANNED_COLOR, mono, trackColor, resolveStartEnd, CARTO_DARK_TILE } from './constants'
 import { makeWaypointIcon, makePendingIcon, makeStartIcon, makeEndIcon } from './leafletIcons'
 import { FitBounds, MapClickHandler, MapContextMenuHandler, MapFocuser, MapRefCapture } from './MapHelpers'
 import { WaypointForm } from './WaypointForm'
@@ -394,10 +394,7 @@ function MapArea({
           attributionControl={false}
         >
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            subdomains="abcd"
-            maxZoom={19}
-            detectRetina
+            {...CARTO_DARK_TILE}
           />
           {plannedLatLngs.length > 1 && (
             <Polyline positions={plannedLatLngs} color={PLANNED_COLOR} weight={4} opacity={0.9} dashArray="10 6" />

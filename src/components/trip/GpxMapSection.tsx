@@ -8,7 +8,7 @@ import { parseGpx } from '../../lib/gpx'
 import type { ParsedGpx } from '../../lib/gpx'
 import { api } from '../../lib/api'
 import { makeWaypointIcon, makeStartIcon, makeEndIcon } from '../map/leafletIcons'
-import { resolveStartEnd } from '../map/constants'
+import { resolveStartEnd, CARTO_DARK_TILE } from '../map/constants'
 
 // ─── Map helpers ─────────────────────────────────────────────────────────────
 
@@ -387,11 +387,7 @@ export function GpxMapSection({
             attributionControl={false}
           >
             <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              subdomains="abcd"
-              maxZoom={19}
-              detectRetina
+              {...CARTO_DARK_TILE}
             />
             {plannedLatLngs.length > 1 && (
               <Polyline
