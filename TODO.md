@@ -15,9 +15,10 @@ Every trip in Ridgeline starts as a plan. The Plan Wizard IS how trips are creat
 All seven stages render with internal state. The items below are UI stubs, disconnected wiring, or hardcoded values that need real data before the wizard is production-ready.
 
 **All stages**
-- ⚠ `Stage.done / Stage.total` in `createStages()` are static — `PlanOverview` ring progress never updates regardless of what the user does in any stage. The per-stage right-rail checklists drive local `doneCount` but that value is never written back to the wizard shell.
+- ⚠ `Stage.done / Stage.total` are wired for Stage 1 (Route) — other stages still need their checklists connected to `onProgress` as they are built out.
 
 **Stage 1 — Route**
+- ✅ Segments CRUD (add/edit/delete via dialog), live checklist with `onProgress` wired to stage rail, real partners from `sharedWith`, inline partner invite panel, map placeholder pending Leaflet + GPX.
 - ⚠ Map is a placeholder — needs Leaflet map + GPX upload (planned route). Replace placeholder card with a real Leaflet map rendering `gpxPlanned`; add a file-input button to upload and store the GPX via `PUT /api/trips/:id`. Elevation profile card should render from the GPX track data.
 - ⚠ Source files section is empty-state only — wires in automatically once GPX upload is done.
 

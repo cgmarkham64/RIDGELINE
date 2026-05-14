@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import type { PlanView, StageId, PlanData, PlanMeta } from './types'
 import { createStages } from './constants'
 import { StageRail } from './StageRail'
@@ -19,6 +19,8 @@ import { useAuthStore } from '../../store/auth'
 import type { StageBodyProps } from './types'
 
 export type SaveState = 'saved' | 'saving' | 'unsaved'
+
+const BASE_STAGES = createStages()
 
 const STAGE_COMPONENTS: Record<StageId, React.ComponentType<StageBodyProps>> = {
   route:   RouteStage,
@@ -61,8 +63,10 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
   const { data: journalEntries = [] } = useJournalDays(planId)
   const userId = useAuthStore((s) => s.user?.id)
 
-  const [stages]                    = useState(createStages)
-  const validStage = initialStage !== undefined && initialStage >= 1 && initialStage <= stages.length
+  // Base stages never change — progress is overlaid separately.
+  const [progressOverrides, setProgressOverrides] = useState<Record<number, { done: number; total: number }>>({})
+
+  const validStage = initialStage !== undefined && initialStage >= 1 && initialStage <= BASE_STAGES.length
   const [view, setView]             = useState<PlanView>(validStage ? 'stage' : 'overview')
   const [stageIdx, setStageIdx]     = useState(validStage ? initialStage - 1 : 0)
   const [showEditDetails, setShowEditDetails]   = useState(false)
@@ -99,6 +103,10 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
     }, 800)
   }, [planId, doUpdate])
 
+  const handleProgress = useCallback((done: number, total: number) => {
+    setProgressOverrides(prev => ({ ...prev, [stageIdx]: { done, total } }))
+  }, [stageIdx])
+
   const handleStatusChange = useCallback((newStatus: string) => {
     if (newStatus === 'complete' && journalEntries.length === 0) {
       setConfirmComplete(true)
@@ -106,6 +114,22 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
     }
     doUpdate({ id: planId, body: { status: newStatus } })
   }, [planId, doUpdate, journalEntries.length])
+
+  // Derive stage done/total from saved plan data + live checkbox overrides.
+  // Runs during render so Overview and StageRail are always in sync without
+  // requiring each stage to mount first.
+  const stages = useMemo(() => {
+    const plan = savedPlan ? ((savedPlan.planStages as PlanData) ?? {}) : {}
+    return BASE_STAGES.map((s, i) => {
+      let seeded = s
+      if (s.id === 'route') {
+        const cl = plan.route?.checklist ?? []
+        seeded = { ...s, done: cl.filter(c => c.done).length }
+      }
+      const override = progressOverrides[i]
+      return override ? { ...seeded, ...override } : seeded
+    })
+  }, [savedPlan, progressOverrides])
 
   const totalDone = stages.reduce((a, s) => a + s.done, 0)
   const totalAll  = stages.reduce((a, s) => a + s.total, 0)
@@ -192,6 +216,7 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
                 onJump={jumpTo}
                 plan={plan}
                 onChange={handleChange}
+                onProgress={handleProgress}
                 tripStatus={savedPlan.status}
                 trip={savedPlan}
                 canEdit={canEdit}

@@ -3,6 +3,8 @@ import { JumpChip } from '../JumpChip'
 import { ProgressBar } from '../ProgressBar'
 import { CheckItem } from '../CheckItem'
 import { initials } from '../../../lib/utils'
+import { searchUsers, shareTrip, type UserSearchResult } from '../../../lib/users'
+import { IconPlus, IconMap } from '../../icons'
 import type { StageBodyProps } from '../types'
 
 type SegRow   = { n: number; name: string; mi: number; gain: number; cls: string; notes: string }
@@ -107,15 +109,22 @@ function SegmentDialog({
 
 // ─── Route Stage ─────────────────────────────────────────────────────────────
 
-export function RouteStage({ onJump, plan, onChange, trip, canEdit }: StageBodyProps) {
+export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }: StageBodyProps) {
   const [segments,    setSegments]    = useState<SegRow[]>(plan?.route?.segments ?? [])
   const [checklist,   setChecklist]   = useState<CheckRow[]>(plan?.route?.checklist ?? DEFAULT_CHECKLIST)
   const [sourceFiles]                 = useState(plan?.route?.sourceFiles ?? [])
   const [segDialog, setSegDialog]     = useState<{ mode: 'add' } | { mode: 'edit'; seg: SegRow } | null>(null)
 
-  const isMounted   = useRef(false)
-  const onChangeRef = useRef(onChange)
-  useEffect(() => { onChangeRef.current = onChange }, [onChange])
+  const isMounted     = useRef(false)
+  const onChangeRef   = useRef(onChange)
+  const onProgressRef = useRef(onProgress)
+  useEffect(() => { onChangeRef.current   = onChange   }, [onChange])
+  useEffect(() => { onProgressRef.current = onProgress }, [onProgress])
+
+  // Keep stage rail in sync whenever checklist changes (fires on mount too).
+  useEffect(() => {
+    onProgressRef.current?.(checklist.filter(c => c.done).length, checklist.length)
+  }, [checklist])
 
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
@@ -130,6 +139,65 @@ export function RouteStage({ onJump, plan, onChange, trip, canEdit }: StageBodyP
     ...(trip?.ownerSub ? [{ sub: trip.ownerSub, name: trip.ownerName ?? 'Owner' }] : []),
     ...(trip?.sharedWith?.map(c => ({ sub: c.sub, name: c.name })) ?? []),
   ]
+
+  // ── Partner invite ──────────────────────────────────────────────────────────
+  const [inviteOpen,      setInviteOpen]      = useState(false)
+  const [inviteQuery,     setInviteQuery]     = useState('')
+  const [inviteResults,   setInviteResults]   = useState<UserSearchResult[]>([])
+  const [inviteSearching, setInviteSearching] = useState(false)
+  const [inviteMsg,       setInviteMsg]       = useState<{ text: string; tone: 'pine' | 'red' } | null>(null)
+  const [pendingInvites,  setPendingInvites]  = useState<{ sub: string; name: string }[]>([])
+  const inviteTimer   = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const inviteSearchId = useRef(0)
+
+  function handleInviteQueryChange(q: string) {
+    setInviteQuery(q)
+    clearTimeout(inviteTimer.current)
+    if (q.trim().length < 2) {
+      setInviteResults([])
+      setInviteSearching(false)
+      return
+    }
+    setInviteSearching(true)
+    const id = ++inviteSearchId.current
+    const existingSubs = new Set([
+      ...(trip?.sharedWith?.map(c => c.sub) ?? []),
+      ...(trip?.ownerSub ? [trip.ownerSub] : []),
+      ...pendingInvites.map(p => p.sub),
+    ])
+    inviteTimer.current = setTimeout(() => {
+      searchUsers(q.trim())
+        .then(users => {
+          if (id !== inviteSearchId.current) return
+          setInviteResults(users.filter(u => !existingSubs.has(u.sub)))
+          setInviteSearching(false)
+        })
+        .catch(() => { if (id === inviteSearchId.current) setInviteSearching(false) })
+    }, 300)
+  }
+
+  async function handleInvite(user: UserSearchResult) {
+    if (!trip?._id) return
+    setInviteMsg(null)
+    try {
+      await shareTrip(trip._id, user.sub, 'edit')
+      setPendingInvites(prev => [...prev, { sub: user.sub, name: user.name }])
+      setInviteQuery('')
+      setInviteResults([])
+      setInviteMsg({ text: `Invite sent to ${user.name}`, tone: 'pine' })
+      setTimeout(() => setInviteMsg(null), 3000)
+    } catch {
+      setInviteMsg({ text: 'Failed to send invite', tone: 'red' })
+    }
+  }
+
+  function closeInvitePanel() {
+    setInviteOpen(false)
+    setInviteQuery('')
+    setInviteResults([])
+    setInviteMsg(null)
+  }
+  // ───────────────────────────────────────────────────────────────────────────
 
   function toggleCheck(i: number) {
     setChecklist(prev => prev.map((c, idx) => idx === i ? { ...c, done: !c.done } : c))
@@ -163,11 +231,7 @@ export function RouteStage({ onJump, plan, onChange, trip, canEdit }: StageBodyP
             <div className="bg-surface border border-border rounded-lg p-[18px]">
               <div className="flex items-start gap-3 mb-3.5">
                 <span className="w-8 h-8 rounded-md flex items-center justify-center bg-pine-dim border border-pine-border text-pine shrink-0 mt-0.5">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-                    <line x1="8" y1="2" x2="8" y2="18" />
-                    <line x1="16" y1="6" x2="16" y2="22" />
-                  </svg>
+                  <IconMap size={16} />
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="font-heading text-[14px] font-extrabold text-text">
@@ -186,11 +250,7 @@ export function RouteStage({ onJump, plan, onChange, trip, canEdit }: StageBodyP
                 className="rounded border border-dashed border-border flex flex-col items-center justify-center gap-2"
                 style={{ height: 220, background: 'var(--surface-2)' }}
               >
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-text-dim">
-                  <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-                  <line x1="8" y1="2" x2="8" y2="18" />
-                  <line x1="16" y1="6" x2="16" y2="22" />
-                </svg>
+                <span className="text-text-dim"><IconMap size={28} /></span>
                 <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">No GPX uploaded</p>
                 <p className="text-[11px] text-text-dim">Map and elevation profile available after GPX upload</p>
               </div>
@@ -301,19 +361,82 @@ export function RouteStage({ onJump, plan, onChange, trip, canEdit }: StageBodyP
 
             {/* Partners */}
             <div className="bg-surface border border-border rounded-lg p-3.5">
-              <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">
-                Partners ({partners.length})
+              <div className="flex items-center justify-between mb-2.5">
+                <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">
+                  Partners ({partners.length + pendingInvites.length})
+                </span>
+                {canEdit && !inviteOpen && (
+                  <button
+                    onClick={() => setInviteOpen(true)}
+                    title="Add partner"
+                    className="inline-flex items-center gap-1 font-heading text-[9px] font-bold tracking-[0.1em] uppercase px-2 py-1 rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
+                  >
+                    <IconPlus size={9} />
+                    Add
+                  </button>
+                )}
               </div>
-              {partners.length === 0 ? (
+
+              {partners.length === 0 && pendingInvites.length === 0 && !inviteOpen && (
                 <p className="font-mono text-[9px] text-text-dim italic">No partners yet.</p>
-              ) : partners.map((p, i) => (
-                <div key={p.sub} className={`flex items-center gap-2.5 py-2 ${i < partners.length - 1 ? 'border-b border-border' : ''}`}>
+              )}
+
+              {[...partners.map(p => ({ ...p, pending: false })), ...pendingInvites.map(p => ({ ...p, pending: true }))].map((p, i, arr) => (
+                <div key={p.sub} className={`flex items-center gap-2.5 py-2 ${i < arr.length - 1 || inviteOpen ? 'border-b border-border' : ''}`}>
                   <span className="w-[26px] h-[26px] rounded-full bg-surface-2 border border-border-mid flex items-center justify-center font-heading text-[10px] font-extrabold text-amber shrink-0">
                     {initials(p.name)}
                   </span>
-                  <span className="text-[11px] font-semibold text-text truncate">{p.name}</span>
+                  <span className="text-[11px] font-semibold text-text truncate flex-1 min-w-0">{p.name}</span>
+                  {p.pending && (
+                    <span className="font-mono text-[8px] tracking-[0.12em] text-amber shrink-0">PENDING</span>
+                  )}
                 </div>
               ))}
+
+              {inviteOpen && (
+                <div className="pt-2.5">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={inviteQuery}
+                      onChange={e => handleInviteQueryChange(e.target.value)}
+                      placeholder="Search by name or email…"
+                      autoFocus
+                      className="w-full px-2.5 py-[6px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
+                    />
+                    {inviteSearching && (
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-[9px] text-text-dim">…</span>
+                    )}
+                    {inviteResults.length > 0 && (
+                      <div className="absolute left-0 right-0 top-full mt-1 bg-surface border border-border-mid rounded shadow-xl z-10 overflow-hidden">
+                        {inviteResults.map(u => (
+                          <button
+                            key={u.sub}
+                            onMouseDown={e => { e.preventDefault(); handleInvite(u) }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-left bg-transparent border-none cursor-pointer hover:bg-surface-2 transition-colors"
+                          >
+                            <span className="w-[22px] h-[22px] rounded-full bg-surface-2 border border-border flex items-center justify-center font-heading text-[9px] font-extrabold text-amber shrink-0">
+                              {initials(u.name)}
+                            </span>
+                            <span className="text-[11px] text-text truncate">{u.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {inviteMsg && (
+                    <p className="font-mono text-[9px] mt-1.5" style={{ color: inviteMsg.tone === 'pine' ? 'var(--pine)' : 'var(--red)' }}>
+                      {inviteMsg.text}
+                    </p>
+                  )}
+                  <button
+                    onClick={closeInvitePanel}
+                    className="font-mono text-[9px] text-text-dim hover:text-text transition-colors cursor-pointer bg-transparent border-none p-0 mt-2"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Source files */}

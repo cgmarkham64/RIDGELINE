@@ -128,6 +128,7 @@ export interface StageBodyProps {
   onJump: (id: string) => void
   plan?: PlanData
   onChange?: (patch: Partial<PlanData>) => void
+  onProgress?: (done: number, total: number) => void
   tripStatus?: string
   trip?: Trip
   canEdit?: boolean
