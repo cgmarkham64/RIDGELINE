@@ -18,9 +18,8 @@ All seven stages render with internal state. The items below are UI stubs, disco
 - ⚠ `Stage.done / Stage.total` in `createStages()` are static — `PlanOverview` ring progress never updates regardless of what the user does in any stage. The per-stage right-rail checklists drive local `doneCount` but that value is never written back to the wizard shell.
 
 **Stage 1 — Route**
-- ⚠ "Edit" and "Split segment" buttons are stubs — no edit flow.
-- ⚠ Right-rail checklist is hard-wired to 6/6 done.
-- ⚠ Source files list is mock display only — no GPX/KML upload or parsing.
+- ⚠ Map is a placeholder — needs Leaflet map + GPX upload (planned route). Replace placeholder card with a real Leaflet map rendering `gpxPlanned`; add a file-input button to upload and store the GPX via `PUT /api/trips/:id`. Elevation profile card should render from the GPX track data.
+- ⚠ Source files section is empty-state only — wires in automatically once GPX upload is done.
 
 **Stage 2 — Days**
 - ⚠ Time fields (Wake / On-trail / Camp by) use `defaultValue` — edits are not captured in state.
@@ -137,6 +136,7 @@ Full gear inventory system:
 ## Ideas / Research
 
 - Investigate OnX Backcountry integration options for personal app projects — import tracks, waypoints, or gear lists.
+- **Route stage — auto-populate segments from GPX**: when a planned GPX is uploaded, offer to split it into segments automatically using waypoints or named track segments from the file. User could review and accept/edit the suggested splits rather than entering each segment by hand.
 - Investigate Garmin API integration — Vo2 max as a metric to inform trip difficulty rating / user readiness.
 - Plan Wizard tables: ADD / EDIT / REMOVE buttons with row selection where appropriate. Pop open dialogs rather than editing inline — the table is a truncated view of what's in the dialog.
 - Selective retroactive stage unlock: allow users to unlock individual planning stages after `on-trail` for corrections (e.g., gear changes mid-trip). Discourage but don't block. Start with the all-or-nothing "Back to planning" escape hatch in Phase 5, then refine.

@@ -30,6 +30,7 @@ export type ZoneStatus = 'available' | 'limited' | 'sold_out'
 export interface PlanRouteData {
   segments: { n: number; name: string; mi: number; gain: number; cls: string; notes: string }[]
   sourceFiles: { name: string; meta: string }[]
+  checklist: { text: string; done: boolean }[]
 }
 
 export interface PlanDayEntry {
