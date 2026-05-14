@@ -11,7 +11,8 @@ import { searchUsers, shareTrip, type UserSearchResult } from '../../../lib/user
 import { api } from '../../../lib/api'
 import { parseGpx } from '../../../lib/gpx'
 import { ElevationProfile } from '../../trip/ElevationProfile'
-import { PLANNED_COLOR, resolveStartEnd, CARTO_DARK_TILE } from '../../map/constants'
+import { PLANNED_COLOR, resolveStartEnd, TILE_LAYERS, type TileLayerKey } from '../../map/constants'
+import { MapTileToggle } from '../../map/MapTileToggle'
 import { makeStartIcon, makeEndIcon } from '../../map/leafletIcons'
 import { IconPlus, IconMap, IconDownload, IconFile, IconX } from '../../icons'
 import type { StageBodyProps } from '../types'
@@ -175,6 +176,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   const [segments,    setSegments]    = useState<SegRow[]>(plan?.route?.segments ?? [])
   const [checklist,   setChecklist]   = useState<CheckRow[]>(plan?.route?.checklist ?? DEFAULT_CHECKLIST)
   const [segDialog, setSegDialog]     = useState<{ mode: 'add' } | { mode: 'edit'; seg: SegRow } | null>(null)
+  const [tileLayer,   setTileLayer]   = useState<TileLayerKey>('topo')
   const [uploading,   setUploading]   = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [isDragging,  setIsDragging]  = useState(false)
@@ -443,6 +445,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
               {/* Map */}
               <div className="relative rounded overflow-hidden border border-border" style={{ height: 220 }}>
+                <MapTileToggle current={tileLayer} onToggle={() => setTileLayer(k => k === 'topo' ? 'dark' : 'topo')} />
                 {isDragging && canEdit && (
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 pointer-events-none"
                     style={{ background: 'rgba(15,13,11,0.75)', borderRadius: 'inherit' }}>
@@ -460,7 +463,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                     attributionControl={false}
                   >
                     <TileLayer
-                      {...CARTO_DARK_TILE}
+                      {...TILE_LAYERS[tileLayer]}
                     />
                     {plannedLatLngs.length > 1 && (
                       <Polyline positions={plannedLatLngs} color={PLANNED_COLOR} weight={4} opacity={0.9} dashArray="10 6" />

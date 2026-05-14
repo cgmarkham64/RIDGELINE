@@ -10,6 +10,19 @@ export const CARTO_DARK_TILE = {
   detectRetina: true,
 } as const
 
+export const OPENTOPOMAP_TILE = {
+  url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+  subdomains: 'abc',
+  maxZoom: 17,
+} as const
+
+export const TILE_LAYERS = {
+  topo: OPENTOPOMAP_TILE,
+  dark: CARTO_DARK_TILE,
+} as const
+
+export type TileLayerKey = keyof typeof TILE_LAYERS
+
 // ─── Start / end point resolution ────────────────────────────────────────────
 
 /** Returns the overall [lat, lon] start and end of the trip's tracks.

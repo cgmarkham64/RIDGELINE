@@ -5,7 +5,8 @@ import L, { type LatLngBoundsExpression } from 'leaflet'
 import type { GpxTrack, GpxTrackEntry, Trip, Waypoint, WaypointType } from '../../types'
 import { api } from '../../lib/api'
 import { GpxMapSection } from '../trip/GpxMapSection'
-import { DEFAULT_FORM, PLANNED_COLOR, mono, trackColor, resolveStartEnd, CARTO_DARK_TILE } from './constants'
+import { DEFAULT_FORM, PLANNED_COLOR, mono, trackColor, resolveStartEnd, TILE_LAYERS, type TileLayerKey } from './constants'
+import { MapTileToggle } from './MapTileToggle'
 import { makeWaypointIcon, makePendingIcon, makeStartIcon, makeEndIcon } from './leafletIcons'
 import { FitBounds, MapClickHandler, MapContextMenuHandler, MapFocuser, MapRefCapture } from './MapHelpers'
 import { WaypointForm } from './WaypointForm'
@@ -37,6 +38,7 @@ export function MapTab({ trip, onTripUpdated }: Props) {
   const [contextMenu, setContextMenu] = useState<{ lat: number; lon: number; x: number; y: number } | null>(null)
   const [waypointContextMenu, setWaypointContextMenu] = useState<{ wp: Waypoint; x: number; y: number } | null>(null)
   const mapRef = useRef<L.Map | null>(null)
+  const [tileLayer, setTileLayer] = useState<TileLayerKey>('topo')
 
   const waypoints = trip.waypoints ?? []
   const gpxTracks: GpxTrackEntry[] = trip.gpxTracks ?? []
@@ -212,6 +214,8 @@ export function MapTab({ trip, onTripUpdated }: Props) {
         startEnd={resolveStartEnd(plannedLatLngs, tracksWithLatLngs)}
         contextMenu={contextMenu}
         waypointContextMenu={waypointContextMenu}
+        tileLayer={tileLayer}
+        onTileToggle={() => setTileLayer(k => k === 'topo' ? 'dark' : 'topo')}
         onMapClick={handleMapClick}
         onMarkerClick={handleMarkerClick}
         onMarkerContextMenu={handleMarkerContextMenu}
@@ -246,7 +250,7 @@ export function MapTab({ trip, onTripUpdated }: Props) {
         />
       )}
 
-      <AttributionStrip />
+      <AttributionStrip tileLayer={tileLayer} />
     </div>
   )
 }
@@ -355,6 +359,8 @@ function MapArea({
   onContextMenu,
   onDismissContextMenu,
   onDismissWaypointContextMenu,
+  tileLayer,
+  onTileToggle,
 }: {
   bounds: L.LatLngBounds | null
   allPoints: [number, number][]
@@ -378,6 +384,8 @@ function MapArea({
   onContextMenu: (lat: number, lon: number, x: number, y: number) => void
   onDismissContextMenu: () => void
   onDismissWaypointContextMenu: () => void
+  tileLayer: TileLayerKey
+  onTileToggle: () => void
 }) {
   return (
     <div
@@ -393,9 +401,7 @@ function MapArea({
           zoomControl={false}
           attributionControl={false}
         >
-          <TileLayer
-            {...CARTO_DARK_TILE}
-          />
+          <TileLayer {...TILE_LAYERS[tileLayer]} />
           {plannedLatLngs.length > 1 && (
             <Polyline positions={plannedLatLngs} color={PLANNED_COLOR} weight={4} opacity={0.9} dashArray="10 6" />
           )}
@@ -469,6 +475,7 @@ function MapArea({
         </ContextMenu>
       )}
       <ZoomControls mapRef={mapRef} allPoints={allPoints} />
+      <MapTileToggle current={tileLayer} onToggle={onTileToggle} />
       {addMode && <AddModeHint />}
       <TrackLegend plannedLatLngs={plannedLatLngs} tracksWithLatLngs={tracksWithLatLngs} />
     </div>
@@ -723,27 +730,23 @@ function WaypointEditDialog({
 
 // ─── Attribution strip ────────────────────────────────────────────────────────
 
-function AttributionStrip() {
+function AttributionStrip({ tileLayer }: { tileLayer: TileLayerKey }) {
   return (
     <div className="shrink-0 px-3.5 py-1.25 border-t border-border bg-surface font-mono text-[9px] tracking-[0.06em] text-text-dim">
       Map data &copy;{' '}
-      <a
-        href="https://www.openstreetmap.org/copyright"
-        target="_blank"
-        rel="noreferrer"
-        className="text-text-dim underline underline-offset-2"
-      >
+      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="text-text-dim underline underline-offset-2">
         OpenStreetMap
       </a>{' '}
       contributors, tiles by{' '}
-      <a
-        href="https://carto.com/attributions"
-        target="_blank"
-        rel="noreferrer"
-        className="text-text-dim underline underline-offset-2"
-      >
-        CARTO
-      </a>
+      {tileLayer === 'topo' ? (
+        <a href="https://opentopomap.org" target="_blank" rel="noreferrer" className="text-text-dim underline underline-offset-2">
+          OpenTopoMap
+        </a>
+      ) : (
+        <a href="https://carto.com/attributions" target="_blank" rel="noreferrer" className="text-text-dim underline underline-offset-2">
+          CARTO
+        </a>
+      )}
     </div>
   )
 }

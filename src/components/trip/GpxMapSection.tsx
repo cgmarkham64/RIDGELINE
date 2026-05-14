@@ -8,7 +8,8 @@ import { parseGpx } from '../../lib/gpx'
 import type { ParsedGpx } from '../../lib/gpx'
 import { api } from '../../lib/api'
 import { makeWaypointIcon, makeStartIcon, makeEndIcon } from '../map/leafletIcons'
-import { resolveStartEnd, CARTO_DARK_TILE } from '../map/constants'
+import { resolveStartEnd, TILE_LAYERS, type TileLayerKey } from '../map/constants'
+import { MapTileToggle } from '../map/MapTileToggle'
 
 // ─── Map helpers ─────────────────────────────────────────────────────────────
 
@@ -112,6 +113,7 @@ export function GpxMapSection({
   const [removing, setRemoving] = useState<string | null>(null)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [tileLayer, setTileLayer] = useState<TileLayerKey>('topo')
 
   const gpxTracks = trip.gpxTracks ?? []
 
@@ -379,6 +381,7 @@ export function GpxMapSection({
       {/* Map — hidden when showMap={false} (e.g. map tab renders its own full-size map) */}
       {showMap && hasAny && bounds ? (
         <div className="relative z-1 rounded-md overflow-hidden border border-border">
+          <MapTileToggle current={tileLayer} onToggle={() => setTileLayer(k => k === 'topo' ? 'dark' : 'topo')} />
           <MapContainer
             bounds={bounds}
             boundsOptions={{ padding: [24, 24] }}
@@ -386,9 +389,7 @@ export function GpxMapSection({
             scrollWheelZoom={false}
             attributionControl={false}
           >
-            <TileLayer
-              {...CARTO_DARK_TILE}
-            />
+            <TileLayer {...TILE_LAYERS[tileLayer]} />
             {plannedLatLngs.length > 1 && (
               <Polyline
                 positions={plannedLatLngs}
