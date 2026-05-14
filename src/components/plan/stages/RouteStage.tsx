@@ -1,10 +1,19 @@
 import { useState, useEffect, useRef } from 'react'
+import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L, { type LatLngBoundsExpression } from 'leaflet'
+import { useQueryClient } from '@tanstack/react-query'
 import { JumpChip } from '../JumpChip'
 import { ProgressBar } from '../ProgressBar'
 import { CheckItem } from '../CheckItem'
 import { initials } from '../../../lib/utils'
 import { searchUsers, shareTrip, type UserSearchResult } from '../../../lib/users'
-import { IconPlus, IconMap } from '../../icons'
+import { api } from '../../../lib/api'
+import { parseGpx } from '../../../lib/gpx'
+import { ElevationProfile } from '../../trip/ElevationProfile'
+import { PLANNED_COLOR, resolveStartEnd } from '../../map/constants'
+import { makeStartIcon, makeEndIcon } from '../../map/leafletIcons'
+import { IconPlus, IconMap, IconDownload, IconFile, IconX } from '../../icons'
 import type { StageBodyProps } from '../types'
 
 type SegRow   = { n: number; name: string; mi: number; gain: number; cls: string; notes: string }
@@ -18,6 +27,59 @@ const DEFAULT_CHECKLIST: CheckRow[] = [
   { text: 'Segments reviewed',         done: false },
   { text: 'Partners reviewed',         done: false },
 ]
+
+// ─── Leaflet helpers ──────────────────────────────────────────────────────────
+
+function toLatLngs(coords: [number, number, number][] | undefined): [number, number][] {
+  return coords?.map(([lon, lat]) => [lat, lon]) ?? []
+}
+
+function coordsToMiles(coords: [number, number, number][]): number {
+  let d = 0
+  for (let i = 1; i < coords.length; i++) {
+    const [lon1, lat1] = coords[i - 1]
+    const [lon2, lat2] = coords[i]
+    const dLat = ((lat2 - lat1) * Math.PI) / 180
+    const dLon = ((lon2 - lon1) * Math.PI) / 180
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2
+    d += 3958.8 * 2 * Math.asin(Math.sqrt(a))
+  }
+  return d
+}
+
+function buildGpx(coords: [number, number, number][], name: string): string {
+  const trkpts = coords.map(([lon, lat, ele]) =>
+    `    <trkpt lat="${lat}" lon="${lon}">${ele ? `<ele>${ele}</ele>` : ''}</trkpt>`
+  ).join('\n')
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Ridgeline" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>${name}</name>
+    <trkseg>
+${trkpts}
+    </trkseg>
+  </trk>
+</gpx>`
+}
+
+function downloadGpx(coords: [number, number, number][], name: string) {
+  const blob = new Blob([buildGpx(coords, name)], { type: 'application/gpx+xml' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${name.toLowerCase().replace(/\s+/g, '-')}.gpx`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function FitBounds({ positions }: { positions: [number, number][] }) {
+  const map = useMap()
+  useEffect(() => {
+    if (positions.length > 1)
+      map.fitBounds(positions as LatLngBoundsExpression, { padding: [20, 20] })
+  }, [map, positions])
+  return null
+}
 
 // ─── Segment dialog ───────────────────────────────────────────────────────────
 
@@ -112,8 +174,13 @@ function SegmentDialog({
 export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }: StageBodyProps) {
   const [segments,    setSegments]    = useState<SegRow[]>(plan?.route?.segments ?? [])
   const [checklist,   setChecklist]   = useState<CheckRow[]>(plan?.route?.checklist ?? DEFAULT_CHECKLIST)
-  const [sourceFiles]                 = useState(plan?.route?.sourceFiles ?? [])
   const [segDialog, setSegDialog]     = useState<{ mode: 'add' } | { mode: 'edit'; seg: SegRow } | null>(null)
+  const [uploading,   setUploading]   = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [isDragging,  setIsDragging]  = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const dragCounter  = useRef(0)
+  const qc = useQueryClient()
 
   const isMounted     = useRef(false)
   const onChangeRef   = useRef(onChange)
@@ -128,8 +195,8 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
-    onChangeRef.current?.({ route: { segments, checklist, sourceFiles } })
-  }, [segments, checklist, sourceFiles])
+    onChangeRef.current?.({ route: { segments, checklist, sourceFiles: [] } })
+  }, [segments, checklist])
 
   const totalMiles = segments.reduce((s, x) => s + x.mi, 0)
   const totalGain  = segments.reduce((s, x) => s + x.gain, 0)
@@ -139,6 +206,77 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     ...(trip?.ownerSub ? [{ sub: trip.ownerSub, name: trip.ownerName ?? 'Owner' }] : []),
     ...(trip?.sharedWith?.map(c => ({ sub: c.sub, name: c.name })) ?? []),
   ]
+
+  // ── GPX upload ──────────────────────────────────────────────────────────────
+
+  async function handleGpxUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !trip?._id) return
+    setUploading(true)
+    setUploadError(null)
+    try {
+      const text = await file.text()
+      const { track } = parseGpx(text)
+      await api.put(`/api/trips/${trip._id}`, { gpxPlanned: track })
+      qc.invalidateQueries({ queryKey: ['plan', trip._id] })
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Failed to import GPX')
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  async function handleGpxRemove() {
+    if (!trip?._id) return
+    setUploading(true)
+    setUploadError(null)
+    try {
+      await api.put(`/api/trips/${trip._id}`, { gpxPlanned: null })
+      qc.invalidateQueries({ queryKey: ['plan', trip._id] })
+    } catch {
+      setUploadError('Failed to remove route')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  function handleDragEnter(e: React.DragEvent) {
+    e.preventDefault()
+    dragCounter.current++
+    if (dragCounter.current === 1) setIsDragging(true)
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault()
+    dragCounter.current--
+    if (dragCounter.current === 0) setIsDragging(false)
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault()
+  }
+
+  async function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    dragCounter.current = 0
+    setIsDragging(false)
+    if (!canEdit || !trip?._id) return
+    const file = Array.from(e.dataTransfer.files).find(f => f.name.endsWith('.gpx'))
+    if (!file) { setUploadError('Drop a .gpx file to import'); return }
+    setUploading(true)
+    setUploadError(null)
+    try {
+      const text = await file.text()
+      const { track } = parseGpx(text)
+      await api.put(`/api/trips/${trip._id}`, { gpxPlanned: track })
+      qc.invalidateQueries({ queryKey: ['plan', trip._id] })
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Failed to import GPX')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   // ── Partner invite ──────────────────────────────────────────────────────────
   const [inviteOpen,      setInviteOpen]      = useState(false)
@@ -219,6 +357,33 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     )
   }
 
+  // ── Map data ─────────────────────────────────────────────────────────────────
+
+  const plannedLatLngs = toLatLngs(trip?.gpxPlanned?.coordinates)
+  const tracksWithLatLngs = (trip?.gpxTracks ?? []).map((entry, i) => ({
+    entry,
+    positions: toLatLngs(entry.track.coordinates),
+    color: ['#4ade80', '#fb923c', '#a78bfa', '#f472b6', '#34d399'][i % 5],
+  }))
+  const allPoints: [number, number][] = [
+    ...plannedLatLngs,
+    ...tracksWithLatLngs.flatMap(t => t.positions),
+  ]
+  const bounds = allPoints.length > 1 ? L.latLngBounds(allPoints) : null
+  const startEnd = resolveStartEnd(plannedLatLngs, tracksWithLatLngs)
+
+  // Derived source files — auto-populates once GPX is uploaded to the trip
+  const sourceFiles = [
+    ...(trip?.gpxPlanned
+      ? [{ name: 'Planned Route', meta: `${coordsToMiles(trip.gpxPlanned.coordinates).toFixed(1)} mi · GPX`, coords: trip.gpxPlanned.coordinates }]
+      : []),
+    ...(trip?.gpxTracks ?? []).map(t => ({
+      name: t.label,
+      meta: `${coordsToMiles(t.track.coordinates).toFixed(1)} mi · GPS track`,
+      coords: t.track.coordinates,
+    })),
+  ]
+
   return (
     <>
       <div className="flex-1 overflow-y-auto p-8 pb-20">
@@ -227,8 +392,14 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
           {/* ── Left column ── */}
           <div className="flex flex-col gap-[18px]">
 
-            {/* Route summary + map placeholder */}
-            <div className="bg-surface border border-border rounded-lg p-[18px]">
+            {/* Route summary + map */}
+            <div
+              className={`bg-surface border rounded-lg p-[18px] transition-colors ${isDragging ? 'border-amber-border' : 'border-border'}`}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+            >
               <div className="flex items-start gap-3 mb-3.5">
                 <span className="w-8 h-8 rounded-md flex items-center justify-center bg-pine-dim border border-pine-border text-pine shrink-0 mt-0.5">
                   <IconMap size={16} />
@@ -243,18 +414,107 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                       : 'No segments added yet'}
                   </div>
                 </div>
+                {canEdit && (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {trip?.gpxPlanned && !uploading && (
+                      <button
+                        onClick={handleGpxRemove}
+                        title="Remove planned route"
+                        className="p-1 rounded text-text-dim hover:text-red transition-colors cursor-pointer bg-transparent border-none"
+                      >
+                        <IconX size={12} />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="inline-flex items-center gap-1.5 font-heading text-[9px] font-bold tracking-[0.1em] uppercase px-2 py-1 rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <IconDownload size={9} />
+                      {uploading ? 'Importing…' : trip?.gpxPlanned ? 'Replace' : 'Import .gpx'}
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* Map placeholder — replaced with Leaflet + GPX upload in a future step */}
-              <div
-                className="rounded border border-dashed border-border flex flex-col items-center justify-center gap-2"
-                style={{ height: 220, background: 'var(--surface-2)' }}
-              >
-                <span className="text-text-dim"><IconMap size={28} /></span>
-                <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">No GPX uploaded</p>
-                <p className="text-[11px] text-text-dim">Map and elevation profile available after GPX upload</p>
+              {uploadError && (
+                <p className="font-mono text-[9px] text-red mb-2">{uploadError}</p>
+              )}
+
+              {/* Map */}
+              <div className="relative rounded overflow-hidden border border-border" style={{ height: 220 }}>
+                {isDragging && canEdit && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 pointer-events-none"
+                    style={{ background: 'rgba(15,13,11,0.75)', borderRadius: 'inherit' }}>
+                    <IconDownload size={22} />
+                    <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-amber">Drop .gpx to import</p>
+                  </div>
+                )}
+                {bounds ? (
+                  <MapContainer
+                    bounds={bounds as LatLngBoundsExpression}
+                    boundsOptions={{ padding: [20, 20] }}
+                    style={{ height: '100%', width: '100%' }}
+                    scrollWheelZoom={false}
+                    zoomControl={false}
+                    attributionControl={false}
+                  >
+                    <TileLayer
+                      url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                      subdomains="abcd"
+                      maxZoom={19}
+                      detectRetina
+                    />
+                    {plannedLatLngs.length > 1 && (
+                      <Polyline positions={plannedLatLngs} color={PLANNED_COLOR} weight={4} opacity={0.9} dashArray="10 6" />
+                    )}
+                    {tracksWithLatLngs.map(({ entry, color, positions }) =>
+                      positions.length > 1 ? (
+                        <Polyline key={entry.id} positions={positions} color={color} weight={3} opacity={0.9} />
+                      ) : null
+                    )}
+                    {startEnd && (
+                      <>
+                        <Marker position={startEnd.start} icon={makeStartIcon(16)} interactive={false} />
+                        <Marker position={startEnd.end} icon={makeEndIcon(16)} interactive={false} />
+                      </>
+                    )}
+                    <FitBounds positions={allPoints} />
+                  </MapContainer>
+                ) : (
+                  <div
+                    className="h-full flex flex-col items-center justify-center gap-2"
+                    style={{ background: 'var(--surface-2)' }}
+                  >
+                    <span className="text-text-dim"><IconMap size={28} /></span>
+                    <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">No GPX uploaded</p>
+                    {canEdit ? (
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="font-mono text-[9px] text-text-dim underline underline-offset-2 hover:text-text transition-colors cursor-pointer bg-transparent border-none p-0"
+                      >
+                        Import a planned route .gpx to see the map
+                      </button>
+                    ) : (
+                      <p className="text-[11px] text-text-dim">Map available after GPX upload</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Elevation profile — shown once GPX data is available */}
+            {(trip?.gpxPlanned || (trip?.gpxTracks ?? []).length > 0) && (
+              <div className="bg-surface border border-border rounded-lg p-[18px]">
+                <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-3">
+                  Elevation Profile
+                </div>
+                <ElevationProfile
+                  planned={trip?.gpxPlanned}
+                  gpxTracks={trip?.gpxTracks}
+                />
+              </div>
+            )}
 
             {/* Segments table */}
             <div className="bg-surface border border-border rounded-lg overflow-hidden">
@@ -444,18 +704,22 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
               <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">Source files</div>
               {sourceFiles.length === 0 ? (
                 <p className="font-mono text-[9px] text-text-dim leading-relaxed">
-                  No files yet — GPX upload coming soon.
+                  No files yet — import a planned route .gpx above.
                 </p>
               ) : sourceFiles.map((f, i) => (
-                <div key={f.name} className={`grid items-center gap-2.5 py-1.5 grid-cols-[14px_1fr] ${i < sourceFiles.length - 1 ? 'border-b border-border' : ''}`}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-text-mid">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                  </svg>
-                  <div className="min-w-0">
-                    <div className="font-mono text-[11px] text-text truncate">{f.name}</div>
-                    <div className="font-mono text-[8px] text-text-dim mt-0.5">{f.meta}</div>
+                <div key={f.name} className={`flex items-center gap-2 py-1.5 ${i < sourceFiles.length - 1 ? 'border-b border-border' : ''}`}>
+                  <span className="text-text-mid shrink-0"><IconFile size={11} /></span>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-mono text-[12px] text-text truncate">{f.name}</div>
+                    <div className="font-mono text-[10px] text-text-dim mt-0.5">{f.meta}</div>
                   </div>
+                  <button
+                    onClick={() => downloadGpx(f.coords, f.name)}
+                    title="Download .gpx"
+                    className="p-1 rounded text-text-dim hover:text-amber transition-colors cursor-pointer bg-transparent border-none shrink-0"
+                  >
+                    <IconDownload size={11} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -471,6 +735,14 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
           onClose={() => setSegDialog(null)}
         />
       )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".gpx"
+        className="hidden"
+        onChange={handleGpxUpload}
+      />
     </>
   )
 }
