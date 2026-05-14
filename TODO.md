@@ -135,6 +135,7 @@ Full gear inventory system:
 - Users build loadouts from the system catalog; gear not in the catalog gets added to it.
 - Loadouts selectable per trip; modifiable on a trip-by-trip basis (ask user whether changes update the base loadout or stay trip-specific).
 - Loadouts editable from both the `/gear` page and the Gear stage in the Plan Wizard.
+- First Aid needs its own section inside of loadouts that is perhaps handled a little differently from the rest of the Gear. Medications and such should be private to the user. Expiration dates should be tracked if applicable. Putting a 'construction date' of sorts on the whole first aid kit would be useful to remind people to check their supplies.
 
 ---
 
