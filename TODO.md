@@ -17,6 +17,12 @@ All seven stages render with internal state. The items below are UI stubs, disco
 **All stages**
 - ⚠ `Stage.done / Stage.total` are wired for Stage 1 (Route) — other stages still need their checklists connected to `onProgress` as they are built out.
 
+**Stage 1 — Route**
+- Figure out if there's a way to plot points along a non track GPX entry collecting elevation data. Use that information to generate the elevation plot.
+- Make the Map a bit bigger vertically; I'd think around 50vh of the container would be a little nicer for use.
+- Add attribution strip to Route stage since I think it's required wherever the map is used.
+- Consider suggested campsites feature to autopopulate segments. Initially could be an even division of the route by number of days. Grow into AI driven suggestions based on the initial with things like treelines, possible water spots based on topography, proximity to trail, and map info (i.e. known creeks), and flatness (again driven by map topography and proximity to trail)
+
 **Stage 2 — Days**
 - ⚠ Time fields (Wake / On-trail / Camp by) use `defaultValue` — edits are not captured in state.
 - ⚠ Right-rail checklist is hard-wired to 8/8 done.
