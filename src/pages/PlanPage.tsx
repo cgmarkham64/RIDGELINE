@@ -7,7 +7,7 @@ import { useCreatePlan } from '../hooks/usePlans'
 import { MoonLoader } from '../components/ui/MoonLoader'
 
 export function PlanPage() {
-  const { id } = Route.useSearch()
+  const { id, stage } = Route.useSearch()
   const navigate = useNavigate({ from: '/plan' })
   const { mutateAsync: createPlan } = useCreatePlan()
   const [createError, setCreateError] = useState(false)
@@ -21,7 +21,7 @@ export function PlanPage() {
     creating.current = true
     createPlan()
       .then((trip) => {
-        navigate({ search: { id: trip._id }, replace: true })
+        navigate({ search: { id: trip._id, stage: undefined }, replace: true })
         setShowSetup(true)
       })
       .catch(() => { creating.current = false; setCreateError(true) })
@@ -36,7 +36,7 @@ export function PlanPage() {
 
   return (
     <>
-      <PlanWizard planId={id} />
+      <PlanWizard planId={id} initialStage={stage} />
       {showSetup && <TripSetupDialog tripId={id} onClose={() => setShowSetup(false)} />}
     </>
   )

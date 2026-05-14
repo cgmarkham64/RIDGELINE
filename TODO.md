@@ -8,21 +8,6 @@
 
 Every trip in Ridgeline starts as a plan. The Plan Wizard IS how trips are created. The "Trip Log" becomes "Trips" — a unified list of everything from active plans through completed expeditions, each with a status chip. This work retires the old New Trip dialog and tightly couples the Plan model to the Trip model so journals, gear, and the wizard all share one record.
 
-**Phase 3 — New Trip flow**
-
-1. **"New Trip" button → opens Plan Wizard** — in `HomePage.tsx`, replace the `TripModal` open handler with `navigate({ to: '/plan' })` (which auto-creates a planning trip via `PlanPage`). The `?id=` search param will carry the new trip's ID.
-
-2. **Remove `TripModal.tsx`** — the dialog that collects title/location/dates is no longer the entry point. Delete `src/components/trip/TripModal.tsx` and remove its import and usage from `HomePage.tsx`. The wizard's Stage 1 (Route) and trip metadata collected during planning replace this.
-
-3. **Trip metadata entry in the wizard** — `title`, `location`, `startDate`, and `endDate` live on the Trip document directly (not in a separate meta object). Wire the StageRail header (title + dates) to be editable inline or via a small "Edit trip details" dialog that writes back to those Trip fields and triggers autosave. This replaces what the old New Trip dialog collected.
-
-4. **Stage deep-linking via URL param** — add a `?stage=<n>` search param to the `/plan` route (1–7, where 7 = Journal). `PlanWizard` reads this on mount and opens the specified stage. The overview is the default landing for every status prior to `on-trail`/`wrap-up`. Stage numbers map to: 1 Route, 2 Days, 3 Permits, 4 Food, 5 Gear, 6 Depart, 7 Journal.
-
-5. **Re-entry behavior** — when a user opens a trip from the Trips list:
-   - `planning` or `ready` → open the Plan Wizard at `/plan?id=<tripId>` (overview landing)
-   - `on-trail` or `wrap-up` → open the wizard at `/plan?id=<tripId>&stage=7` (Journal)
-   - `complete` → open the wizard at `/plan?id=<tripId>&stage=7` (Journal, fully read-only)
-
 **Phase 4 — Clear pre-filled demo data**
 
 Remove all Sierra High Route mock data from wizard stages so new plans start blank. The guard audit (2026-05-14) found the following status per stage:
@@ -211,3 +196,4 @@ Full gear inventory system:
 - **`MOCK_TRIP` replaced** — `StageHeader` and `StageRail` read from `savedPlan.meta`; `EMPTY_META` is shown for new plans.
 - **Unification Phase 1** — Renamed "Trip Log" → "Trips" in nav rail. Added `status` field to Trip model (`planning/ready/on-trail/wrap-up/complete`, default `complete`). Added `status` to frontend `Trip` type. Tone-coded Pill chips on trip cards in sidebar. Status multi-select filter added to filter popover.
 - **Unification Phase 2** — Added `planStages` (Mixed) to Trip model. `sharedWith` migrated from `[String]` to `[{sub, role}]`; `role` field added to Notification model; accept-invite uses stored role. `ShareDialog` now has a "Can edit / Can view" role toggle when inviting; role badge shown next to each collaborator. `src/lib/plans.ts` and `src/hooks/usePlans.ts` retargeted to `/api/trips`; `PlanRecord` type retired in favour of `Trip`. `PlanWizard` reads `planStages` and derives header metadata from Trip top-level fields. `PlanPage` pops `TripSetupDialog` (title/location/dates) immediately after a new planning trip is created. Migration script at `server/scripts/migratePlans.ts` handles `sharedWith` string→object conversion and Plan→Trip backfill with date parsing. `/api/plans` route stays live until migration is verified (Phase 2 step 6 deferred).
+- **Unification Phase 3** — `TripModal.tsx` deleted. "New trip" button and empty-state CTA both navigate to `/plan` (auto-creates planning Trip). `planning`/`ready` trips in the sidebar navigate to the wizard on click; `complete`/`on-trail`/`wrap-up` keep opening `TripDetail`. Edit button on all trip cards navigates to the wizard. `?stage=<n>` search param added to `/plan` route; `PlanWizard` opens at the specified stage (1-indexed) on mount, defaulting to overview. `StageRail` trip-identity header gains a pencil button that opens `TripSetupDialog` pre-populated with current title/location/dates for in-wizard editing.

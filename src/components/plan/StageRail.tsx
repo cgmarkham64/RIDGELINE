@@ -1,7 +1,7 @@
 import type { Stage, PlanView } from './types'
 import { stageState } from './constants'
 import { Ring } from './Ring'
-import { IconChevronRight, IconMap } from '../icons'
+import { IconChevronRight, IconMap, IconPencil } from '../icons'
 
 interface StageRailProps {
   stages: Stage[]
@@ -12,6 +12,7 @@ interface StageRailProps {
   totalAll: number
   onSelectStage: (i: number) => void
   onSelectOverview: () => void
+  onEditDetails?: () => void
 }
 
 function StageRailItem({
@@ -46,16 +47,29 @@ function StageRailItem({
   )
 }
 
-export function StageRail({ stages, trip, activeStageIdx, view, totalDone, totalAll, onSelectStage, onSelectOverview }: StageRailProps) {
+export function StageRail({ stages, trip, activeStageIdx, view, totalDone, totalAll, onSelectStage, onSelectOverview, onEditDetails }: StageRailProps) {
   const isOverview = view === 'overview'
 
   return (
     <aside className="w-[280px] shrink-0 bg-surface border-r border-border flex flex-col h-full overflow-hidden">
       {/* Trip identity */}
       <div className="px-[18px] py-3.5 border-b border-border shrink-0">
-        <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-amber mb-1.5">{trip.location}</div>
-        <div className="font-heading text-[16px] font-extrabold text-text">{trip.title}</div>
-        <div className="font-mono text-[9px] text-text-dim mt-1 italic">{trip.dateRange}</div>
+        <div className="flex items-start justify-between gap-1">
+          <div className="min-w-0">
+            <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-amber mb-1.5">{trip.location}</div>
+            <div className="font-heading text-[16px] font-extrabold text-text leading-tight">{trip.title}</div>
+            <div className="font-mono text-[9px] text-text-dim mt-1 italic">{trip.dateRange}</div>
+          </div>
+          {onEditDetails && (
+            <button
+              onClick={onEditDetails}
+              title="Edit trip details"
+              className="shrink-0 mt-0.5 w-6 h-6 flex items-center justify-center rounded text-text-dim hover:text-amber hover:bg-surface-2 transition-colors duration-100"
+            >
+              <IconPencil />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Plan overview entry */}

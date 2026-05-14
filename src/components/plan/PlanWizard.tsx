@@ -11,6 +11,7 @@ import { FoodStage } from './stages/FoodStage'
 import { GearStage } from './stages/GearStage'
 import { DepartStage } from './stages/DepartStage'
 import { MoonLoader } from '../ui/MoonLoader'
+import { TripSetupDialog } from './TripSetupDialog'
 import { usePlan, useUpdatePlan } from '../../hooks/usePlans'
 import type { StageBodyProps } from './types'
 
@@ -50,13 +51,15 @@ function buildMeta(trip: { title?: string; location?: string; startDate?: string
   }
 }
 
-export function PlanWizard({ planId }: { planId: string }) {
+export function PlanWizard({ planId, initialStage }: { planId: string; initialStage?: number }) {
   const { data: savedPlan, isLoading } = usePlan(planId)
   const { mutateAsync: doUpdate } = useUpdatePlan()
 
-  const [view, setView]           = useState<PlanView>('overview')
-  const [stageIdx, setStageIdx]   = useState(0)
   const [stages]                  = useState(createStages)
+  const validStage = initialStage !== undefined && initialStage >= 1 && initialStage <= stages.length
+  const [view, setView]           = useState<PlanView>(validStage ? 'stage' : 'overview')
+  const [stageIdx, setStageIdx]   = useState(validStage ? initialStage - 1 : 0)
+  const [showEditDetails, setShowEditDetails] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('saved')
 
   // Accumulates all stage patches for debounced saves.
@@ -126,7 +129,18 @@ export function PlanWizard({ planId }: { planId: string }) {
         totalAll={totalAll}
         onSelectStage={(i) => { setView('stage'); setStageIdx(i) }}
         onSelectOverview={() => setView('overview')}
+        onEditDetails={() => setShowEditDetails(true)}
       />
+      {showEditDetails && (
+        <TripSetupDialog
+          tripId={planId}
+          onClose={() => setShowEditDetails(false)}
+          initialTitle={savedPlan.title}
+          initialLocation={savedPlan.location}
+          initialStartDate={savedPlan.startDate?.slice(0, 10)}
+          initialEndDate={savedPlan.endDate?.slice(0, 10)}
+        />
+      )}
 
       {view === 'overview' ? (
         <PlanOverview
