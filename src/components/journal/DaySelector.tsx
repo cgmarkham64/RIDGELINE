@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { JournalDay } from '../../types'
+import { IconChevronLeft, IconChevronRight } from '../icons'
 
 interface DayMeta {
   dayNumber: number
@@ -37,7 +38,6 @@ function buildDays(startDate: string, endDate: string): DayMeta[] {
 function buildMonthGroups(days: DayMeta[]): MonthGroup[] {
   const dayMap = new Map(days.map((d) => [d.date, d]))
 
-  // Collect the distinct calendar months that contain trip days, in order
   const monthKeys: string[] = []
   for (const d of days) {
     const dt = new Date(d.date + 'T00:00:00')
@@ -55,15 +55,12 @@ function buildMonthGroups(days: DayMeta[]): MonthGroup[] {
       year: 'numeric',
     })
 
-    // Trip days that fall in this calendar month
     const inMonth = days.filter((d) => {
       const dt = new Date(d.date + 'T00:00:00')
       return dt.getFullYear() === year && dt.getMonth() === month
     })
     if (inMonth.length === 0) continue
 
-    // Grid spans from the Sunday on/before the first in-month trip day
-    // to the Saturday on/after the last in-month trip day
     const firstDt = new Date(inMonth[0].date + 'T00:00:00')
     const lastDt = new Date(inMonth[inMonth.length - 1].date + 'T00:00:00')
 
@@ -80,7 +77,6 @@ function buildMonthGroups(days: DayMeta[]): MonthGroup[] {
       for (let i = 0; i < 7; i++) {
         const dateStr = localDateStr(current)
         const dt = new Date(dateStr + 'T00:00:00')
-        // Only show trip days that belong to this calendar month; mask others
         if (dt.getFullYear() === year && dt.getMonth() === month) {
           cells.push(dayMap.get(dateStr) ?? null)
         } else {
@@ -91,7 +87,6 @@ function buildMonthGroups(days: DayMeta[]): MonthGroup[] {
       weeks.push(cells)
     }
 
-    // Label of the next month if the trip continues there
     const nextLabel = mi < monthKeys.length - 1
       ? (() => {
           const [ny, nm] = monthKeys[mi + 1].split('-').map(Number)
@@ -168,9 +163,7 @@ export function DaySelector({ startDate, endDate, selectedDate, entries, onSelec
             disabled={!canPrev}
             className="w-6 h-6 flex items-center justify-center rounded-sm text-text-dim hover:text-text hover:bg-surface-3 disabled:opacity-30 disabled:cursor-default transition-colors duration-120 cursor-pointer"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5" style={{ strokeWidth: 2 }}>
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
+            <IconChevronLeft size={14} />
           </button>
         ) : <div className="w-6" />}
         <span className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-mid">
@@ -182,9 +175,7 @@ export function DaySelector({ startDate, endDate, selectedDate, entries, onSelec
             disabled={!canNext}
             className="w-6 h-6 flex items-center justify-center rounded-sm text-text-dim hover:text-text hover:bg-surface-3 disabled:opacity-30 disabled:cursor-default transition-colors duration-120 cursor-pointer"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5" style={{ strokeWidth: 2 }}>
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
+            <IconChevronRight size={14} />
           </button>
         ) : <div className="w-6" />}
       </div>
@@ -255,9 +246,7 @@ export function DaySelector({ startDate, endDate, selectedDate, entries, onSelec
           <span className="font-mono text-[9px] tracking-widest uppercase">
             Continues in {currentMonth.nextLabel}
           </span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3" style={{ strokeWidth: 2 }}>
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <IconChevronRight size={12} />
         </button>
       )}
     </div>

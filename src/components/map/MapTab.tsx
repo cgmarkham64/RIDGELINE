@@ -10,6 +10,7 @@ import { makeWaypointIcon, makePendingIcon, makeStartIcon, makeEndIcon } from '.
 import { FitBounds, MapClickHandler, MapContextMenuHandler, MapFocuser, MapRefCapture } from './MapHelpers'
 import { WaypointForm } from './WaypointForm'
 import { WaypointChip } from './WaypointChip'
+import { IconX } from '../icons'
 import { MapEmptyState } from './MapEmptyState'
 
 // Converts GeoJSON [lon, lat] coordinates to Leaflet [lat, lon] pairs
@@ -652,9 +653,7 @@ function WaypointAddDialog({
             onClick={onClose}
             className="w-6 h-6 flex items-center justify-center rounded-sm bg-surface-2 border border-border text-text-dim hover:text-text transition-colors cursor-pointer"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5" style={{ strokeWidth: 2 }}>
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
+            <IconX size={14} />
           </button>
         </div>
         <form onSubmit={onSubmit} className="px-4 py-4">
@@ -707,9 +706,7 @@ function WaypointEditDialog({
             onClick={onClose}
             className="w-6 h-6 flex items-center justify-center rounded-sm bg-surface-2 border border-border text-text-dim hover:text-text transition-colors cursor-pointer"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5" style={{ strokeWidth: 2 }}>
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
+            <IconX size={14} />
           </button>
         </div>
         <form onSubmit={onSubmit} className="px-4 py-4">

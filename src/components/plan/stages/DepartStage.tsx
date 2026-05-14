@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { ProgressBar } from '../ProgressBar'
-import { IconBell, IconCheck, IconDownload, IconPlus, IconFile, IconCircle } from '../icons'
+import { IconBell, IconCheck, IconDownload, IconPlus, IconFile, IconCircle } from '../../icons'
 import type { StageBodyProps, ReminderTone, ContactTone, PlanDayEntry } from '../types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@ import { JumpChip } from '../JumpChip'
 import { Pill } from '../Pill'
 import { ProgressBar } from '../ProgressBar'
 import { CheckItem } from '../CheckItem'
-import { IconTent, IconMountain, IconWater, IconSun } from '../icons'
+import { IconTent, IconMountain, IconWater, IconSun } from '../../icons'
 import type { StageBodyProps } from '../types'
 
 // ─── Mock data ────────────────────────────────────────────────────────────────

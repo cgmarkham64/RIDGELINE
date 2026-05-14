@@ -3,7 +3,7 @@ import { JumpChip } from '../JumpChip'
 import { Pill } from '../Pill'
 import { ProgressBar } from '../ProgressBar'
 import { CheckItem } from '../CheckItem'
-import { IconCheck, IconPlus, IconPackage, IconDroplets, IconPencil, IconLock } from '../icons'
+import { IconCheck, IconPlus, IconPackage, IconDroplets, IconPencil, IconLock } from '../../icons'
 import type { StageBodyProps } from '../types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────

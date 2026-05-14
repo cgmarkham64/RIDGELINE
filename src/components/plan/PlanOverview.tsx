@@ -2,6 +2,7 @@ import type { Stage, PlanData } from './types'
 import { stageState, STAGES, STAGE_DESCRIPTIONS } from './constants'
 import { Ring } from './Ring'
 import { Pill } from './Pill'
+import { IconArrowRight, IconChevronRight } from '../icons'
 
 const CRITICAL_PATH = [
   { d: 'Feb 1',  label: 'Whitney lottery opens',           stageId: 'permits', cls: 'text-amber border-amber-border bg-amber-dim' },
@@ -82,10 +83,7 @@ export function PlanOverview({ stages, totalDone, totalAll, onJump }: PlanOvervi
                   </span>
                   <span className="text-[11px] text-amber font-semibold inline-flex items-center gap-1 group-hover:gap-2 transition-all">
                     Open
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                      <polyline points="12 5 19 12 12 19" />
-                    </svg>
+                    <IconArrowRight size={10} />
                   </span>
                 </div>
               </button>
@@ -113,9 +111,7 @@ export function PlanOverview({ stages, totalDone, totalAll, onJump }: PlanOvervi
               <span className="font-mono text-[9px] text-text-dim text-right">
                 {STAGES.find(s => s.id === row.stageId)?.label}
               </span>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-dim">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
+              <IconChevronRight size={11} />
             </button>
           ))}
         </div>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AppNotification } from '../../types'
 import { initials } from '../../lib/utils'
+import { IconBell } from '../icons'
 import {
   useNotifications,
   useAcceptInvite,
@@ -47,10 +48,7 @@ export function NotificationBell() {
         className="rail-btn relative"
         style={open ? { background: 'var(--surface-2)', color: 'var(--text-mid)' } : undefined}
       >
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-        </svg>
+        <IconBell size={17} />
         {badgeCount > 0 && (
           <span className="absolute top-1.5 right-1.5 min-w-[14px] h-[14px] rounded-full bg-red flex items-center justify-center font-mono text-[9px] font-bold text-white leading-none px-[3px]">
             {badgeCount > 9 ? '9+' : badgeCount}

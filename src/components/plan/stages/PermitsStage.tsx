@@ -5,7 +5,7 @@ import { CheckItem } from '../CheckItem'
 import {
   IconX, IconSearch, IconPlus, IconCheck, IconList, IconLayers,
   IconChevronLeft, IconChevronRight, IconSparkle, IconMap,
-} from '../icons'
+} from '../../icons'
 import type { StageBodyProps, PermitTypeName, ZoneStatus } from '../types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────

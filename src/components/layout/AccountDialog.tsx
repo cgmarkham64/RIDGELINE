@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react'
 import { useAuthStore } from '../../store/auth'
 import { uploadAvatar, removeAvatar } from '../../lib/auth'
 import { initials } from '../../lib/utils'
+import { IconX } from '../icons'
 
 interface Props {
   onClose: () => void
@@ -109,10 +110,7 @@ export function AccountDialog({ onClose }: Props) {
             Account
           </span>
           <button onClick={onClose} className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-2 border border-border cursor-pointer text-text-dim">
-
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5" style={{ strokeWidth: 2 }}>
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
+            <IconX size={14} />
           </button>
         </div>
 

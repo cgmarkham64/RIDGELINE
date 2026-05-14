@@ -1,3 +1,5 @@
+import { IconCheck } from '../icons'
+
 interface RingProps {
   done: number
   total: number
@@ -43,11 +45,7 @@ export function Ring({ done, total, size = 28, blocked = false, highlight = fals
         borderRadius: 99, padding: '0 2px',
       }}>
         {blocked ? '!' : done >= total && total > 0
-          ? (
-            <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          )
+          ? <IconCheck size={11} strokeWidth={2.6} />
           : `${done}/${total}`}
       </span>
     </span>

@@ -1,6 +1,7 @@
 import type { Stage, PlanView } from './types'
 import { stageState } from './constants'
 import { Ring } from './Ring'
+import { IconChevronRight, IconMap } from '../icons'
 
 interface StageRailProps {
   stages: Stage[]
@@ -40,11 +41,7 @@ function StageRailItem({
            `${stage.done} of ${stage.total} items`}
         </div>
       </div>
-      {isActive && (
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber shrink-0">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      )}
+      {isActive && <IconChevronRight size={11} />}
     </button>
   )
 }
@@ -76,21 +73,13 @@ export function StageRail({ stages, trip, activeStageIdx, view, totalDone, total
             'w-7 h-7 rounded-md flex items-center justify-center border shrink-0',
             isOverview ? 'bg-amber-dim border-amber-border text-amber' : 'bg-bg border-border text-text-mid',
           ].join(' ')}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-              <line x1="8" y1="2" x2="8" y2="18" />
-              <line x1="16" y1="6" x2="16" y2="22" />
-            </svg>
+            <IconMap size={14} />
           </span>
           <div className="flex-1 min-w-0">
             <div className={`font-heading text-[12px] font-bold ${isOverview ? 'text-amber' : 'text-text'}`}>Plan overview</div>
             <div className="font-mono text-[8px] text-text-dim mt-0.5">{totalDone}/{totalAll} items · all stages</div>
           </div>
-          {isOverview && (
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber shrink-0">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          )}
+          {isOverview && <IconChevronRight size={11} />}
         </button>
       </div>
 
