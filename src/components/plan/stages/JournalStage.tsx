@@ -1,7 +1,8 @@
 import { IconLock } from '../../icons'
+import { JournalSection } from '../../journal/JournalSection'
 import type { StageBodyProps } from '../types'
 
-export function JournalStage({ tripStatus }: StageBodyProps) {
+export function JournalStage({ tripStatus, trip, canEdit }: StageBodyProps) {
   const isLocked = !tripStatus || tripStatus === 'planning' || tripStatus === 'ready'
 
   if (isLocked) {
@@ -24,14 +25,12 @@ export function JournalStage({ tripStatus }: StageBodyProps) {
     )
   }
 
+  if (!trip) return null
+
   return (
-    <div className="flex-1 flex items-center justify-center p-8">
-      <div className="max-w-[420px] text-center">
-        <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-3">Stage 7 · Journal</div>
-        <h2 className="font-heading text-[22px] font-extrabold text-text mb-2">Ready to journal.</h2>
-        <p className="text-[13px] text-text-mid leading-relaxed">
-          Day-by-day entries, conditions, photos, wildlife, and companions will live here.
-        </p>
+    <div className="flex-1 overflow-y-auto">
+      <div className="px-8 py-6 max-w-3xl">
+        <JournalSection trip={trip} readOnly={!canEdit} />
       </div>
     </div>
   )

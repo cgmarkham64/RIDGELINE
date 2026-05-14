@@ -1,3 +1,5 @@
+import type { Trip } from '../../types'
+
 export type StageId = 'route' | 'days' | 'permits' | 'food' | 'gear' | 'depart' | 'journal'
 
 export interface Stage {
@@ -126,4 +128,6 @@ export interface StageBodyProps {
   plan?: PlanData
   onChange?: (patch: Partial<PlanData>) => void
   tripStatus?: string
+  trip?: Trip
+  canEdit?: boolean
 }

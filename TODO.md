@@ -61,6 +61,11 @@ All seven stages render with internal state. The items below are UI stubs, disco
 - ⚠ "Set" reminder toggle updates local state only — no calendar or notification system is called.
 - ⚠ One-pager preview party, entry/exit, and InReach fields are hardcoded strings — not pulled from plan data.
 
+**Stage 7 — Journal**
+- ⚠ No right rail — days completed count, photo count, and nudge to add entries near the `complete` transition are not yet shown.
+- ⚠ No in-stage navigation to other plan stages — users need to use the stage rail to cross-reference route, days, or permits while journaling. Consider JumpChip links at the top of the Journal stage.
+- ⚠ Photo attachments per journal entry are not yet implemented (coming as part of the broader Photo Upload feature).
+
 **Open questions**
 - **Real permit data**: auto-suggestions use a static mock. Backend needs a service `{route, dates, party_size}` → ranked permit candidates with confidence scores. Consider Claude AI assist.
 - **One-pager PDF**: production needs server-side Puppeteer or a templating layer.

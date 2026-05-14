@@ -51,13 +51,14 @@ type FormValues = z.infer<typeof schema>
 
 interface Props {
   trip: Trip
+  readOnly?: boolean
 }
 
 // Shared className for condition inputs
 const condInputCls =
   'w-full px-2 py-[6px] border border-border focus:border-border-mid rounded-sm text-[12px] bg-surface text-text outline-none transition-[border-color] duration-[140ms]'
 
-export function JournalSection({ trip }: Props) {
+export function JournalSection({ trip, readOnly }: Props) {
   const [selectedDate, setSelectedDate] = useState(trip.startDate.slice(0, 10))
   const { data: entries = [], isLoading } = useJournalDays(trip._id)
   const save = useSaveJournalDay(trip._id)
@@ -77,7 +78,7 @@ export function JournalSection({ trip }: Props) {
     setSelectedDate(trip.startDate.slice(0, 10))
   }, [trip._id, trip.startDate])
 
-  const overlayVisible = scanning || saving
+  const overlayVisible = !readOnly && (scanning || saving)
 
   const currentEntry = entries.find((e) => e.date.slice(0, 10) === selectedDate)
 
@@ -105,6 +106,7 @@ export function JournalSection({ trip }: Props) {
 
   // Auto-save when focus leaves the form — but only if body has content
   function handleFormBlur(e: React.FocusEvent<HTMLFormElement>) {
+    if (readOnly) return
     if (e.currentTarget.contains(e.relatedTarget as Node)) return
     if (!isDirty && !panelsDirtyRef.current) return
     if (!getValues('body').trim()) return
@@ -114,6 +116,7 @@ export function JournalSection({ trip }: Props) {
   const MIN_SAVE_OVERLAY_MS = 1000
 
   async function onSubmit(data: FormValues) {
+    if (readOnly) return
     const start = new Date(trip.startDate)
     const sel = new Date(selectedDate)
     const dayNumber = Math.round((sel.getTime() - start.getTime()) / 86_400_000) + 1
@@ -217,10 +220,17 @@ export function JournalSection({ trip }: Props) {
         onSelect={(date) => setSelectedDate(date)}
       />
 
+      {readOnly && (
+        <div className="mb-4 px-3 py-2 rounded border border-border bg-surface-2 font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">
+          View only — you have view access to this trip
+        </div>
+      )}
+
       {isLoading ? (
         <MoonLoader />
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} onBlur={handleFormBlur}>
+          <fieldset disabled={!!readOnly} style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
           {/* Hidden file input for journal scan */}
           <input
             ref={fileInputRef}
@@ -388,6 +398,7 @@ export function JournalSection({ trip }: Props) {
               </button>
             )}
           </div>
+          </fieldset>
         </form>
       )}
 

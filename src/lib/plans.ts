@@ -36,6 +36,7 @@ export async function updatePlan(
     startDate?: string
     endDate?: string
     planStages?: object
+    status?: string
   }
 ): Promise<Trip> {
   const { data } = await api.put<Trip>(`/api/trips/${id}`, body)

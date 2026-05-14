@@ -14,6 +14,7 @@ import { JournalStage } from './stages/JournalStage'
 import { MoonLoader } from '../ui/MoonLoader'
 import { TripSetupDialog } from './TripSetupDialog'
 import { usePlan, useUpdatePlan } from '../../hooks/usePlans'
+import { useJournalDays } from '../../hooks/useJournalDays'
 import { useAuthStore } from '../../store/auth'
 import type { StageBodyProps } from './types'
 
@@ -57,14 +58,16 @@ function buildMeta(trip: { title?: string; location?: string; startDate?: string
 export function PlanWizard({ planId, initialStage }: { planId: string; initialStage?: number }) {
   const { data: savedPlan, isLoading } = usePlan(planId)
   const { mutateAsync: doUpdate } = useUpdatePlan()
+  const { data: journalEntries = [] } = useJournalDays(planId)
   const userId = useAuthStore((s) => s.user?.id)
 
-  const [stages]                  = useState(createStages)
+  const [stages]                    = useState(createStages)
   const validStage = initialStage !== undefined && initialStage >= 1 && initialStage <= stages.length
-  const [view, setView]           = useState<PlanView>(validStage ? 'stage' : 'overview')
-  const [stageIdx, setStageIdx]   = useState(validStage ? initialStage - 1 : 0)
-  const [showEditDetails, setShowEditDetails] = useState(false)
-  const [saveState, setSaveState] = useState<SaveState>('saved')
+  const [view, setView]             = useState<PlanView>(validStage ? 'stage' : 'overview')
+  const [stageIdx, setStageIdx]     = useState(validStage ? initialStage - 1 : 0)
+  const [showEditDetails, setShowEditDetails]   = useState(false)
+  const [confirmComplete, setConfirmComplete]   = useState(false)
+  const [saveState, setSaveState]   = useState<SaveState>('saved')
 
   // Accumulates all stage patches for debounced saves.
   // Initialized from savedPlan once it arrives; only accessed inside the
@@ -97,8 +100,12 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
   }, [planId, doUpdate])
 
   const handleStatusChange = useCallback((newStatus: string) => {
+    if (newStatus === 'complete' && journalEntries.length === 0) {
+      setConfirmComplete(true)
+      return
+    }
     doUpdate({ id: planId, body: { status: newStatus } })
-  }, [planId, doUpdate])
+  }, [planId, doUpdate, journalEntries.length])
 
   const totalDone = stages.reduce((a, s) => a + s.done, 0)
   const totalAll  = stages.reduce((a, s) => a + s.total, 0)
@@ -122,64 +129,103 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
   const plan = (savedPlan.planStages as PlanData) ?? {}
   const meta = buildMeta(savedPlan)
   const isOwner = !!userId && savedPlan.ownerSub === userId
+  const collaborator = !isOwner && userId
+    ? savedPlan.sharedWith?.find((c) => c.sub === userId)
+    : undefined
+  const canEdit = isOwner || collaborator?.role === 'edit'
 
   const activeStage = stages[stageIdx]
   if (!activeStage) return null
   const StageBody = STAGE_COMPONENTS[activeStage.id]
 
   return (
-    <div className="flex h-full overflow-hidden w-full">
-      <StageRail
-        stages={stages}
-        trip={meta}
-        activeStageIdx={stageIdx}
-        view={view}
-        totalDone={totalDone}
-        totalAll={totalAll}
-        onSelectStage={(i) => { setView('stage'); setStageIdx(i) }}
-        onSelectOverview={() => setView('overview')}
-        onEditDetails={() => setShowEditDetails(true)}
-      />
-      {showEditDetails && (
-        <TripSetupDialog
-          tripId={planId}
-          onClose={() => setShowEditDetails(false)}
-          initialTitle={savedPlan.title}
-          initialLocation={savedPlan.location}
-          initialStartDate={savedPlan.startDate?.slice(0, 10)}
-          initialEndDate={savedPlan.endDate?.slice(0, 10)}
-        />
-      )}
-
-      {view === 'overview' ? (
-        <PlanOverview
+    <>
+      <div className="flex h-full overflow-hidden w-full">
+        <StageRail
           stages={stages}
+          trip={meta}
+          activeStageIdx={stageIdx}
+          view={view}
           totalDone={totalDone}
           totalAll={totalAll}
-          onJump={jumpTo}
-          plan={plan}
-          tripStatus={savedPlan.status}
-          isOwner={isOwner}
-          onStatusChange={handleStatusChange}
+          onSelectStage={(i) => { setView('stage'); setStageIdx(i) }}
+          onSelectOverview={() => setView('overview')}
+          onEditDetails={() => setShowEditDetails(true)}
         />
-      ) : (
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-          <StageHeader
-            stage={activeStage}
-            stageIdx={stageIdx}
-            saveState={saveState}
+        {showEditDetails && (
+          <TripSetupDialog
+            tripId={planId}
+            onClose={() => setShowEditDetails(false)}
+            initialTitle={savedPlan.title}
+            initialLocation={savedPlan.location}
+            initialStartDate={savedPlan.startDate?.slice(0, 10)}
+            initialEndDate={savedPlan.endDate?.slice(0, 10)}
+          />
+        )}
+
+        {view === 'overview' ? (
+          <PlanOverview
+            stages={stages}
+            totalDone={totalDone}
+            totalAll={totalAll}
             onJump={jumpTo}
-            onPrev={() => setStageIdx(i => Math.max(0, i - 1))}
-            onNext={() => setStageIdx(i => Math.min(stages.length - 1, i + 1))}
+            plan={plan}
             tripStatus={savedPlan.status}
             isOwner={isOwner}
             onStatusChange={handleStatusChange}
           />
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <StageBody onJump={jumpTo} plan={plan} onChange={handleChange} tripStatus={savedPlan.status} />
+        ) : (
+          <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <StageHeader
+              stage={activeStage}
+              stageIdx={stageIdx}
+              saveState={saveState}
+              onJump={jumpTo}
+              onPrev={() => setStageIdx(i => Math.max(0, i - 1))}
+              onNext={() => setStageIdx(i => Math.min(stages.length - 1, i + 1))}
+              tripStatus={savedPlan.status}
+              isOwner={isOwner}
+              onStatusChange={handleStatusChange}
+            />
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <StageBody
+                onJump={jumpTo}
+                plan={plan}
+                onChange={handleChange}
+                tripStatus={savedPlan.status}
+                trip={savedPlan}
+                canEdit={canEdit}
+              />
+            </div>
+          </main>
+        )}
+      </div>
+
+      {confirmComplete && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
+          <div className="bg-surface border border-border-mid rounded-xl p-6 w-full max-w-sm shadow-2xl">
+            <h2 className="font-heading text-[18px] font-extrabold text-text mb-2">No journal entries yet.</h2>
+            <p className="text-[13px] text-text-mid leading-relaxed mb-5">
+              Consider adding a trip report before marking this complete — it only takes a few minutes.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setConfirmComplete(false); jumpTo('journal') }}
+                className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
+              >
+                Add entries
+              </button>
+              <button
+                onClick={() => { doUpdate({ id: planId, body: { status: 'complete' } }); setConfirmComplete(false) }}
+                className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase rounded border cursor-pointer transition-colors"
+                style={{ background: 'var(--amber-dim)', borderColor: 'var(--amber-border)', color: 'var(--amber)' }}
+              >
+                Complete anyway
+              </button>
+            </div>
           </div>
-        </main>
+        </div>
       )}
-    </div>
+    </>
   )
 }
