@@ -51,14 +51,6 @@ export function StageHeader({ stage, stageIdx, saveState, onJump, onPrev, onNext
           </span>
 
           <span className="ml-auto flex items-center gap-2.5">
-            {canGoBack && (
-              <button
-                onClick={() => setConfirmBack(true)}
-                className="font-mono text-[9px] text-text-dim hover:text-amber transition-colors cursor-pointer bg-transparent border-none p-0"
-              >
-                ↩ Back to planning
-              </button>
-            )}
             {state === 'done'     && <Pill tone="pine">Locked</Pill>}
             {state === 'blocked'  && <Pill tone="amber">{stage.blockedReason ?? 'Waiting on upstream stage'}</Pill>}
             {state === 'progress' && <Pill tone="amber">{stage.done}/{stage.total} done</Pill>}
@@ -75,6 +67,15 @@ export function StageHeader({ stage, stageIdx, saveState, onJump, onPrev, onNext
             <p className="text-[13px] text-text-mid mt-0.5">{STAGE_SUBS[stage.id]}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {canGoBack && (
+              <button
+                onClick={() => setConfirmBack(true)}
+                className="inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase px-3 py-1.5 rounded border border-border bg-transparent text-text-dim cursor-pointer hover:border-border-mid hover:text-text transition-colors"
+              >
+                <IconArrowLeft size={10} />
+                Planning
+              </button>
+            )}
             {isOwner && forward && onStatusChange && (
               <button
                 onClick={() => onStatusChange(forward.next)}
