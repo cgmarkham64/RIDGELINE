@@ -17,10 +17,6 @@ All seven stages render with internal state. The items below are UI stubs, disco
 **All stages**
 - ⚠ `Stage.done / Stage.total` are wired for Stage 1 (Route) — other stages still need their checklists connected to `onProgress` as they are built out.
 
-**Stage 1 — Route**
-- ⚠ Map is a placeholder — needs Leaflet map + GPX upload (planned route). Replace placeholder card with a real Leaflet map rendering `gpxPlanned`; add a file-input button to upload and store the GPX via `PUT /api/trips/:id`. Elevation profile card should render from the GPX track data.
-- ⚠ Source files section is empty-state only — wires in automatically once GPX upload is done.
-
 **Stage 2 — Days**
 - ⚠ Time fields (Wake / On-trail / Camp by) use `defaultValue` — edits are not captured in state.
 - ⚠ Right-rail checklist is hard-wired to 8/8 done.
@@ -165,3 +161,4 @@ Full gear inventory system:
 - **Unification Phase 5** — Owner-only status lifecycle UI in `StageHeader` and `PlanOverview`: forward button (amber, `← Planning` neutral) advances `planning → ready → on-trail → wrap-up → complete`; `← Planning` escape hatch with confirm dialog resets to `planning` from any status. `useUpdatePlan` body accepts `status`; `onSuccess` invalidates both plan detail and trips list. `TripSidebar` sort updated to urgency order (`on-trail`/`wrap-up` first, `planning`/`ready` by departure asc, `complete` by end date desc).
 - **Unification Phase 6** — Stage 7 · Journal wired in. `JournalStage` renders lock banner for `planning`/`ready`; mounts `JournalSection` at `on-trail`+. `JournalSection` gains `readOnly` prop (fieldset-disabled inputs + view-only banner) for read-access collaborators. `PlanWizard` fetches journal entries and intercepts the `complete` status transition with an amber nudge dialog when zero entries exist ("Add entries" jumps to Stage 7, "Complete anyway" proceeds). `canEdit` derived from owner/edit-role and passed to all stage bodies. Stages 1–5 read-only locking deferred. Stage 7 gaps (right rail, in-stage nav, photo attachments) logged in Wizard Stage Gaps.
 - **Wizard Stage Gaps** — Segments CRUD (add/edit/delete via dialog), live checklist with `onProgress` wired to stage rail, real partners from `sharedWith`, inline partner invite panel, map placeholder pending Leaflet + GPX.
+- **Route stage map + GPX** — Replaced map placeholder with live Leaflet map (CARTO dark tiles, dashed planned-route polyline, start/end markers). GPX import via button and drag-and-drop onto the map card; replace and remove supported. `ElevationProfile` card wired below the map. Source files section derives from `trip.gpxPlanned` / `gpxTracks` with computed distance; per-file download button reconstructs and saves a valid `.gpx` from stored coordinates.
