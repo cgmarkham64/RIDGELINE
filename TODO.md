@@ -8,27 +8,6 @@
 
 Every trip in Ridgeline starts as a plan. The Plan Wizard IS how trips are created. The "Trip Log" becomes "Trips" — a unified list of everything from active plans through completed expeditions, each with a status chip. This work retires the old New Trip dialog and tightly couples the Plan model to the Trip model so journals, gear, and the wizard all share one record.
 
-**Phase 1 — Quick wins (rename + status field)**
-
-1. **Rename "Trip Log" → "Trips"** — update the `NavLink` title in `IconRail.tsx` (line ~68), the page heading in `HomePage.tsx`, and any copy in `TripSidebar.tsx` and `TripDetail.tsx`.
-
-2. **Add `status` to the Trip model** — `server/src/models/Trip.ts`:
-   ```
-   status: { type: String, enum: ['planning','ready','on-trail','wrap-up','complete'], default: 'complete' }
-   ```
-   Use `'complete'` as the default so all existing trips (created via the old dialog) get a sensible status without a migration. The enum names map to display labels:
-   | Value | Display label | When |
-   |-------|--------------|------|
-   | `planning` | Planning | Wizard is in progress |
-   | `ready` | Ready to Go | Plan locked, departure upcoming |
-   | `on-trail` | On Trail | Trip actively happening |
-   | `wrap-up` | Wrap Up | Trip ended, journal incomplete |
-   | `complete` | Complete | Fully done |
-
-3. **Surface status chips in the Trips list** — `TripSidebar.tsx` / `HomePage.tsx`: show a small tone-coded chip next to each trip card. Use the same Pill atom from `src/components/plan/Pill.tsx`. Tones: `planning` → amber, `ready` → sky, `on-trail` → pine, `wrap-up` → amber, `complete` → neutral.
-
-4. **Add status and collaborator-role filters to the filter popover** — `TripSidebar.tsx` already has ownership/miles/date filters. Add a "Status" multi-select filter group. Sorting and filtering remain client-side.
-
 **Phase 2 — Data model unification (Plan → Trip)**
 
 Currently `Plan` and `Trip` are separate MongoDB models with no link. The goal is to make the wizard create and edit a Trip directly, retiring the standalone Plan model. The direct migration path is chosen — no intermediate `tripId` FK bridge.
@@ -246,3 +225,4 @@ Full gear inventory system:
 - **Autosave** — `StageBodyProps.onChange` callback; Permits, Food, Gear, Depart stages fire it on state changes (isMounted + onChangeRef pattern; StrictMode-safe cleanup). `PlanWizard` debounces 800 ms and PUTs to `/api/plans/:id`. `StageHeader` shows live saved / saving… / unsaved indicator.
 - **Auto-populate** — `PlanData` type + per-stage slices in `plan/types.ts`. All stages accept `plan?: PlanData` and seed their `useState` initializers from it. `PlanWizard` passes the loaded plan down; new plans start blank.
 - **`MOCK_TRIP` replaced** — `StageHeader` and `StageRail` read from `savedPlan.meta`; `EMPTY_META` is shown for new plans.
+- **Unification Phase 1** — Renamed "Trip Log" → "Trips" in nav rail. Added `status` field to Trip model (`planning/ready/on-trail/wrap-up/complete`, default `complete`). Added `status` to frontend `Trip` type. Tone-coded Pill chips on trip cards in sidebar. Status multi-select filter added to filter popover.

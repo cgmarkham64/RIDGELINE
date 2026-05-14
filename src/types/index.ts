@@ -143,6 +143,7 @@ export interface Trip {
   waypoints?: Waypoint[]
   coverPhotoId?: string
   loadoutId?: string
+  status?: 'planning' | 'ready' | 'on-trail' | 'wrap-up' | 'complete'
   ownerSub?: string
   ownerName?: string
   sharedWith?: { sub: string; name: string }[]

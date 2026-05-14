@@ -65,7 +65,7 @@ export function IconRail() {
           RDGLN
         </div>
 
-        <NavLink to="/" title="Trip Log">
+        <NavLink to="/" title="Trips">
           <polyline points="2 21 8 6 13 14 17 9 22 21" />
         </NavLink>
 

@@ -3,6 +3,7 @@ import type { Trip } from '../../types'
 import { useTrips } from '../../hooks/useTrips'
 import { useAuthStore } from '../../store/auth'
 import { MoonLoader } from '../ui/MoonLoader'
+import { Pill } from '../plan/Pill'
 
 interface Props {
   selectedId: string | null
@@ -19,8 +20,25 @@ function formatDateRange(start: string, end: string) {
 }
 
 type Ownership = 'all' | 'mine' | 'shared'
+type TripStatus = 'planning' | 'ready' | 'on-trail' | 'wrap-up' | 'complete'
 
-const filterInputCls = 'w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]'
+const STATUS_TONE: Record<TripStatus, 'amber' | 'sky' | 'pine' | ''> = {
+  planning:   'amber',
+  ready:      'sky',
+  'on-trail': 'pine',
+  'wrap-up':  'amber',
+  complete:   '',
+}
+const STATUS_LABEL: Record<TripStatus, string> = {
+  planning:   'Planning',
+  ready:      'Ready',
+  'on-trail': 'On Trail',
+  'wrap-up':  'Wrap Up',
+  complete:   'Complete',
+}
+const ALL_STATUSES: TripStatus[] = ['planning', 'ready', 'on-trail', 'wrap-up', 'complete']
+
+const filterInputCls ='w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]'
 const filterDateInputCls = 'w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[10px] text-text outline-none focus:border-border-mid transition-[border-color] duration-[140ms]'
 
 export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: Props) {
@@ -36,8 +54,9 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
   const [maxElev, setMaxElev] = useState('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [statusFilter, setStatusFilter] = useState<TripStatus[]>([])
 
-  const hasActiveFilters = ownership !== 'all' || minMiles !== '' || maxMiles !== '' || minElev !== '' || maxElev !== '' || dateFrom !== '' || dateTo !== ''
+  const hasActiveFilters = ownership !== 'all' || minMiles !== '' || maxMiles !== '' || minElev !== '' || maxElev !== '' || dateFrom !== '' || dateTo !== '' || statusFilter.length > 0
 
   function clearFilters() {
     setOwnership('all')
@@ -47,6 +66,11 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
     setMaxElev('')
     setDateFrom('')
     setDateTo('')
+    setStatusFilter([])
+  }
+
+  function toggleStatus(s: TripStatus) {
+    setStatusFilter((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s])
   }
 
   const filterWrapRef = useRef<HTMLDivElement>(null)
@@ -78,6 +102,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
     if (maxElev && trip.elevationGainFt != null && trip.elevationGainFt > parseFloat(maxElev)) return false
     if (dateFrom && trip.endDate.slice(0, 10) < dateFrom) return false
     if (dateTo && trip.startDate.slice(0, 10) > dateTo) return false
+    if (statusFilter.length > 0 && !statusFilter.includes((trip.status ?? 'complete') as TripStatus)) return false
     return true
   })
 
@@ -192,6 +217,30 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                   </div>
                 </div>
 
+                {/* Status */}
+                <div>
+                  <div className="font-mono text-[8px] tracking-[0.12em] uppercase text-text-dim mb-1.5">Status</div>
+                  <div className="flex flex-wrap gap-1">
+                    {ALL_STATUSES.map((s) => {
+                      const active = statusFilter.includes(s)
+                      return (
+                        <button
+                          key={s}
+                          onClick={() => toggleStatus(s)}
+                          className="py-[3px] px-2 font-mono text-[9px] rounded-sm border transition-colors duration-100"
+                          style={{
+                            background: active ? 'var(--amber-dim)' : 'var(--surface-2)',
+                            borderColor: active ? 'var(--amber-border)' : 'var(--border)',
+                            color: active ? 'var(--amber)' : 'var(--text-dim)',
+                          }}
+                        >
+                          {STATUS_LABEL[s]}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
                 {hasActiveFilters && (
                   <button onClick={clearFilters} className="self-end font-mono text-[9px] text-text-dim hover:text-amber transition-colors duration-100">
                     Clear filters
@@ -254,11 +303,18 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
               }}
             >
               <div className="flex-1 min-w-0">
-                <div
-                  className="font-heading text-[12px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis mb-0.5"
-                  style={{ color: isSelected ? 'var(--amber)' : 'var(--text)' }}
-                >
-                  {trip.title}
+                <div className="flex items-center gap-1.5 mb-0.5 min-w-0">
+                  <span
+                    className="font-heading text-[12px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis flex-1 min-w-0"
+                    style={{ color: isSelected ? 'var(--amber)' : 'var(--text)' }}
+                  >
+                    {trip.title}
+                  </span>
+                  {trip.status && (
+                    <Pill tone={STATUS_TONE[trip.status as TripStatus]}>
+                      {STATUS_LABEL[trip.status as TripStatus]}
+                    </Pill>
+                  )}
                 </div>
                 <div className="font-mono text-[9px] text-text-dim whitespace-nowrap overflow-hidden text-ellipsis">
                   {trip.location}
