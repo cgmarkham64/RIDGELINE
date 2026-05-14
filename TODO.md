@@ -49,6 +49,90 @@ Allow simultaneous and deconflicted/merged edits of a trip and its journal entri
 
 ---
 
+## Trips + Plan Wizard unification
+
+Every trip in Ridgeline starts as a plan. The Plan Wizard IS how trips are created. The "Trip Log" becomes "Trips" — a unified list of everything from active plans through completed expeditions, each with a status chip. This work retires the old New Trip dialog and tightly couples the Plan model to the Trip model so journals, gear, and the wizard all share one record.
+
+### Phase 1 — Quick wins (rename + status field)
+
+1. **Rename "Trip Log" → "Trips"** — update the `NavLink` title in `IconRail.tsx` (line ~68), the page heading in `HomePage.tsx`, and any copy in `TripSidebar.tsx` and `TripDetail.tsx`.
+
+2. **Add `status` to the Trip model** — `server/src/models/Trip.ts`:
+   ```
+   status: { type: String, enum: ['planning','ready','on-trail','wrap-up','complete'], default: 'complete' }
+   ```
+   Use `'complete'` as the default so all existing trips (created via the old dialog) get a sensible status without a migration. The enum names map to display labels:
+   | Value | Display label | When |
+   |-------|--------------|------|
+   | `planning` | Planning | Wizard is in progress |
+   | `ready` | Ready to Go | Plan locked, departure upcoming |
+   | `on-trail` | On Trail | Trip actively happening |
+   | `wrap-up` | Wrap Up | Trip ended, journal incomplete |
+   | `complete` | Complete | Fully done |
+
+3. **Surface status chips in the Trips list** — `TripSidebar.tsx` / `HomePage.tsx`: show a small tone-coded chip next to each trip card. Use the same Pill atom from `src/components/plan/Pill.tsx`. Tones: `planning` → amber, `ready` → sky, `on-trail` → pine, `wrap-up` → amber, `complete` → neutral.
+
+4. **Add status to the filter popover** — `TripSidebar.tsx` already has ownership/miles/date filters. Add a "Status" multi-select filter group.
+
+### Phase 2 — Data model unification (Plan → Trip)
+
+Currently `Plan` and `Trip` are separate MongoDB models with no link. The goal is to make the wizard create and edit a Trip directly, retiring the standalone Plan model.
+
+**Approach**: Extend `Trip` with the wizard's stage data and link the wizard to Trip instead of Plan.
+
+1. **Add `planStages` (Mixed) and `planMeta` to Trip model** — mirror the `stages` and `meta` fields from `Plan.ts`. The Trip's own `title`, `location`, `startDate`, `endDate` serve as the canonical trip identity and eventually supersede `planMeta`.
+
+2. **Migrate `/api/plans` → use Trip** — when the Plan Wizard creates a "plan", it should `POST /api/trips` with `status: 'planning'` and `planStages: {}`. Update `src/lib/plans.ts` and `src/hooks/usePlans.ts` to target `/api/trips` filtered by status. The `PlanRecord` type can be replaced by the existing `Trip` type extended with `planStages`.
+   - Alternatively (lower risk): add a `tripId` foreign key to `Plan` and keep both models temporarily, then merge in a follow-up. Choose whichever feels safer at implementation time.
+
+3. **Journal attachment stays on Trip** — `JournalDay.tripId` already references the Trip `_id`. No change needed here; when a planning trip transitions to "on-trail" the journal just starts populating against the same record.
+
+4. **Remove the Plan model** (after migration is verified) — delete `server/src/models/Plan.ts` and `server/src/routes/plans.ts`, remove from `index.ts`, archive `src/lib/plans.ts` and `src/hooks/usePlans.ts` or absorb into trips equivalents.
+
+### Phase 3 — New Trip flow
+
+1. **"New Trip" button → opens Plan Wizard** — in `HomePage.tsx`, replace the `TripModal` open handler with `navigate({ to: '/plan' })` (which auto-creates a planning trip via `PlanPage`). The `?id=` search param will carry the new trip's ID.
+
+2. **Remove `TripModal.tsx`** — the dialog that collects title/location/dates is no longer the entry point. Delete `src/components/trip/TripModal.tsx` and remove its import and usage from `HomePage.tsx`. The wizard's Stage 1 (Route) and trip metadata collected during planning replace this.
+
+3. **Trip metadata entry in the wizard** — the trip title, location, and date range currently live in `PlanMeta` (`PlanWizard`'s EMPTY_META). Wire the StageRail header (title + dates) to be editable inline or via a small "Edit trip details" dialog that writes back to `savedPlan.meta` → autosaves. This replaces what the old New Trip dialog collected.
+
+4. **Re-entry behavior** — when a user opens a trip from the Trips list:
+   - `planning` or `ready` → open the Plan Wizard at `/plan?id=<tripId>`
+   - `on-trail` or `wrap-up` → open the Trip Detail / Journal view
+   - `complete` → open Trip Detail in read-only mode
+   - Implement in `TripDetail.tsx` or as a routing redirect in `HomePage.tsx` click handler.
+
+### Phase 4 — Clear pre-filled demo data
+
+Remove all Sierra High Route mock data from wizard stages so new plans start blank.
+
+- `RouteStage.tsx` — `SEGMENTS = []`, `SOURCE_FILES = []`, `PARTNERS = []` (already blank for `plan !== undefined`, but confirm)
+- `DaysStage.tsx` — `DAYS = []` already triggers empty state; verify the empty-state UI message is correct
+- `PermitsStage.tsx` — `INITIAL_PERMITS = []`, `INITIAL_SUGGESTIONS = []`
+- `FoodStage.tsx` — `MEAL_PLAN = []` (already blank for `plan !== undefined`)
+- `GearStage.tsx` — `DEFAULT_CATEGORIES = []` (already blank for `plan !== undefined`)
+- `DepartStage.tsx` — `DEFAULT_REMINDERS = []`, `DEFAULT_CONTACTS = []`, `DEFAULT_MAP_LAYERS = []`, `DEFAULT_CHECKLIST = []`
+
+For each stage, the `plan !== undefined ? [] : MOCK_DATA` guard is already in place. The fix is to pass `plan` consistently from PlanWizard (which already does) and ensure the mock constants serve only as dev-mode fallbacks. Once Phase 2 is complete and the wizard always runs with a real Trip, these constants will never be used in production.
+
+Add empty-state prompts to stages that would otherwise show a blank card with no guidance (PermitsStage suggestions pane already handles this; FoodStage meal grid and GearStage category list need "Add your first…" prompts similar to DaysStage's empty state).
+
+### Phase 5 — Status lifecycle UI
+
+1. **Status transitions** — add a "Mark as…" control in the trip header (visible to the owner):
+   - `planning` → "Mark ready" → sets `ready`
+   - `ready` → "Start trip" → sets `on-trail`
+   - `on-trail` → "Finish trip" → sets `wrap-up`
+   - `wrap-up` → "Complete" → sets `complete` (require at least one journal entry)
+   - Any status → "Back to planning" escape hatch (confirm dialog)
+
+2. **PUT `/api/trips/:id`** already accepts arbitrary body fields — just add `status` to the update payload. No new endpoint needed.
+
+3. **Trips list ordering** — sort by status urgency then by date: `on-trail` and `wrap-up` first, then `planning`/`ready` by departure date, then `complete` by end date descending.
+
+---
+
 ## Pages (sidebar nav)
 
 ### Plan a Trip — six-stage wizard
@@ -67,17 +151,6 @@ Three-column layout (desktop-first, 1200–1400px target):
 Stage status model: `done` / `active` / `pending` / `locked`. Drive from per-stage checklist completion + dependency graph (`gear` locks until `permits.resolved === true`).
 
 **JumpChips** — amber pill links that navigate between stages without losing scroll position. Use them to surface data dependencies inline (e.g. "Pulled from Days · 8 days" in Food).
-
-#### Build order
-1. ✅ **Tokens + shared atoms** — `Pill`, `Ring`, `JumpChip`, `ProgressBar`, `CheckItem` in `src/components/plan/`. Design tokens already existed in `src/index.css`.
-2. ✅ **Wizard shell** — `/plan` route, Plan icon in `IconRail`, left `StageRail`, shared `StageHeader`, `PlanOverview` (2×3 card grid + critical path), six stage stubs. `PlanWizard` manages view/stage state via `useState(createStages)`.
-3. ✅ **Stage 1 — Route** — MapTopo SVG, ElevationProfile chart, segments table with JumpChip to Days, locked banner, right rail (checklist + partners + source files).
-4. ✅ **Stage 2 — Days** — stat strip, clickable day list with exposure pills, selected-day detail (time inputs + waypoint timeline), helper banner with JumpChip to Food, right rail (checklist + forecast).
-5. ✅ **Stage 3 — Permits** — list view + map view toggle + per-row map modal + free-form dialog + permit-free state
-6. ✅ **Stage 4 — Food** — daily targets, click-to-edit meal grid with computed kcal, resupply card, water plan toggles, bear canister picker
-7. ✅ **Stage 5 — Gear** — hold banner, four interactive category cards (Shelter/Kitchen/Worn/Safety+Nav), right rail with live weight stats + unlock checklist
-8. ✅ **Stage 6 — Depart** — reminders + emergency contacts + offline maps cards, one-pager preview, take-it-with-you checklist
-9. ✅ **Blank state + persistence** — `Plan` model + `/api/plans` CRUD; `PlanWizard` loads via `usePlan`, autosaves (debounced 800 ms) via `onChange` callbacks on Permits/Food/Gear/Depart stages; `PlanPage` auto-creates a plan; `StageHeader` shows live save state; stages start blank for new plans
 
 #### Stage 1 — Route
 - Hero card: locked route summary, planned-route map placeholder, 4 stat fields (Distance / Gain / Loss / Segments).
