@@ -8,21 +8,6 @@
 
 Every trip in Ridgeline starts as a plan. The Plan Wizard IS how trips are created. The "Trip Log" becomes "Trips" — a unified list of everything from active plans through completed expeditions, each with a status chip. This work retires the old New Trip dialog and tightly couples the Plan model to the Trip model so journals, gear, and the wizard all share one record.
 
-**Phase 5 — Status lifecycle UI**
-
-Status transitions are owner-only. Collaborators (read or edit role) cannot change trip status.
-
-1. **Status transitions** — add a "Mark as…" control in `StageHeader` (visible to the trip owner only):
-   - `planning` → "Mark ready" → sets `ready`
-   - `ready` → "Start trip" → sets `on-trail`
-   - `on-trail` → "Finish trip" → sets `wrap-up`
-   - `wrap-up` → "Complete" → sets `complete` (journal entries are optional but a strong nudge is shown if none exist — the button is not blocked)
-   - Any status → "Back to planning" escape hatch (confirm dialog). Selective per-stage retroactive unlock is a future refinement — start with all-or-nothing.
-
-2. **PUT `/api/trips/:id`** already accepts arbitrary body fields — just add `status` to the update payload. No new endpoint needed.
-
-3. **Trips list ordering** — client-side sort by status urgency then by date: `on-trail` and `wrap-up` first, then `planning`/`ready` by departure date, then `complete` by end date descending.
-
 **Phase 6 — Stage 7: Journal**
 
 The existing Journal (currently a separate tab/view) becomes **Stage 7 — Journal** in the wizard, sitting after Depart in the stage rail.
@@ -175,9 +160,10 @@ Full gear inventory system:
 - **Stage 6 — Depart** — reminders, emergency contacts, offline maps cards, one-pager preview (pulls day rows from plan data), take-it-with-you checklist.
 - **Plan persistence** — `Plan` Mongoose model, `/api/plans` CRUD (GET list, POST, GET/:id, PUT/:id, DELETE/:id; ObjectId validation; owner-scoped). Frontend: `src/lib/plans.ts`, `src/hooks/usePlans.ts`. `PlanPage` auto-creates a plan on first visit and stores ID in `?id=` search param.
 - **Autosave** — `StageBodyProps.onChange` callback; Permits, Food, Gear, Depart stages fire it on state changes (isMounted + onChangeRef pattern; StrictMode-safe cleanup). `PlanWizard` debounces 800 ms and PUTs to `/api/plans/:id`. `StageHeader` shows live saved / saving… / unsaved indicator.
-- **Auto-populate** — `PlanData` type + per-stage slices in `plan/types.ts`. All stages accept `plan?: PlanData` and seed their `useState` initializers from it. `PlanWizard` passes the loaded plan down; new plans start blank.
+- **Autopopulate** — `PlanData` type + per-stage slices in `plan/types.ts`. All stages accept `plan?: PlanData` and seed their `useState` initializers from it. `PlanWizard` passes the loaded plan down; new plans start blank.
 - **`MOCK_TRIP` replaced** — `StageHeader` and `StageRail` read from `savedPlan.meta`; `EMPTY_META` is shown for new plans.
 - **Unification Phase 1** — Renamed "Trip Log" → "Trips" in nav rail. Added `status` field to Trip model (`planning/ready/on-trail/wrap-up/complete`, default `complete`). Added `status` to frontend `Trip` type. Tone-coded Pill chips on trip cards in sidebar. Status multi-select filter added to filter popover.
 - **Unification Phase 2** — Added `planStages` (Mixed) to Trip model. `sharedWith` migrated from `[String]` to `[{sub, role}]`; `role` field added to Notification model; accept-invite uses stored role. `ShareDialog` now has a "Can edit / Can view" role toggle when inviting; role badge shown next to each collaborator. `src/lib/plans.ts` and `src/hooks/usePlans.ts` retargeted to `/api/trips`; `PlanRecord` type retired in favour of `Trip`. `PlanWizard` reads `planStages` and derives header metadata from Trip top-level fields. `PlanPage` pops `TripSetupDialog` (title/location/dates) immediately after a new planning trip is created. Migration script at `server/scripts/migratePlans.ts` handles `sharedWith` string→object conversion and Plan→Trip backfill with date parsing. `/api/plans` route stays live until migration is verified (Phase 2 step 6 deferred).
 - **Unification Phase 3** — `TripModal.tsx` deleted. "New trip" button and empty-state CTA both navigate to `/plan` (auto-creates planning Trip). `planning`/`ready` trips in the sidebar navigate to the wizard on click; `complete`/`on-trail`/`wrap-up` keep opening `TripDetail`. Edit button on all trip cards navigates to the wizard. `?stage=<n>` search param added to `/plan` route; `PlanWizard` opens at the specified stage (1-indexed) on mount, defaulting to overview. `StageRail` trip-identity header gains a pencil button that opens `TripSetupDialog` pre-populated with current title/location/dates for in-wizard editing.
 - **Unification Phase 4** — All Sierra High Route mock data guarded: `RouteStage` partners, `DaysStage` days, `PermitsStage` permits + suggestions, `GearStage` unlockChecklist, `DepartStage` reminders/contacts/mapLayers/checklist — all now start empty for real plans and fall back to demo data only when `plan === undefined`. Empty-state prompts added: `FoodStage` meal grid and `GearStage` category list. Amber nudge banner added to `DaysStage` empty state explaining the Journal dependency.
+- **Unification Phase 5** — Owner-only status lifecycle UI in `StageHeader` and `PlanOverview`: forward button (amber, `← Planning` neutral) advances `planning → ready → on-trail → wrap-up → complete`; `← Planning` escape hatch with confirm dialog resets to `planning` from any status. `useUpdatePlan` body accepts `status`; `onSuccess` invalidates both plan detail and trips list. `TripSidebar` sort updated to urgency order (`on-trail`/`wrap-up` first, `planning`/`ready` by departure asc, `complete` by end date desc).
