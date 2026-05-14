@@ -1,6 +1,6 @@
 # Ridgeline
 
-An outdoor/hiking trip tracking app with a React frontend and Express/MongoDB backend.
+An outdoor/hiking trip planning and logging app with a React frontend and Express/MongoDB backend.
 
 ## Tech Stack
 
@@ -206,14 +206,14 @@ See `TODO.md` for detailed task breakdowns. Feature direction:
 
 ### Dev vs Docker
 
-| | Local dev | Docker |
-|---|---|---|
-| Frontend | http://localhost:5173 (Vite HMR) | http://localhost:3000 (nginx) |
-| API | http://localhost:8000 (absolute URL) | relative paths, proxied by nginx → `ridgeline-api:8000` |
-| Auth | JWT/HS256 via `JWT_SECRET`; `/login` + `/register` pages work | Keycloak OIDC/PKCE via `keycloak-js`; login/register redirect to Keycloak |
-| Token verification | `verifyToken()` uses `JWT_SECRET` (HS256) when `KEYCLOAK_JWKS_URI` unset | `verifyToken()` fetches JWKS from Keycloak and verifies RS256 |
-| MongoDB | Homebrew `mongodb-community@8.0` | `mongodb` container with named volume `mongo-data` |
-| Keycloak | not running | http://localhost:8080 (admin / admin) |
+|                    | Local dev                                                                | Docker                                                                    |
+|--------------------|--------------------------------------------------------------------------|---------------------------------------------------------------------------|
+| Frontend           | http://localhost:5173 (Vite HMR)                                         | http://localhost:3000 (nginx)                                             |
+| API                | http://localhost:8000 (absolute URL)                                     | relative paths, proxied by nginx → `ridgeline-api:8000`                   |
+| Auth               | JWT/HS256 via `JWT_SECRET`; `/login` + `/register` pages work            | Keycloak OIDC/PKCE via `keycloak-js`; login/register redirect to Keycloak |
+| Token verification | `verifyToken()` uses `JWT_SECRET` (HS256) when `KEYCLOAK_JWKS_URI` unset | `verifyToken()` fetches JWKS from Keycloak and verifies RS256             |
+| MongoDB            | Homebrew `mongodb-community@8.0`                                         | `mongodb` container with named volume `mongo-data`                        |
+| Keycloak           | not running                                                              | http://localhost:8080 (admin / admin)                                     |
 
 **Local dev auth** — `KEYCLOAK_JWKS_URI` and `KEYCLOAK_ISSUER` must be absent/commented out in `server/.env` (default in `.env.example`). The frontend detects no Keycloak config and falls back to the `/login` page with `POST /api/auth/login`.
 
