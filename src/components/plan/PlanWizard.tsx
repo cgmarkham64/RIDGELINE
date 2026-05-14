@@ -158,6 +158,9 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
           totalAll={totalAll}
           onJump={jumpTo}
           plan={plan}
+          tripStatus={savedPlan.status}
+          isOwner={isOwner}
+          onStatusChange={handleStatusChange}
         />
       ) : (
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
