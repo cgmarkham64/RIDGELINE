@@ -11,6 +11,7 @@ export function usePlan(id: string | undefined) {
     queryKey: ['plan', id],
     queryFn: () => fetchPlan(id!),
     enabled: !!id,
+    retry: (_, err) => (err as { response?: { status?: number } })?.response?.status !== 403,
   })
 }
 

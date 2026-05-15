@@ -8,6 +8,7 @@ import { ProgressBar } from '../ProgressBar'
 import { CheckItem } from '../CheckItem'
 import { initials } from '../../../lib/utils'
 import { searchUsers, shareTrip, type UserSearchResult } from '../../../lib/users'
+import { unshareTrip } from '../../../lib/trips'
 import { api } from '../../../lib/api'
 import { parseGpx, enrichWithElevation } from '../../../lib/gpx'
 import { ElevationProfile } from '../../trip/ElevationProfile'
@@ -498,6 +499,15 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     setInviteQuery('')
     setInviteResults([])
     setInviteMsg(null)
+  }
+
+  async function handleRemovePartner(sub: string, isPending: boolean) {
+    if (!trip?._id) return
+    try {
+      await unshareTrip(trip._id, sub)
+      if (isPending) setPendingInvites(prev => prev.filter(p => p.sub !== sub))
+      qc.invalidateQueries({ queryKey: ['plan', trip._id] })
+    } catch { /* silently ignore */ }
   }
 
   // ── Checklist ────────────────────────────────────────────────────────────────
@@ -1330,17 +1340,29 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                 <p className="font-mono text-[9px] text-text-dim italic">No partners yet.</p>
               )}
 
-              {[...partners.map(p => ({ ...p, pending: false })), ...pendingInvites.map(p => ({ ...p, pending: true }))].map((p, i, arr) => (
-                <div key={p.sub} className={`flex items-center gap-2.5 py-2 ${i < arr.length - 1 || inviteOpen ? 'border-b border-border' : ''}`}>
-                  <span className="w-[26px] h-[26px] rounded-full bg-surface-2 border border-border-mid flex items-center justify-center font-heading text-[10px] font-extrabold text-amber shrink-0">
-                    {initials(p.name)}
-                  </span>
-                  <span className="text-[11px] font-semibold text-text truncate flex-1 min-w-0">{p.name}</span>
-                  {p.pending && (
-                    <span className="font-mono text-[9px] tracking-[0.12em] text-amber shrink-0">PENDING</span>
-                  )}
-                </div>
-              ))}
+              {[...partners.map(p => ({ ...p, pending: false })), ...pendingInvites.map(p => ({ ...p, pending: true }))].map((p, i, arr) => {
+                const isThisOwner = p.sub === trip?.ownerSub
+                return (
+                  <div key={p.sub} className={`flex items-center gap-2.5 py-2 ${i < arr.length - 1 || inviteOpen ? 'border-b border-border' : ''}`}>
+                    <span className="w-[26px] h-[26px] rounded-full bg-surface-2 border border-border-mid flex items-center justify-center font-heading text-[10px] font-extrabold text-amber shrink-0">
+                      {initials(p.name)}
+                    </span>
+                    <span className="text-[11px] font-semibold text-text truncate flex-1 min-w-0">{p.name}</span>
+                    {p.pending && (
+                      <span className="font-mono text-[9px] tracking-[0.12em] text-amber shrink-0">PENDING</span>
+                    )}
+                    {isOwner && !isThisOwner && (
+                      <button
+                        onClick={() => handleRemovePartner(p.sub, p.pending)}
+                        title={p.pending ? 'Cancel invite' : 'Remove partner'}
+                        className="p-1 rounded text-text-dim hover:text-red hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none shrink-0"
+                      >
+                        <IconX size={10} />
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
 
               {inviteOpen && (
                 <div className="pt-2.5">
