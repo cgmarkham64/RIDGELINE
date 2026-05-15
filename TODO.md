@@ -17,11 +17,27 @@ All seven stages render with internal state. The items below are UI stubs, disco
 **All stages**
 - ⚠ `Stage.done / Stage.total` are wired for Stage 1 (Route) — other stages still need their checklists connected to `onProgress` as they are built out.
 
-**Stage 2 — Days**
-- ⚠ Time fields (Wake / On-trail / Camp by) use `defaultValue` — edits are not captured in state.
-- ⚠ Right-rail checklist is hard-wired to 8/8 done.
-- ⚠ Exposure rating chips (Low / Med / High / Extreme) have no tooltip explaining the criteria. Add hover popovers to the column header or chips.
-- ⚠ Forecast card is fully hardcoded — no weather API wired.
+**Stage 1 — Route: segment metadata expansion**
+
+Exposure, water source, tough-day flag, and named pass/col are properties of the terrain on a leg, not properties of a calendar day. They move from the retired Days stage into the Route segment dialog and table.
+
+- ⚠ Add `water?: 'reliable' | 'caches' | 'dry'`, `exp?: 'low' | 'med' | 'high' | 'extreme'`, `hard?: boolean`, and `pass?: string` to the segment shape in `PlanRouteData` (types.ts) and to `SegRow` in RouteStage.tsx. Remove the `days` slice from `PlanData` and retire `PlanDayEntry`.
+- ⚠ Expand the segment confirm tray (the panel that appears after placing start/end pins) with the new fields below the existing name + notes inputs: a water source selector, exposure rating selector, tough-day toggle, and optional pass/col text input. The existing `showMore` state in `DrawState` is already wired but unused — repurpose it to keep the tray compact by default with the logistics fields hidden behind a "More" toggle.
+- ⚠ Update the segments table row to surface the new fields: add water source, exposure badge, and tough pill as visible columns (or inline chips on the name/notes row to avoid a too-wide table).
+- ⚠ Add an "Exposure & water annotated" predicate to the right-rail checklist — done when every segment has both `exp` and `water` set.
+- ℹ Time targets (Wake / On-trail / Camp by) are **not** moving to Route. They belong to a day-level schedule and will live in the Depart one-pager once that stage is fleshed out.
+
+**Stage 2 — Weather** *(replaces Days; full stage to be built)*
+
+- **Data model**: Add `PlanWeatherData` slice to `PlanData` replacing `days?`. Minimum shape: `{ historicalReviewed: boolean; forecastChecked: boolean; sunriseReviewed: boolean; departureRisk: 'low' | 'moderate' | 'high' | null; notes: string }`. Wire `onChange` and `onProgress` from the start — don't repeat the Days mistake of leaving them unwired.
+- **Location + date banner**: Derive region, date range, and trip length from `trip.location` + `trip.startDate` / `endDate`. If dates are unset, show an amber prompt linking to `TripSetupDialog` — nothing else in the stage can compute without them.
+- **Historical climate card**: Monthly averages for the trip location and calendar month — avg high/low, precipitation probability, snow likelihood. API: Open-Meteo historical climate (`climate-api.open-meteo.com`) — free, no key, accepts lat/lng + month. Forward-geocode `trip.location` via Nominatim (already used in RouteStage for reverse geocode) to obtain coordinates. Cache the result in `PlanWeatherData` so it survives page reloads without re-fetching.
+- **Per-day sunrise/sunset table**: One row per trip day — date, sunrise time, sunset time, usable daylight hours. Compute client-side using a standard astronomical formula (no API needed). Good candidate for a new `src/lib/sun.ts` helper.
+- **10-day live forecast section**: Only rendered when `trip.startDate` is ≤ 14 days away; otherwise show a "Check back N days before departure" placeholder with the exact target date. Fetch from `api.open-meteo.com/v1/forecast` using the geocoded coordinates. Daily columns: date, high/low temp, precipitation probability, condition summary, wind speed/direction.
+- **Departure window card**: Synthesises forecast into a go / caution / delay banner. Starting heuristic: flag days with > 40% precipitation probability or projected temps below freezing at the planned elevation. Shown only when forecast data is available.
+- **Right-rail checklist**: Historical reviewed · Forecast checked (predicate gated — only completable within 14 days of departure) · Sunrise/sunset noted · Departure window assessed · Gear adjusted for conditions.
+- **Right-rail reminder**: Persistent "Re-check forecast 72 hrs before departure" note — always visible once forecast has been checked at least once.
+- ℹ Sunrise/sunset times computed here should eventually feed the Depart one-pager's per-day schedule column.
 
 **Stage 3 — Permits**
 - ⚠ "Re-scan" button on the detection banner does nothing.
@@ -102,7 +118,7 @@ Add a tooltip to each day button in DaySelector showing the entry title if one e
 
 **Permit fill** — wire the Free-form dialog Step 2 to Claude. When the user types a permit name, call Claude to look up key dates, agency info, confirmation steps, and booking links, then show a diff for the user to accept/edit before adding. User can always fill all fields manually — AI is an accelerator, not a gate. Endpoint: new route in `server/src/routes/` + `src/lib/permits.ts`.
 
-**Food suggestions** — (1) autopopulate per-day kcal from food selections entered in the meal grid; (2) recommend foods for each meal slot based on expected calorie needs (mileage, elevation gain, tough-day flags from Days stage). Endpoint: `POST /api/plan/food-suggest`.
+**Food suggestions** — (1) autopopulate per-day kcal from food selections entered in the meal grid; (2) recommend foods for each meal slot based on expected calorie needs (mileage, elevation gain, tough-day flags from Route segments). Endpoint: `POST /api/plan/food-suggest`.
 
 ### Bear Canister Improvements
 - **Permit cross-reference**: flag hard-sided vs soft-sided canister mismatches against permit requirements from the Permits stage (SEKI requires hard-sided; Ursack approved at some but not others). Show amber warning inline on the affected permit card.
@@ -150,7 +166,7 @@ Full gear inventory system:
 - **Shared atoms** — `Ring`, `Pill`, `JumpChip`, `ProgressBar`, `CheckItem` in `src/components/plan/`.
 - **Shared icons** — `src/components/icons.tsx` consolidates all SVG icon functions app-wide; duplicate inline icons removed from stages, layout, journal, and map components.
 - **Stage 1 — Route** — MapTopo SVG, ElevationProfile chart, segments table with JumpChip to Days, locked banner, right rail (checklist + partners + source files).
-- **Stage 2 — Days** — stat strip, clickable day list with exposure pills, selected-day detail (time inputs + waypoint timeline), empty-state UI, helper banner with JumpChip to Food.
+- **Stage 2 — Days** *(superseded)* — original stat strip, day list with exposure pills, selected-day detail, and empty-state built; `onChange` + `onProgress` wired. Stage is being replaced by Weather: exposure / water / tough-day / pass metadata moves to Route segments; time targets defer to the Depart one-pager; `DaysStage.tsx` and the `days` slice in `PlanData` to be removed once Weather is in place.
 - **Stage 3 — Permits** — list view + map view toggle + per-row map modal + free-form two-step dialog + permit-free state + SVG zone map.
 - **Stage 4 — Food** — daily targets, click-to-edit meal grid with ref-guarded blur (stale-closure fix), resupply card, water plan toggles, bear canister picker with custom entry.
 - **Stage 5 — Gear** — hold banner, four interactive category cards (Shelter / Kitchen / Worn / Safety+Nav), live weight stats, unlock checklist.

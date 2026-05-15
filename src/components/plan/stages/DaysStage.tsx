@@ -1,28 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { JumpChip } from '../JumpChip'
 import { Pill } from '../Pill'
 import { ProgressBar } from '../ProgressBar'
 import { CheckItem } from '../CheckItem'
 import { IconTent, IconMountain, IconWater, IconSun } from '../../icons'
-import type { StageBodyProps } from '../types'
+import type { StageBodyProps, PlanDayEntry } from '../types'
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
 type Exposure = 'low' | 'med' | 'high' | 'extreme'
 
-interface Day {
-  n: number
-  from: string
-  to: string
-  mi: number
-  gain: number
-  water: string
-  exp: Exposure
-  hard?: boolean
-  pass?: string  // named col or pass mid-day; omit for flat/approach days
-}
-
-const DAYS: Day[] = [
+const DAYS: PlanDayEntry[] = [
   { n: 1, from: 'Onion Valley',   to: 'Charlotte Lake',  mi: 12, gain: 3200, water: 'reliable', exp: 'low'     },
   { n: 2, from: 'Charlotte Lake', to: 'Rae Lakes',        mi: 14, gain: 2100, water: 'reliable', exp: 'low'     },
   { n: 3, from: 'Rae Lakes',      to: 'Sixty Lake',       mi: 18, gain: 4400, water: 'reliable', exp: 'med',  pass: 'Glen Pass · 11,978 ft'     },
@@ -33,16 +21,6 @@ const DAYS: Day[] = [
   { n: 8, from: 'Guitar Lake',    to: 'Whitney Portal',   mi: 17, gain: 4400, water: 'reliable', exp: 'extreme', hard: true },
 ]
 
-const CHECKLIST = [
-  '8 days mapped',
-  'Camps assigned',
-  'Daily mileage',
-  'Water sources',
-  'Exposure flagged',
-  'Tough days reviewed',
-  'Bail-out points',
-  'Synced with Route',
-]
 
 // Static Tailwind classes keyed by exposure — avoids dynamic class generation
 const EXP_CLS: Record<Exposure, string> = {
@@ -88,11 +66,44 @@ function WaypointRow({ time, name, loc, icon, last }: {
 
 // ─── Days Stage ───────────────────────────────────────────────────────────────
 
-export function DaysStage({ onJump, plan }: StageBodyProps) {
-  // onChange not called: days array comes from plan prop (no local edit state yet).
-  // Time fields use defaultValue (uncontrolled) — wire onChange when they become controlled.
-  const days = plan?.days?.days ?? (plan !== undefined ? [] : DAYS)
+export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps) {
+  const [days] = useState<PlanDayEntry[]>(
+    plan?.days?.days ?? (plan !== undefined ? [] : DAYS)
+  )
   const [sel, setSel] = useState(Math.min(3, Math.max(0, days.length - 1)))
+
+  const onChangeRef   = useRef(onChange)
+  const onProgressRef = useRef(onProgress)
+  const isMounted     = useRef(false)
+
+  // Sync callback refs after each render (must be in effect, not render body)
+  useEffect(() => {
+    onChangeRef.current  = onChange
+    onProgressRef.current = onProgress
+  })
+
+  const checklist = useMemo(() => [
+    { text: '8 days mapped',       done: days.length > 0 },
+    { text: 'Camps assigned',      done: days.length > 0 && days.every(d => !!d.from && !!d.to) },
+    { text: 'Daily mileage',       done: days.length > 0 && days.every(d => d.mi > 0) },
+    { text: 'Water sources',       done: days.length > 0 && days.every(d => !!d.water) },
+    { text: 'Exposure flagged',    done: days.length > 0 && days.every(d => !!d.exp) },
+    { text: 'Tough days reviewed', done: days.length > 0 },
+    { text: 'Bail-out points',     done: false },
+    { text: 'Synced with Route',   done: !!(plan?.route?.segments?.length && days.length > 0) },
+  ], [days, plan?.route?.segments?.length])
+
+  // Persist on change — skip initial mount to avoid a redundant save on load
+  useEffect(() => {
+    if (!isMounted.current) { isMounted.current = true; return }
+    onChangeRef.current?.({ days: { days } })
+  }, [days])
+
+  // Report progress whenever checklist state changes (fires on mount too)
+  useEffect(() => {
+    const done = checklist.filter(c => c.done).length
+    onProgressRef.current?.(done, checklist.length)
+  }, [checklist])
 
   const d = days[sel]
 
@@ -101,6 +112,7 @@ export function DaysStage({ onJump, plan }: StageBodyProps) {
   const longest   = days.length > 0 ? Math.max(...days.map(x => x.mi)) : 0
   const campCount = Math.max(0, days.length - 1)
   const longDays  = days.filter(x => x.mi > 20)
+  const doneCount = checklist.filter(c => c.done).length
 
   if (days.length === 0) {
     return (
@@ -235,10 +247,10 @@ export function DaysStage({ onJump, plan }: StageBodyProps) {
           {/* Stage checklist */}
           <div className="bg-surface border border-border rounded-lg p-3.5">
             <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">This stage</div>
-            {CHECKLIST.map(text => <CheckItem key={text} text={text} done />)}
+            {checklist.map(c => <CheckItem key={c.text} text={c.text} done={c.done} />)}
             <div className="h-px bg-border my-3" />
-            <ProgressBar value={100} tone="pine" />
-            <div className="font-mono text-[9px] text-text-dim text-center mt-1.5">8 of 8</div>
+            <ProgressBar value={(doneCount / checklist.length) * 100} tone="pine" />
+            <div className="font-mono text-[9px] text-text-dim text-center mt-1.5">{doneCount} of {checklist.length}</div>
           </div>
 
           {/* Forecast */}
