@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { MapContainer, TileLayer, Polyline, Marker, useMap, useMapEvents } from 'react-leaflet'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { MapContainer, TileLayer, Polyline, Marker, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L, { type LatLngBoundsExpression } from 'leaflet'
 import { useQueryClient } from '@tanstack/react-query'
@@ -17,9 +17,9 @@ import { AttributionStrip, MapRefCapture, ZoomControls } from '../../map/MapHelp
 import { MapTileToggle } from '../../map/MapTileToggle'
 import { makeStartIcon, makeEndIcon, makeWaypointIcon, makeDetectedWaterIcon } from '../../map/leafletIcons'
 import { WaypointIcon } from '../../map/WaypointIcon'
-import { WAYPOINT_COLOR, WAYPOINT_LABEL } from '../../map/constants'
+import { WAYPOINT_COLOR } from '../../map/constants'
 import { fetchDetectedWaterSources, type DetectedWaterSource } from '../../../lib/waterSources'
-import { IconPlus, IconMinus, IconMap, IconDownload, IconFile, IconX, IconMoreVertical, IconSparkle } from '../../icons'
+import { IconPlus, IconMinus, IconMap, IconDownload, IconFile, IconX, IconMoreVertical, IconSparkle, IconTent, IconCheck } from '../../icons'
 import { useAuthStore } from '../../../store/auth'
 import type { StageBodyProps } from '../types'
 
@@ -61,6 +61,31 @@ type DrawState =
       showMore: boolean
       editingSeg?: SegRow
     }
+
+type WaterEntry = {
+  id: string
+  label: string
+  waypointType: DetectedWaterSource['waypointType']
+  distFromStartMi: number
+  snapDistM?: number
+  isDetected: boolean
+  lat: number
+  lon: number
+}
+
+type MergedRow =
+  | { kind: 'start'; toNextCampMi: number | null; toNextWaterMi: number | null; lat: number | null; lon: number | null }
+  | {
+      kind: 'camp'
+      seg: SegRow
+      segIdx: number
+      distFromStartMi: number
+      isFinish: boolean
+      toNextCampMi: number | null
+      toNextWaterMi: number | null
+      dryLeg: boolean
+    }
+  | { kind: 'water'; entry: WaterEntry; toNextWaterMi: number | null }
 
 const DEFAULT_CHECKLIST: CheckRow[] = [
   { text: 'Route picked',           done: false },
@@ -205,6 +230,24 @@ function formatCoord([lat, lng]: [number, number]): string {
   return `${Math.abs(lat).toFixed(3)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(3)}°${lng >= 0 ? 'E' : 'W'}`
 }
 
+// Snap a [lat, lon] to the nearest GPX vertex and return cumulative miles from the start.
+// Uses closest-vertex (not full segment projection) — accurate enough for on-trail waypoints.
+function snapToRouteMi(lat: number, lon: number, coords: [number, number, number][]): number {
+  let best = 0, bestSq = Infinity
+  for (let i = 0; i < coords.length; i++) {
+    const dlat = coords[i][1] - lat, dlon = coords[i][0] - lon
+    const sq = dlat * dlat + dlon * dlon
+    if (sq < bestSq) { bestSq = sq; best = i }
+  }
+  let d = 0
+  for (let i = 1; i <= best; i++) {
+    const [lon1, lat1] = coords[i - 1]
+    const [lon2, lat2] = coords[i]
+    d += haversinePathMiles([[lat1, lon1], [lat2, lon2]])
+  }
+  return d
+}
+
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
   try {
     const res = await fetch(
@@ -318,6 +361,8 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   const [detectedWater, setDetectedWater] = useState<DetectedWaterSource[]>([])
   const [waterLoading,  setWaterLoading]  = useState(false)
   const [waterError,    setWaterError]    = useState<string | null>(null)
+  const [activeRowId,   setActiveRowId]   = useState<string | null>(null)
+  const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const [tileLayer,   setTileLayer] = useState<TileLayerKey>('topo')
   const [uploadLabel, setUploadLabel] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -361,8 +406,92 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
       .then(sources => { if (!cancelled) { setDetectedWater(sources); setWaterLoading(false) } })
       .catch(err   => { if (!cancelled) { setWaterError(err instanceof Error ? err.message : 'Detection failed'); setWaterLoading(false) } })
     return () => { cancelled = true }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gpxCoords])
+
+  // ── Merged route + water list ─────────────────────────────────────────────────
+
+  const mergedRows = useMemo((): MergedRow[] => {
+    const routeCoords = trip?.gpxPlanned?.coordinates
+
+    // Water entries: auto-detected + manual water waypoints from trip
+    const waterEntries: WaterEntry[] = detectedWater.map(d => ({
+      id: d.id, label: d.label, waypointType: d.waypointType,
+      distFromStartMi: d.distFromStartMi, snapDistM: d.snapDistM, isDetected: true,
+      lat: d.lat, lon: d.lon,
+    }))
+    if (routeCoords && routeCoords.length >= 2) {
+      for (const wp of (trip?.waypoints ?? [])) {
+        if (!['lots-of-water', 'some-water', 'no-water'].includes(wp.type)) continue
+        waterEntries.push({
+          id: wp.id, label: wp.label || wp.type,
+          waypointType: wp.type as WaterEntry['waypointType'],
+          distFromStartMi: snapToRouteMi(wp.lat, wp.lon, routeCoords),
+          isDetected: false, lat: wp.lat, lon: wp.lon,
+        })
+      }
+    }
+    waterEntries.sort((a, b) => a.distFromStartMi - b.distFromStartMi)
+
+    if (segments.length === 0 && waterEntries.length === 0) return []
+
+    // Accumulated camp distances
+    let cumul = 0
+    const campDists: number[] = []
+    for (const seg of segments) { cumul += seg.mi; campDists.push(cumul) }
+
+    const rows: MergedRow[] = []
+
+    // Trailhead
+    if (segments.length > 0) {
+      const firstWater = waterEntries.find(w => w.waypointType !== 'no-water')
+      const thPos = segments[0]?.path?.[0] ?? null
+      rows.push({
+        kind: 'start',
+        toNextCampMi: campDists[0] ?? null,
+        toNextWaterMi: firstWater?.distFromStartMi ?? null,
+        lat: thPos ? thPos[0] : null,
+        lon: thPos ? thPos[1] : null,
+      })
+    }
+
+    // Camp / finish rows
+    for (let i = 0; i < segments.length; i++) {
+      const dist       = campDists[i]
+      const isFinish   = i === segments.length - 1
+      const nextDist   = campDists[i + 1] ?? null
+      const nextWater  = waterEntries.find(w => w.distFromStartMi > dist && w.waypointType !== 'no-water')
+      const dryLeg     = !isFinish && !waterEntries.some(
+        w => w.distFromStartMi > dist && nextDist !== null && w.distFromStartMi < nextDist && w.waypointType !== 'no-water'
+      )
+      rows.push({
+        kind: 'camp', seg: segments[i], segIdx: i,
+        distFromStartMi: dist, isFinish,
+        toNextCampMi: nextDist !== null ? nextDist - dist : null,
+        toNextWaterMi: nextWater ? nextWater.distFromStartMi - dist : null,
+        dryLeg,
+      })
+    }
+
+    // Water rows
+    for (let i = 0; i < waterEntries.length; i++) {
+      const next = waterEntries[i + 1]
+      rows.push({
+        kind: 'water', entry: waterEntries[i],
+        toNextWaterMi: next ? next.distFromStartMi - waterEntries[i].distFromStartMi : null,
+      })
+    }
+
+    rows.sort((a, b) => {
+      const da = a.kind === 'start' ? -Infinity : a.kind === 'camp' ? a.distFromStartMi : a.entry.distFromStartMi
+      const db = b.kind === 'start' ? -Infinity : b.kind === 'camp' ? b.distFromStartMi : b.entry.distFromStartMi
+      if (da !== db) return da - db
+      if (a.kind === 'water' && b.kind !== 'water') return 1
+      if (b.kind === 'water' && a.kind !== 'water') return -1
+      return 0
+    })
+
+    return rows
+  }, [segments, detectedWater, trip?.waypoints, trip?.gpxPlanned?.coordinates])
 
   const totalMiles = segments.reduce((s, x) => s + x.mi, 0)
   const totalGain  = segments.reduce((s, x) => s + x.gain, 0)
@@ -729,6 +858,23 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     })
   }
 
+  // ── Row / map cross-linking ───────────────────────────────────────────────────
+
+  function flyToRow(lat: number | null, lon: number | null, rowId: string) {
+    setActiveRowId(rowId)
+    if (lat == null || lon == null || !mapRef.current) return
+    mapCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setTimeout(() => {
+      mapRef.current?.invalidateSize()
+      mapRef.current?.flyTo([lat, lon], 13, { duration: 0.6 })
+    }, 350)
+  }
+
+  function scrollToRow(rowId: string) {
+    setActiveRowId(rowId)
+    rowRefs.current.get(rowId)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }
+
   // ── Map data ──────────────────────────────────────────────────────────────────
 
   const plannedLatLngs = toLatLngs(trip?.gpxPlanned?.coordinates)
@@ -890,8 +1036,14 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                         key={src.id}
                         position={[src.lat, src.lon]}
                         icon={makeDetectedWaterIcon(src.waypointType, 24)}
-                        interactive={false}
-                      />
+                        eventHandlers={{ click: () => scrollToRow(src.id) }}
+                      >
+                        <Tooltip direction="top" offset={[0, -10]} opacity={0.95}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>
+                            {src.label} · {src.distFromStartMi.toFixed(1)} mi from TH
+                          </span>
+                        </Tooltip>
+                      </Marker>
                     ))}
 
                     {/* Campsite tent markers — draggable intermediate endpoints */}
@@ -907,8 +1059,15 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                               const { lat, lng } = (e.target as L.Marker).getLatLng()
                               handleEndpointDrag(i, 'end', lat, lng)
                             },
+                            click: () => scrollToRow(`camp-${s.n}`),
                           }}
-                        />
+                        >
+                          <Tooltip direction="top" offset={[0, -12]} opacity={0.95}>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>
+                              {s.name}
+                            </span>
+                          </Tooltip>
+                        </Marker>
                       ) : null
                     )}
 
@@ -1201,109 +1360,47 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
               </div>
             )}
 
-            {/* Water Sources */}
-            {gpxCoords && gpxCoords.length >= 2 && (
-              <div className="bg-surface border border-border rounded-lg overflow-hidden">
-                <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
-                  <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Water Sources</span>
-                  {waterLoading && (
-                    <span className="font-mono text-[9px] text-text-dim">Detecting…</span>
-                  )}
-                  {!waterLoading && detectedWater.length > 0 && (
-                    <span className="font-mono text-[9px] text-text-dim">{detectedWater.length}</span>
-                  )}
-                  <span className="ml-auto inline-flex items-center gap-1 font-mono text-[9px] tracking-[0.08em] uppercase text-text-dim/50 border border-dashed border-border rounded-sm px-1.5 py-0.5">
-                    <IconSparkle />
-                    OSM auto-detected
-                  </span>
-                </div>
-
-                {waterError && (
-                  <p className="px-4 py-3 font-mono text-[9px] text-red">{waterError}</p>
-                )}
-
-                {!waterLoading && !waterError && detectedWater.length === 0 && (
-                  <div className="px-4 py-6 text-center">
-                    <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">No water sources detected within 400 m of route</p>
-                  </div>
-                )}
-
-                {detectedWater.length > 0 && (
-                  <>
-                    <div
-                      className="grid items-center px-4 py-1.5 gap-3 border-b border-border"
-                      style={{ gridTemplateColumns: '20px 1fr 64px 80px 56px' }}
-                    >
-                      <span />
-                      <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Name</span>
-                      <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">From start</span>
-                      <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Type</span>
-                      <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Off trail</span>
-                    </div>
-                    {detectedWater.map((src, i) => (
-                      <div
-                        key={src.id}
-                        className={`grid items-center px-4 py-2.5 gap-3 hover:bg-surface-2 transition-colors ${i < detectedWater.length - 1 ? 'border-b border-border' : ''}`}
-                        style={{ gridTemplateColumns: '20px 1fr 64px 80px 56px' }}
-                      >
-                        <span style={{ color: WAYPOINT_COLOR[src.waypointType] }}>
-                          <WaypointIcon type={src.waypointType} size={14} />
-                        </span>
-                        <span className="text-[12px] font-semibold text-text truncate">{src.label}</span>
-                        <span className="font-mono text-[10px] text-text">{src.distFromStartMi.toFixed(1)} mi</span>
-                        <span className="font-mono text-[10px]" style={{ color: WAYPOINT_COLOR[src.waypointType] }}>
-                          {WAYPOINT_LABEL[src.waypointType]}
-                        </span>
-                        <span className="font-mono text-[10px] text-text-dim">{src.snapDistM} m</span>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Segments table */}
+            {/* Merged route + water table */}
             <div className="bg-surface border border-border rounded-lg overflow-hidden">
               <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
-                <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Segments</span>
+                <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Route</span>
                 {segments.length > 0 && (
                   <span className="font-mono text-[9px] text-text-dim">
-                    {segments.length} · auto-pulls into{' '}
+                    {segments.length} seg{segments.length !== 1 ? 's' : ''} · auto-pulls into{' '}
                     <JumpChip to="days" onJump={onJump}>Days</JumpChip>
                   </span>
                 )}
+                {waterLoading && <span className="font-mono text-[9px] text-text-dim">· detecting water…</span>}
+                {waterError && <span className="font-mono text-[9px] text-red" title={waterError}>· water error</span>}
                 {canEdit && !isDrawing && (
                   <button
                     onClick={() => enterDraw()}
                     className="ml-auto inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase px-2.5 py-1.5 rounded border border-border text-text bg-transparent hover:border-border-mid transition-colors cursor-pointer"
                   >
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
                     Add segment
                   </button>
                 )}
-                {isDrawing && (
-                  <span className="ml-auto font-mono text-[9px] tracking-[0.1em] uppercase text-amber">Drawing…</span>
-                )}
+                {isDrawing && <span className="ml-auto font-mono text-[9px] tracking-[0.1em] uppercase text-amber">Drawing…</span>}
               </div>
 
-              {segments.length > 0 && (
+              {mergedRows.length > 0 && (
                 <div
                   className="grid items-center px-4 py-1.5 gap-3 border-b border-border"
-                  style={{ gridTemplateColumns: '36px 1fr 60px 76px 1fr auto' }}
+                  style={{ gridTemplateColumns: '20px 1fr 60px 72px 72px auto' }}
                 >
-                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">#</span>
+                  <span />
                   <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Name</span>
-                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Miles</span>
-                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Gain</span>
-                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Notes</span>
+                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">From TH</span>
+                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Next camp</span>
+                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Next water</span>
                   {canEdit && <span />}
                 </div>
               )}
 
-              {segments.length === 0 ? (
+              {mergedRows.length === 0 && !isDrawing && (
                 <div className="px-4 py-8 text-center">
                   <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1.5">No segments yet</p>
                   <p className="text-[12px] text-text-mid">
@@ -1312,60 +1409,129 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                       : 'No segments have been added to this route.'}
                   </p>
                 </div>
-              ) : segments.map((s, i) => (
-                <div
-                  key={s.n}
-                  className={`grid items-center px-4 py-2.5 gap-3 ${i < segments.length - 1 ? 'border-b border-border' : ''} transition-colors ${repositioning.has(i) ? 'opacity-50' : 'hover:bg-surface-2'}`}
-                  style={{ gridTemplateColumns: '36px 1fr 60px 76px 1fr auto' }}
-                >
-                  <span
-                    className="font-mono text-[9px] font-bold text-center py-0.5 rounded border"
-                    style={{
-                      color: SEG_COLORS[i % SEG_COLORS.length],
-                      borderColor: SEG_COLORS[i % SEG_COLORS.length] + '55',
-                      background: SEG_COLORS[i % SEG_COLORS.length] + '18',
-                    }}
+              )}
+
+              {mergedRows.map((row, i) => {
+                const isLast = i === mergedRows.length - 1
+                const border = isLast ? '' : 'border-b border-border'
+                const GRID = '20px 1fr 60px 72px 72px auto'
+                const ACTIVE_BG = 'rgba(240,160,48,0.08)'
+
+                if (row.kind === 'start') return (
+                  <div key="trailhead"
+                    ref={el => { if (el) rowRefs.current.set('trailhead', el); else rowRefs.current.delete('trailhead') }}
+                    className={`grid items-center px-4 py-2 gap-3 ${border} cursor-pointer transition-colors`}
+                    style={{ gridTemplateColumns: GRID, background: activeRowId === 'trailhead' ? ACTIVE_BG : 'var(--surface-2)' }}
+                    onClick={() => flyToRow(row.lat, row.lon, 'trailhead')}
                   >
-                    S{s.n}
-                  </span>
-                  <span className="text-[12px] font-semibold text-text truncate">{s.name}</span>
-                  <span className="font-mono text-[10px] text-text">
-                    {repositioning.has(i) ? '…' : `${s.mi.toFixed(1)} mi`}
-                  </span>
-                  <span className="font-mono text-[10px] text-text-mid">
-                    {repositioning.has(i) ? '…' : `+${s.gain.toLocaleString()} ft`}
-                  </span>
-                  <span className="text-[10px] text-text-mid italic truncate">{s.notes || '—'}</span>
-                  {canEdit && (
-                    <div className="flex items-center gap-0.5 shrink-0">
-                      <button
-                        onClick={() => { if (!isDrawing) enterDraw(s) }}
-                        disabled={isDrawing}
-                        title="Edit segment"
-                        className="p-1 rounded text-text-dim hover:text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => { if (!isDrawing) deleteSegment(s.n) }}
-                        disabled={isDrawing}
-                        title="Delete segment"
-                        className="p-1 rounded text-text-dim hover:text-red hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none disabled:opacity-30 disabled:cursor-not-allowed"
-                      >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6l-1 14H6L5 6" />
-                          <path d="M10 11v6M14 11v6" />
-                          <path d="M9 6V4h6v2" />
-                        </svg>
-                      </button>
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                      <path d="M5.5 4.5L12 8L5.5 11.5Z" fill="#4ade80" opacity="0.95" />
+                    </svg>
+                    <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Trailhead</span>
+                    <span className="font-mono text-[10px] text-text-dim">0.0 mi</span>
+                    <span className="font-mono text-[10px] text-text-mid">
+                      {row.toNextCampMi !== null ? `${row.toNextCampMi.toFixed(1)} mi` : '—'}
+                    </span>
+                    {waterLoading && row.toNextWaterMi === null
+                      ? <span className="font-mono text-[10px] text-text-dim">…</span>
+                      : row.toNextWaterMi !== null
+                        ? <span className="font-mono text-[10px]" style={{ color: '#0ea5e9' }}>{row.toNextWaterMi.toFixed(1)} mi</span>
+                        : <span className="font-mono text-[10px] text-amber">None</span>
+                    }
+                    <span />
+                  </div>
+                )
+
+                if (row.kind === 'camp') {
+                  const rowId = `camp-${row.seg.n}`
+                  const campPos = row.seg.path?.[row.seg.path.length - 1] ?? null
+                  return (
+                    <div key={rowId}
+                      ref={el => { if (el) rowRefs.current.set(rowId, el); else rowRefs.current.delete(rowId) }}
+                      className={`grid items-center px-4 py-2.5 gap-3 ${border} cursor-pointer transition-colors ${repositioning.has(row.segIdx) ? 'opacity-50' : ''}`}
+                      style={{ gridTemplateColumns: GRID, background: activeRowId === rowId ? ACTIVE_BG : undefined }}
+                      onClick={() => flyToRow(campPos?.[0] ?? null, campPos?.[1] ?? null, rowId)}
+                    >
+                      <span className={row.isFinish ? 'text-red' : 'text-amber'}>
+                        {row.isFinish ? <IconCheck size={12} /> : <IconTent />}
+                      </span>
+                      <span className="text-[12px] font-semibold text-text truncate">{row.seg.name}</span>
+                      <span className="font-mono text-[10px] text-text">
+                        {repositioning.has(row.segIdx) ? '…' : `${row.distFromStartMi.toFixed(1)} mi`}
+                      </span>
+                      {row.isFinish
+                        ? <span className="font-mono text-[10px] text-text-dim">—</span>
+                        : <span className="font-mono text-[10px] text-text-mid">
+                            {row.toNextCampMi !== null ? `${row.toNextCampMi.toFixed(1)} mi` : '—'}
+                          </span>
+                      }
+                      {row.isFinish
+                        ? <span className="font-mono text-[10px] text-text-dim">—</span>
+                        : waterLoading && row.toNextWaterMi === null
+                          ? <span className="font-mono text-[10px] text-text-dim">…</span>
+                          : row.toNextWaterMi !== null
+                            ? <span className="font-mono text-[10px]"
+                                style={{ color: row.dryLeg ? 'var(--amber)' : '#0ea5e9' }}
+                                title={row.dryLeg ? 'No water on this leg — nearest is further ahead' : undefined}
+                              >
+                                {row.toNextWaterMi.toFixed(1)} mi{row.dryLeg ? ' ↑' : ''}
+                              </span>
+                            : <span className="font-mono text-[10px] text-amber">None</span>
+                      }
+                      {canEdit
+                        ? <div className="flex items-center gap-0.5 shrink-0" onClick={e => e.stopPropagation()}>
+                            <button onClick={() => { if (!isDrawing) enterDraw(row.seg) }} disabled={isDrawing}
+                              title="Edit segment"
+                              className="p-1 rounded text-text-dim hover:text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none disabled:opacity-30 disabled:cursor-not-allowed">
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                            </button>
+                            <button onClick={() => { if (!isDrawing) deleteSegment(row.seg.n) }} disabled={isDrawing}
+                              title="Delete segment"
+                              className="p-1 rounded text-text-dim hover:text-red hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none disabled:opacity-30 disabled:cursor-not-allowed">
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" />
+                                <path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+                              </svg>
+                            </button>
+                          </div>
+                        : <span />
+                      }
                     </div>
-                  )}
-                </div>
-              ))}
+                  )
+                }
+
+                // Water row
+                return (
+                  <div key={row.entry.id}
+                    ref={el => { if (el) rowRefs.current.set(row.entry.id, el); else rowRefs.current.delete(row.entry.id) }}
+                    className={`grid items-center px-4 py-2.5 gap-3 ${border} cursor-pointer transition-colors`}
+                    style={{ gridTemplateColumns: GRID, background: activeRowId === row.entry.id ? ACTIVE_BG : undefined }}
+                    onClick={() => flyToRow(row.entry.lat, row.entry.lon, row.entry.id)}
+                  >
+                    <span style={{ color: WAYPOINT_COLOR[row.entry.waypointType] }}>
+                      <WaypointIcon type={row.entry.waypointType} size={14} />
+                    </span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[12px] font-semibold text-text truncate">{row.entry.label}</span>
+                      {row.entry.isDetected && (
+                        <span className="shrink-0 inline-flex items-center gap-0.5 font-mono text-[9px] tracking-[0.06em] uppercase px-1 py-0.5 rounded-sm border border-dashed border-border text-text-dim/60">
+                          <IconSparkle />auto
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-mono text-[10px] text-text">{row.entry.distFromStartMi.toFixed(1)} mi</span>
+                    <span className="font-mono text-[10px] text-text-dim">—</span>
+                    {row.toNextWaterMi !== null
+                      ? <span className="font-mono text-[10px] text-text-mid">{row.toNextWaterMi.toFixed(1)} mi</span>
+                      : <span className="font-mono text-[10px] text-text-dim">—</span>
+                    }
+                    <span />
+                  </div>
+                )
+              })}
             </div>
 
           </div>
