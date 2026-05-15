@@ -3,6 +3,7 @@ import type { RefObject } from 'react'
 import { useMap, useMapEvents } from 'react-leaflet'
 import L, { type LatLngBoundsExpression } from 'leaflet'
 import type { Waypoint } from '../../types'
+import { IconPlus, IconMinus, IconFitBounds } from '../icons'
 
 export function FitBounds({ positions }: { positions: [number, number][] }) {
   const map = useMap()
@@ -58,6 +59,44 @@ export function MapContextMenuHandler({
     },
   })
   return null
+}
+
+export function ZoomControls({
+  mapRef,
+  allPoints,
+}: {
+  mapRef: RefObject<L.Map | null>
+  allPoints: [number, number][]
+}) {
+  return (
+    <div className="absolute top-3 left-3 z-[1000] flex flex-col border border-border rounded-sm overflow-hidden">
+      {(['in', 'out', 'fit'] as const).map((action, i) => (
+        <button
+          key={action}
+          type="button"
+          title={action === 'in' ? 'Zoom in' : action === 'out' ? 'Zoom out' : 'Zoom to fit'}
+          disabled={action === 'fit' && allPoints.length < 2}
+          onClick={() => {
+            if (action === 'in') mapRef.current?.zoomIn()
+            else if (action === 'out') mapRef.current?.zoomOut()
+            else if (allPoints.length > 1)
+              mapRef.current?.fitBounds(allPoints as LatLngBoundsExpression, { padding: [32, 32], animate: true })
+          }}
+          className="w-7.5 h-7.5 flex items-center justify-center border-0 text-text-dim hover:text-text transition-colors cursor-pointer"
+          style={{
+            background: 'rgba(15,13,11,0.82)',
+            borderTop: i > 0 ? '1px solid var(--border)' : 'none',
+            cursor: action === 'fit' && allPoints.length < 2 ? 'default' : 'pointer',
+            opacity: action === 'fit' && allPoints.length < 2 ? 0.4 : 1,
+          }}
+        >
+          {action === 'in'  && <IconPlus size={13} />}
+          {action === 'out' && <IconMinus size={13} />}
+          {action === 'fit' && <IconFitBounds size={13} />}
+        </button>
+      ))}
+    </div>
+  )
 }
 
 export function MapFocuser({

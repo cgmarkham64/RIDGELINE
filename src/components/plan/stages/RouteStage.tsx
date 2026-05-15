@@ -12,6 +12,7 @@ import { api } from '../../../lib/api'
 import { parseGpx, enrichWithElevation } from '../../../lib/gpx'
 import { ElevationProfile } from '../../trip/ElevationProfile'
 import { PLANNED_COLOR, resolveStartEnd, TILE_LAYERS, type TileLayerKey } from '../../map/constants'
+import { MapRefCapture, ZoomControls } from '../../map/MapHelpers'
 import { MapTileToggle } from '../../map/MapTileToggle'
 import { makeStartIcon, makeEndIcon } from '../../map/leafletIcons'
 import { IconPlus, IconMap, IconDownload, IconFile, IconX } from '../../icons'
@@ -120,7 +121,7 @@ function SegmentDialog({
   const labelCls = 'font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block'
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-black/60 z-[1000] flex items-center justify-center">
       <div className="bg-surface border border-border-mid rounded-xl p-6 w-full max-w-md shadow-2xl">
         <h2 className="font-heading text-[16px] font-extrabold text-text mb-5">
           {initial ? 'Edit segment' : 'Add segment'}
@@ -187,6 +188,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [isDragging,  setIsDragging]  = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const mapRef = useRef<L.Map | null>(null)
   const dragCounter  = useRef(0)
   const qc = useQueryClient()
 
@@ -471,7 +473,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                     <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-amber">Drop .gpx to import</p>
                   </div>
                 )}
-                {bounds ? (
+                {bounds ? (<>
                   <MapContainer
                     bounds={bounds as LatLngBoundsExpression}
                     boundsOptions={{ padding: [20, 20] }}
@@ -498,10 +500,12 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                         <Marker position={startEnd.end} icon={makeEndIcon(16)} interactive={false} />
                       </>
                     )}
+                    <MapRefCapture mapRef={mapRef} />
                     <FitBounds positions={allPoints} />
                     <InvalidateSize />
                   </MapContainer>
-                ) : (
+                  <ZoomControls mapRef={mapRef} allPoints={allPoints} />
+                </>) : (
                   <div
                     className="h-full flex flex-col items-center justify-center gap-2"
                     style={{ background: 'var(--surface-2)' }}

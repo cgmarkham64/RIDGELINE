@@ -20,6 +20,22 @@ export function IconPlus({ size = 11 }: { size?: number }) {
   )
 }
 
+export function IconMinus({ size = 11 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  )
+}
+
+export function IconFitBounds({ size = 11 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4" />
+    </svg>
+  )
+}
+
 export function IconX({ size = 14 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
