@@ -8,7 +8,7 @@ import { GpxMapSection } from '../trip/GpxMapSection'
 import { DEFAULT_FORM, PLANNED_COLOR, mono, trackColor, resolveStartEnd, TILE_LAYERS, type TileLayerKey } from './constants'
 import { MapTileToggle } from './MapTileToggle'
 import { makeWaypointIcon, makePendingIcon, makeStartIcon, makeEndIcon } from './leafletIcons'
-import { FitBounds, MapClickHandler, MapContextMenuHandler, MapFocuser, MapRefCapture } from './MapHelpers'
+import { AttributionStrip, FitBounds, MapClickHandler, MapContextMenuHandler, MapFocuser, MapRefCapture } from './MapHelpers'
 import { WaypointForm } from './WaypointForm'
 import { WaypointChip } from './WaypointChip'
 import { IconX } from '../icons'
@@ -729,24 +729,3 @@ function WaypointEditDialog({
 }
 
 // ─── Attribution strip ────────────────────────────────────────────────────────
-
-function AttributionStrip({ tileLayer }: { tileLayer: TileLayerKey }) {
-  return (
-    <div className="shrink-0 px-3.5 py-1.25 border-t border-border bg-surface font-mono text-[9px] tracking-[0.06em] text-text-dim">
-      Map data &copy;{' '}
-      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="text-text-dim underline underline-offset-2">
-        OpenStreetMap
-      </a>{' '}
-      contributors, tiles by{' '}
-      {tileLayer === 'topo' ? (
-        <a href="https://opentopomap.org" target="_blank" rel="noreferrer" className="text-text-dim underline underline-offset-2">
-          OpenTopoMap
-        </a>
-      ) : (
-        <a href="https://carto.com/attributions" target="_blank" rel="noreferrer" className="text-text-dim underline underline-offset-2">
-          CARTO
-        </a>
-      )}
-    </div>
-  )
-}

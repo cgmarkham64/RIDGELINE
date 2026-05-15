@@ -13,7 +13,7 @@ import { api } from '../../../lib/api'
 import { parseGpx, enrichWithElevation } from '../../../lib/gpx'
 import { ElevationProfile } from '../../trip/ElevationProfile'
 import { PLANNED_COLOR, resolveStartEnd, TILE_LAYERS, type TileLayerKey } from '../../map/constants'
-import { MapRefCapture, ZoomControls } from '../../map/MapHelpers'
+import { AttributionStrip, MapRefCapture, ZoomControls } from '../../map/MapHelpers'
 import { MapTileToggle } from '../../map/MapTileToggle'
 import { makeStartIcon, makeEndIcon, makeWaypointIcon } from '../../map/leafletIcons'
 import { IconPlus, IconMinus, IconMap, IconDownload, IconFile, IconX, IconMoreVertical } from '../../icons'
@@ -974,6 +974,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
                 <ZoomControls mapRef={mapRef} allPoints={allPoints} />
               </div>
+              <AttributionStrip tileLayer={tileLayer} />
 
               {/* Draw mode: step rail + coordinate chips */}
               {isDrawing && (

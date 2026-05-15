@@ -4,6 +4,7 @@ import { useMap, useMapEvents } from 'react-leaflet'
 import L, { type LatLngBoundsExpression } from 'leaflet'
 import type { Waypoint } from '../../types'
 import { IconPlus, IconMinus, IconFitBounds } from '../icons'
+import type { TileLayerKey } from './constants'
 
 export function FitBounds({ positions }: { positions: [number, number][] }) {
   const map = useMap()
@@ -116,4 +117,25 @@ export function MapFocuser({
     onDone()
   }, [focusId]) // eslint-disable-line react-hooks/exhaustive-deps
   return null
+}
+
+export function AttributionStrip({ tileLayer }: { tileLayer: TileLayerKey }) {
+  return (
+    <div className="px-3 py-1 border-t border-border bg-surface font-mono text-[9px] tracking-[0.06em] text-text-dim">
+      Map data &copy;{' '}
+      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-text transition-colors">
+        OpenStreetMap
+      </a>{' '}
+      contributors, tiles by{' '}
+      {tileLayer === 'topo' ? (
+        <a href="https://opentopomap.org" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-text transition-colors">
+          OpenTopoMap
+        </a>
+      ) : (
+        <a href="https://carto.com/attributions" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-text transition-colors">
+          CARTO
+        </a>
+      )}
+    </div>
+  )
 }
