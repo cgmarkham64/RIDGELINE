@@ -51,6 +51,7 @@ type DrawState =
       error: string | null
       name: string
       nameAuto: boolean
+      segN: number
       notes: string
       showMore: boolean
       editingSeg?: SegRow
@@ -193,6 +194,10 @@ async function fetchRoutePreview(
   return { path, mi, gain, sparkElevs }
 }
 
+function formatCoord([lat, lng]: [number, number]): string {
+  return `${Math.abs(lat).toFixed(3)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(3)}°${lng >= 0 ? 'E' : 'W'}`
+}
+
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
   try {
     const res = await fetch(
@@ -310,6 +315,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   const [repositioning, setRepositioning] = useState(new Set<number>())
   const fileInputRef  = useRef<HTMLInputElement>(null)
   const mapRef        = useRef<L.Map | null>(null)
+  const mapCardRef    = useRef<HTMLDivElement>(null)
   const dragCounter   = useRef(0)
   const fetchSeqRef   = useRef(0)
   const qc = useQueryClient()
@@ -483,6 +489,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   // ── Draw mode ────────────────────────────────────────────────────────────────
 
   function enterDraw(editingSeg?: SegRow) {
+    mapCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     if (editingSeg?.path && editingSeg.path.length >= 2) {
       // Edit: re-enter with existing pins pre-loaded
       const start = editingSeg.path[0]
@@ -490,7 +497,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
       setDrawState({
         phase: 'active', start, end,
         loading: false, result: null, error: null,
-        name: editingSeg.name, nameAuto: false,
+        name: editingSeg.name, nameAuto: false, segN: editingSeg.n,
         notes: editingSeg.notes,
         showMore: !!editingSeg.notes,
         editingSeg,
@@ -519,6 +526,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     existingName: string,
     autoName: boolean,
     gpxCoords?: [number, number, number][],
+    segN?: number,
   ) => {
     const seq = ++fetchSeqRef.current
     setDrawState(prev =>
@@ -527,16 +535,22 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
         : prev
     )
 
-    const [preview, geocodedName] = await Promise.all([
+    const [preview, startGeocode, endGeocode] = await Promise.all([
       fetchRoutePreview(start, end, gpxCoords).catch(() => null),
       autoName ? reverseGeocode(start[0], start[1]) : Promise.resolve(''),
+      autoName ? reverseGeocode(end[0], end[1])   : Promise.resolve(''),
     ])
 
     if (fetchSeqRef.current !== seq) return
 
     setDrawState(prev => {
       if (prev.phase !== 'active') return prev
-      const suggestedName = autoName && geocodedName ? geocodedName : existingName
+      let suggestedName = existingName
+      if (prev.nameAuto && segN !== undefined) {
+        const startName = startGeocode || (segN === 1 ? 'Trailhead' : `Campsite ${segN - 1}`)
+        const endName   = endGeocode   || `Campsite ${segN}`
+        suggestedName = `${startName} to ${endName}`
+      }
       return {
         ...prev,
         loading: false,
@@ -563,12 +577,12 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
       setDrawState({
         phase: 'active', start, end,
         loading: true, result: null, error: null,
-        name: defaultName, nameAuto: true,
+        name: defaultName, nameAuto: true, segN,
         notes: drawState.editingSeg?.notes ?? '',
         showMore: !!drawState.editingSeg?.notes,
         editingSeg: drawState.editingSeg,
       })
-      triggerFetch(start, end, defaultName, true, trip?.gpxPlanned?.coordinates)
+      triggerFetch(start, end, defaultName, true, trip?.gpxPlanned?.coordinates, segN)
     }
   }
 
@@ -579,7 +593,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     setDrawState(prev =>
       prev.phase === 'active' ? { ...prev, start, end } : prev
     )
-    triggerFetch(start, end, drawState.name, drawState.nameAuto, trip?.gpxPlanned?.coordinates)
+    triggerFetch(start, end, drawState.name, drawState.nameAuto, trip?.gpxPlanned?.coordinates, drawState.segN)
   }
 
   function handleConfirmSegment() {
@@ -681,14 +695,18 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   ]
 
   // Draw mode derived
-  const isDrawing = drawState.phase !== 'idle'
-  const bannerText =
-    drawState.phase === 'placing-start' ? 'Click map to place start point' :
-    drawState.phase === 'placing-end' && drawState.snappedToPrev ? 'Snapped to last campsite — click map to place end point' :
-    drawState.phase === 'placing-end'   ? 'Click map to place end point' :
-    drawState.phase === 'active' && drawState.loading ? 'Calculating route…' :
-    drawState.phase === 'active' ? 'Drag pins to adjust, then confirm below' :
-    ''
+  const isDrawing   = drawState.phase !== 'idle'
+  const startPlaced = drawState.phase === 'placing-end' || drawState.phase === 'active'
+  const endPlaced   = drawState.phase === 'active'
+
+  function resetStartPin() {
+    fetchSeqRef.current++
+    setDrawState(prev =>
+      prev.phase === 'placing-end' || prev.phase === 'active'
+        ? { phase: 'placing-start', editingSeg: prev.editingSeg }
+        : prev
+    )
+  }
 
   const mapProps = bounds
     ? { bounds: bounds as LatLngBoundsExpression, boundsOptions: { padding: [20, 20] as [number, number] } }
@@ -706,6 +724,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
             {/* Route summary + map */}
             <div
+              ref={mapCardRef}
               className={`bg-surface border rounded-lg p-[18px] transition-colors ${isDragging ? 'border-amber-border' : isDrawing ? 'border-amber-border' : 'border-border'}`}
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
@@ -751,21 +770,6 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
               {uploadError && (
                 <p className="font-mono text-[9px] text-red mb-2">{uploadError}</p>
-              )}
-
-              {/* Draw mode banner */}
-              {isDrawing && (
-                <div className="flex items-center justify-between px-3 py-2 mb-3 rounded border border-amber-border bg-amber-dim">
-                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-amber">
-                    {bannerText}
-                  </span>
-                  <button
-                    onClick={cancelDraw}
-                    className="font-mono text-[9px] text-text-dim hover:text-text transition-colors cursor-pointer bg-transparent border-none p-0 ml-4 shrink-0"
-                  >
-                    Cancel
-                  </button>
-                </div>
               )}
 
               {/* Map */}
@@ -934,6 +938,94 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
                 <ZoomControls mapRef={mapRef} allPoints={allPoints} />
               </div>
+
+              {/* Draw mode: step rail + coordinate chips */}
+              {isDrawing && (
+                <div className="flex flex-col gap-2 mt-3">
+
+                  {/* Step rail */}
+                  <div className="flex items-center justify-between px-3 py-2 rounded border border-amber-border bg-amber-dim">
+                    <div className="flex items-center gap-3">
+                      {/* Step 1 — Start */}
+                      <div className="flex items-center gap-1.5">
+                        {startPlaced ? (
+                          <span className="w-[14px] h-[14px] rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--pine)' }}>
+                            <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5 3.5-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </span>
+                        ) : (
+                          <span className="w-[14px] h-[14px] rounded-full border border-amber flex items-center justify-center shrink-0">
+                            <span className="font-mono text-[7px] font-bold text-amber">1</span>
+                          </span>
+                        )}
+                        <span className={`font-mono text-[9px] tracking-[0.1em] uppercase ${startPlaced ? 'text-pine' : 'text-amber font-bold'}`}>Start</span>
+                      </div>
+
+                      <span className="text-text-dim text-[9px]">→</span>
+
+                      {/* Step 2 — End */}
+                      <div className="flex items-center gap-1.5">
+                        {endPlaced ? (
+                          <span className="w-[14px] h-[14px] rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--pine)' }}>
+                            <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5 3.5-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </span>
+                        ) : (
+                          <span className={`w-[14px] h-[14px] rounded-full border flex items-center justify-center shrink-0 ${startPlaced ? 'border-amber' : 'border-border'}`}>
+                            <span className={`font-mono text-[7px] font-bold ${startPlaced ? 'text-amber' : 'text-text-dim'}`}>2</span>
+                          </span>
+                        )}
+                        <span className={`font-mono text-[9px] tracking-[0.1em] uppercase ${endPlaced ? 'text-pine' : startPlaced ? 'text-amber font-bold' : 'text-text-dim'}`}>End</span>
+                        {!endPlaced && startPlaced && (
+                          <span className="font-mono text-[9px] text-text-dim">— click map</span>
+                        )}
+                        {!startPlaced && (
+                          <span className="font-mono text-[9px] text-text-dim">— click map</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={cancelDraw}
+                      className="inline-flex items-center gap-1 font-heading text-[10px] font-bold tracking-[0.1em] uppercase px-2.5 py-1 rounded border border-border text-text-dim bg-surface hover:text-text hover:border-border-mid transition-colors cursor-pointer ml-4 shrink-0"
+                    >
+                      <IconX size={9} />
+                      Cancel
+                    </button>
+                  </div>
+
+                  {/* Coordinate chips */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={startPlaced ? resetStartPin : undefined}
+                      disabled={!startPlaced}
+                      title={startPlaced ? 'Click to reposition start' : undefined}
+                      className={`flex items-center gap-2 px-2.5 py-1.5 rounded border text-left w-full transition-colors ${
+                        startPlaced
+                          ? 'border-pine-border bg-pine-dim hover:brightness-110 cursor-pointer'
+                          : 'border-border bg-surface-2 opacity-40 cursor-default'
+                      }`}
+                    >
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: startPlaced ? 'var(--pine)' : 'var(--border)' }} />
+                      <span className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim shrink-0">Start</span>
+                      <span className={`font-mono text-[9px] truncate ${startPlaced ? 'text-pine' : 'text-text-dim italic'}`}>
+                        {startPlaced ? formatCoord(drawState.start) : 'not placed'}
+                      </span>
+                    </button>
+
+                    <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded border ${
+                      endPlaced ? 'border-amber-border bg-amber-dim'
+                        : startPlaced ? 'border-amber-border bg-surface-2'
+                        : 'border-border bg-surface-2 opacity-40'
+                    }`}>
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: endPlaced ? 'var(--amber)' : 'transparent', border: endPlaced ? 'none' : `1px solid ${startPlaced ? 'var(--amber)' : 'var(--border)'}` }} />
+                      <span className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim shrink-0">End</span>
+                      <span className={`font-mono text-[9px] truncate ${endPlaced ? 'text-amber' : 'text-text-dim italic'}`}>
+                        {endPlaced ? formatCoord(drawState.end) : startPlaced ? 'click map to place' : 'waiting…'}
+                      </span>
+                    </div>
+                  </div>
+
+                </div>
+              )}
 
               {/* Draw mode confirm tray */}
               {drawState.phase === 'active' && (
