@@ -58,12 +58,14 @@ type DrawState =
     }
 
 const DEFAULT_CHECKLIST: CheckRow[] = [
-  { text: 'Route picked',              done: false },
-  { text: 'Entry trailhead set',       done: false },
-  { text: 'Exit trailhead set',        done: false },
-  { text: 'Distance & gain confirmed', done: false },
-  { text: 'Segments reviewed',         done: false },
-  { text: 'Partners reviewed',         done: false },
+  { text: 'Route picked',           done: false },
+  { text: 'Entry trailhead set',    done: false },
+  { text: 'Exit trailhead set',     done: false },
+  { text: 'Distance confirmed',     done: false },
+  { text: 'Elevation gain confirmed', done: false },
+  { text: 'Segments reviewed',      done: false },
+  { text: 'Partners added',         done: false },
+  { text: 'Partners reviewed',      done: false },
 ]
 
 const SEG_COLORS = ['#f0a030', '#4ade80', '#a78bfa', '#f472b6', '#60a5fa', '#34d399', '#fb923c', '#f87171']
