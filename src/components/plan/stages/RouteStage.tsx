@@ -1354,19 +1354,6 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
               )}
             </div>
 
-            {/* Elevation profile */}
-            {(trip?.gpxPlanned || (trip?.gpxTracks ?? []).length > 0) && (
-              <div className="bg-surface border border-border rounded-lg p-[18px]">
-                <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-3">
-                  Elevation Profile
-                </div>
-                <ElevationProfile
-                  planned={trip?.gpxPlanned}
-                  gpxTracks={trip?.gpxTracks}
-                />
-              </div>
-            )}
-
             {/* Merged route + water table */}
             <div className="bg-surface border border-border rounded-lg overflow-hidden">
               <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
@@ -1679,6 +1666,19 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                 </div>
               )}
             </div>
+
+            {/* Elevation profile */}
+            {(trip?.gpxPlanned || (trip?.gpxTracks ?? []).length > 0) && (
+              <div className="bg-surface border border-border rounded-lg p-[18px]">
+                <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-3">
+                  Elevation Profile
+                </div>
+                <ElevationProfile
+                  planned={trip?.gpxPlanned}
+                  gpxTracks={trip?.gpxTracks}
+                />
+              </div>
+            )}
 
             {/* Source files */}
             <div className="bg-surface border border-border rounded-lg p-3.5">
