@@ -1383,7 +1383,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
               {mergedRows.length > 0 && (
                 <div
                   className="grid items-center px-4 py-1.5 gap-3 border-b border-border"
-                  style={{ gridTemplateColumns: '20px 1fr 60px 72px 72px auto' }}
+                  style={{ gridTemplateColumns: '20px 1fr 60px 72px 72px 40px' }}
                 >
                   <span />
                   <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Name</span>
@@ -1408,7 +1408,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
               {mergedRows.map((row, i) => {
                 const isLast = i === mergedRows.length - 1
                 const border = isLast ? '' : 'border-b border-border'
-                const GRID = '20px 1fr 60px 72px 72px auto'
+                const GRID = '20px 1fr 60px 72px 72px 40px'
                 const ACTIVE_BG = 'rgba(240,160,48,0.08)'
 
                 if (row.kind === 'start') return (
