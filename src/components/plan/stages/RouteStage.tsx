@@ -1035,7 +1035,9 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                       <Marker
                         key={src.id}
                         position={[src.lat, src.lon]}
-                        icon={makeDetectedWaterIcon(src.waypointType, 24)}
+                        icon={activeRowId === src.id
+                          ? makeWaypointIcon(src.waypointType, true, 28)
+                          : makeDetectedWaterIcon(src.waypointType, 24)}
                         eventHandlers={{ click: () => scrollToRow(src.id) }}
                       >
                         <Tooltip direction="top" offset={[0, -10]} opacity={0.95}>
@@ -1052,7 +1054,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                         <Marker
                           key={`camp-${s.n}`}
                           position={s.path[s.path.length - 1]}
-                          icon={makeWaypointIcon('campsite', true, 28)}
+                          icon={makeWaypointIcon('campsite', activeRowId === `camp-${s.n}`, 28)}
                           draggable={!isDrawing && repositioning.size === 0}
                           eventHandlers={{
                             dragend(e) {
