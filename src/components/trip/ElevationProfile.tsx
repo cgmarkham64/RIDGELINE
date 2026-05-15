@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useState, useRef, useLayoutEffect } from 'react'
 import type { GpxTrack, GpxTrackEntry, Waypoint } from '../../types'
 import { WAYPOINT_COLOR } from '../map/constants'
 
@@ -133,10 +133,9 @@ function computeStats(pts: Point[]) {
 
 // ─── SVG chart ────────────────────────────────────────────────────────────────
 
-const VB_W = 260
+const VB_W_DEFAULT = 260
 const VB_H = 90
-const PAD = { l: 2, r: 2, t: 10, b: 13 }
-const CW = VB_W - PAD.l - PAD.r
+const PAD = { l: 42, r: 2, t: 10, b: 13 }
 const CH = VB_H - PAD.t - PAD.b
 const TOOLTIP_H = 13
 const TOOLTIP_PAD_X = 5
@@ -148,18 +147,19 @@ function toSvg(
   totalDist: number,
   boundaries: number[],
   labels: string[],
+  cw: number,
 ) {
   const lineD = pts
     .map((p, i) => `${i === 0 ? 'M' : 'L'}${px(p.distMi).toFixed(1)},${py(p.eleFt).toFixed(1)}`)
     .join(' ')
-  const areaD = `${lineD} L${(PAD.l + CW).toFixed(1)},${(PAD.t + CH).toFixed(1)} L${PAD.l},${(PAD.t + CH).toFixed(1)} Z`
+  const areaD = `${lineD} L${(PAD.l + cw).toFixed(1)},${(PAD.t + CH).toFixed(1)} L${PAD.l},${(PAD.t + CH).toFixed(1)} Z`
 
   const gridLines = [0.25, 0.5, 0.75].map((frac) => ({
     y: PAD.t + CH - frac * CH,
   }))
 
   const distTicks = [0, 0.5, 1].map((frac) => ({
-    x: PAD.l + frac * CW,
+    x: PAD.l + frac * cw,
     distLabel: (frac * totalDist).toFixed(1),
   }))
 
@@ -193,6 +193,21 @@ export function ElevationProfile({
   onWaypointClick?: (id: string) => void
 }) {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [containerW, setContainerW] = useState(VB_W_DEFAULT)
+  const svgRef = useRef<SVGSVGElement>(null)
+
+  useLayoutEffect(() => {
+    const el = svgRef.current
+    if (!el) return
+    const { width } = el.getBoundingClientRect()
+    if (width > 0) setContainerW(Math.floor(width))
+    const obs = new ResizeObserver((entries) => {
+      const w = Math.floor(entries[0].contentRect.width)
+      if (w > 0) setContainerW(w)
+    })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
 
   const source = resolveSource(planned, gpxTracks)
 
@@ -207,16 +222,17 @@ export function ElevationProfile({
     )
   }
 
-  const { tracks, labels, heading } = source
+  const { tracks, labels } = source
   const { pts, boundaries } = buildCombinedPoints(tracks)
   const { gain, loss, minEle, maxEle, totalDist } = computeStats(pts)
 
   const eleRange = maxEle - minEle || 1
-  const px = (distMi: number) => PAD.l + (distMi / totalDist) * CW
+  const cw = containerW - PAD.l - PAD.r
+  const px = (distMi: number) => PAD.l + (distMi / totalDist) * cw
   const py = (eleFt: number) => PAD.t + CH - ((eleFt - minEle) / eleRange) * CH
 
   const { lineD, areaD, gridLines, distTicks, dividers } = toSvg(
-    pts, px, py, totalDist, boundaries, labels
+    pts, px, py, totalDist, boundaries, labels, cw
   )
 
   const waypointMarkers = waypoints.map((wp) => {
@@ -236,7 +252,7 @@ export function ElevationProfile({
   if (hoveredMarker) {
     const { x, y, color, label } = hoveredMarker
     const tooltipW = label.length * 5.5 + TOOLTIP_PAD_X * 2
-    const tooltipX = Math.max(PAD.l, Math.min(x - tooltipW / 2, PAD.l + CW - tooltipW))
+    const tooltipX = Math.max(PAD.l, Math.min(x - tooltipW / 2, PAD.l + cw - tooltipW))
     const tooltipY = y - TOOLTIP_H - 5
     tooltipEl = (
       <g style={{ pointerEvents: 'none' }}>
@@ -263,27 +279,42 @@ export function ElevationProfile({
 
   return (
     <div className="flex flex-col gap-2.5">
-      <span className={`${monoCls} text-[8px]`}>{heading}</span>
-
       <svg
-        viewBox={`0 0 ${VB_W} ${VB_H}`}
+        ref={svgRef}
+        viewBox={`0 0 ${containerW} ${VB_H}`}
         width="100%"
-        preserveAspectRatio="none"
         overflow="visible"
-        style={{ display: 'block', height: 80 }}
+        style={{ display: 'block', height: VB_H }}
       >
         {gridLines.map(({ y }) => (
           <line
             key={y}
-            x1={PAD.l} y1={y} x2={PAD.l + CW} y2={y}
+            x1={PAD.l} y1={y} x2={PAD.l + cw} y2={y}
             stroke="var(--border)" strokeWidth="0.5"
           />
         ))}
 
         <line
-          x1={PAD.l} y1={PAD.t + CH} x2={PAD.l + CW} y2={PAD.t + CH}
+          x1={PAD.l} y1={PAD.t + CH} x2={PAD.l + cw} y2={PAD.t + CH}
           stroke="var(--border)" strokeWidth="0.7"
         />
+
+        {([
+          { eleFt: maxEle,                    y: PAD.t,        dominantBaseline: 'hanging'    },
+          { eleFt: (maxEle + minEle) / 2,     y: PAD.t + CH / 2, dominantBaseline: 'middle'  },
+          { eleFt: minEle,                    y: PAD.t + CH,   dominantBaseline: 'alphabetic' },
+        ] as const).map(({ eleFt, y, dominantBaseline }) => (
+          <text
+            key={y}
+            x={PAD.l - 4}
+            y={y}
+            textAnchor="end"
+            dominantBaseline={dominantBaseline}
+            style={{ ...svgMonoStyle, fontSize: 9 }}
+          >
+            {Math.round(eleFt).toLocaleString()}'
+          </text>
+        ))}
 
         <path d={areaD} fill="var(--amber)" fillOpacity="0.12" />
         <path d={lineD} fill="none" stroke="var(--amber)" strokeWidth="1.2" strokeLinejoin="round" />
@@ -319,7 +350,7 @@ export function ElevationProfile({
             <text
               x={x + 2}
               y={PAD.t + 5}
-              style={{ ...svgMonoStyle, fontSize: 4.5 }}
+              style={{ ...svgMonoStyle, fontSize: 9 }}
             >
               {label}
             </text>
@@ -331,7 +362,7 @@ export function ElevationProfile({
             key={x}
             x={x}
             y={VB_H - 0.5}
-            textAnchor={x <= PAD.l ? 'start' : x >= PAD.l + CW - 1 ? 'end' : 'middle'}
+            textAnchor={x <= PAD.l ? 'start' : x >= PAD.l + cw - 1 ? 'end' : 'middle'}
             style={{ ...svgMonoStyle, fontSize: 9 }}
           >
             {distLabel} mi
@@ -352,6 +383,9 @@ export function ElevationProfile({
           </div>
         ))}
       </div>
+      <p className="font-mono text-[9px] text-text-dim leading-relaxed opacity-60">
+        Elevation estimated from 90m terrain data — gain/loss is approximate and intended to give a general sense of the terrain profile.
+      </p>
     </div>
   )
 }

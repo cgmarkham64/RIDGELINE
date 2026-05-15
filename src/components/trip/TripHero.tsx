@@ -141,7 +141,7 @@ function StatBlock({ value, label }: { value: string; label: string }) {
       <div className="font-heading text-[17px] font-extrabold text-amber leading-none mb-[3px]">
         {value}
       </div>
-      <div className="font-mono text-[8px] tracking-widest uppercase text-text-dim">
+      <div className="font-mono text-[9px] tracking-widest uppercase text-text-dim">
         {label}
       </div>
     </div>

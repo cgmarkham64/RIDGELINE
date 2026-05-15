@@ -35,7 +35,7 @@ function StageRailItem({
             {stage.label}
           </span>
         </div>
-        <div className="font-mono text-[8px] text-text-dim mt-0.5">
+        <div className="font-mono text-[9px] text-text-dim mt-0.5">
           {state === 'blocked' ? (stage.blockedReason ?? 'waiting on upstream stage') :
            state === 'done'    ? 'complete' :
            state === 'idle'    ? 'not started' :
@@ -91,7 +91,7 @@ export function StageRail({ stages, trip, activeStageIdx, view, totalDone, total
           </span>
           <div className="flex-1 min-w-0">
             <div className={`font-heading text-[12px] font-bold ${isOverview ? 'text-amber' : 'text-text'}`}>Plan overview</div>
-            <div className="font-mono text-[8px] text-text-dim mt-0.5">{totalDone}/{totalAll} items · all stages</div>
+            <div className="font-mono text-[9px] text-text-dim mt-0.5">{totalDone}/{totalAll} items · all stages</div>
           </div>
           {isOverview && <IconChevronRight size={11} />}
         </button>
@@ -129,7 +129,7 @@ export function StageRail({ stages, trip, activeStageIdx, view, totalDone, total
           ].map(({ value, label }) => (
             <div key={label} className="bg-surface border border-border rounded p-2.5 text-center">
               <div className="font-heading text-[17px] font-extrabold text-amber leading-none mb-1">{value}</div>
-              <div className="font-mono text-[8px] tracking-[0.14em] uppercase text-text-dim">{label}</div>
+              <div className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim">{label}</div>
             </div>
           ))}
         </div>

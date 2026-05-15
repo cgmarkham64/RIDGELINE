@@ -9,7 +9,7 @@ import { CheckItem } from '../CheckItem'
 import { initials } from '../../../lib/utils'
 import { searchUsers, shareTrip, type UserSearchResult } from '../../../lib/users'
 import { api } from '../../../lib/api'
-import { parseGpx } from '../../../lib/gpx'
+import { parseGpx, enrichWithElevation } from '../../../lib/gpx'
 import { ElevationProfile } from '../../trip/ElevationProfile'
 import { PLANNED_COLOR, resolveStartEnd, TILE_LAYERS, type TileLayerKey } from '../../map/constants'
 import { MapTileToggle } from '../../map/MapTileToggle'
@@ -82,6 +82,12 @@ function FitBounds({ positions }: { positions: [number, number][] }) {
   return null
 }
 
+function InvalidateSize() {
+  const map = useMap()
+  useEffect(() => { map.invalidateSize() }, [map])
+  return null
+}
+
 // ─── Segment dialog ───────────────────────────────────────────────────────────
 
 function SegmentDialog({
@@ -111,7 +117,7 @@ function SegmentDialog({
   }
 
   const inputCls = 'w-full px-2.5 py-[6px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]'
-  const labelCls = 'font-mono text-[8px] tracking-[0.12em] uppercase text-text-dim mb-1 block'
+  const labelCls = 'font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block'
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
@@ -177,7 +183,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   const [checklist,   setChecklist]   = useState<CheckRow[]>(plan?.route?.checklist ?? DEFAULT_CHECKLIST)
   const [segDialog, setSegDialog]     = useState<{ mode: 'add' } | { mode: 'edit'; seg: SegRow } | null>(null)
   const [tileLayer,   setTileLayer]   = useState<TileLayerKey>('topo')
-  const [uploading,   setUploading]   = useState(false)
+  const [uploadLabel, setUploadLabel] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [isDragging,  setIsDragging]  = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -214,24 +220,30 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   async function handleGpxUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !trip?._id) return
-    setUploading(true)
+    setUploadLabel('Importing…')
     setUploadError(null)
     try {
       const text = await file.text()
       const { track } = parseGpx(text)
-      await api.put(`/api/trips/${trip._id}`, { gpxPlanned: track })
+      let coordinates = track.coordinates
+      if (!coordinates.some(([,, ele]) => ele !== 0)) {
+        setUploadLabel('Fetching elevation…')
+        try { coordinates = await enrichWithElevation(coordinates) } catch { /* keep zeros */ }
+      }
+      setUploadLabel('Saving…')
+      await api.put(`/api/trips/${trip._id}`, { gpxPlanned: { ...track, coordinates } })
       qc.invalidateQueries({ queryKey: ['plan', trip._id] })
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Failed to import GPX')
     } finally {
-      setUploading(false)
+      setUploadLabel(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
   async function handleGpxRemove() {
     if (!trip?._id) return
-    setUploading(true)
+    setUploadLabel('Removing…')
     setUploadError(null)
     try {
       await api.put(`/api/trips/${trip._id}`, { gpxPlanned: null })
@@ -239,7 +251,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     } catch {
       setUploadError('Failed to remove route')
     } finally {
-      setUploading(false)
+      setUploadLabel(null)
     }
   }
 
@@ -266,17 +278,23 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     if (!canEdit || !trip?._id) return
     const file = Array.from(e.dataTransfer.files).find(f => f.name.endsWith('.gpx'))
     if (!file) { setUploadError('Drop a .gpx file to import'); return }
-    setUploading(true)
+    setUploadLabel('Importing…')
     setUploadError(null)
     try {
       const text = await file.text()
       const { track } = parseGpx(text)
-      await api.put(`/api/trips/${trip._id}`, { gpxPlanned: track })
+      let coordinates = track.coordinates
+      if (!coordinates.some(([,, ele]) => ele !== 0)) {
+        setUploadLabel('Fetching elevation…')
+        try { coordinates = await enrichWithElevation(coordinates) } catch { /* keep zeros */ }
+      }
+      setUploadLabel('Saving…')
+      await api.put(`/api/trips/${trip._id}`, { gpxPlanned: { ...track, coordinates } })
       qc.invalidateQueries({ queryKey: ['plan', trip._id] })
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Failed to import GPX')
     } finally {
-      setUploading(false)
+      setUploadLabel(null)
     }
   }
 
@@ -418,7 +436,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                 </div>
                 {canEdit && (
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {trip?.gpxPlanned && !uploading && (
+                    {trip?.gpxPlanned && uploadLabel === null && (
                       <button
                         onClick={handleGpxRemove}
                         title="Remove planned route"
@@ -429,11 +447,11 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                     )}
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
+                      disabled={uploadLabel !== null}
                       className="inline-flex items-center gap-1.5 font-heading text-[9px] font-bold tracking-[0.1em] uppercase px-2 py-1 rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <IconDownload size={9} />
-                      {uploading ? 'Importing…' : trip?.gpxPlanned ? 'Replace' : 'Import .gpx'}
+                      {uploadLabel ?? (trip?.gpxPlanned ? 'Replace' : 'Import .gpx')}
                     </button>
                   </div>
                 )}
@@ -444,7 +462,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
               )}
 
               {/* Map */}
-              <div className="relative rounded overflow-hidden border border-border" style={{ height: 220 }}>
+              <div className="relative rounded overflow-hidden border border-border" style={{ height: '40vh' }}>
                 <MapTileToggle current={tileLayer} onToggle={() => setTileLayer(k => k === 'topo' ? 'dark' : 'topo')} />
                 {isDragging && canEdit && (
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 pointer-events-none"
@@ -465,9 +483,10 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                     <TileLayer
                       {...TILE_LAYERS[tileLayer]}
                     />
-                    {plannedLatLngs.length > 1 && (
-                      <Polyline positions={plannedLatLngs} color={PLANNED_COLOR} weight={4} opacity={0.9} dashArray="10 6" />
-                    )}
+                    {plannedLatLngs.length > 1 && (<>
+                      <Polyline positions={plannedLatLngs} color={PLANNED_COLOR} weight={14} opacity={0.18} />
+                      <Polyline positions={plannedLatLngs} color={PLANNED_COLOR} weight={4} opacity={0.95} dashArray="10 6" />
+                    </>)}
                     {tracksWithLatLngs.map(({ entry, color, positions }) =>
                       positions.length > 1 ? (
                         <Polyline key={entry.id} positions={positions} color={color} weight={3} opacity={0.9} />
@@ -480,6 +499,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                       </>
                     )}
                     <FitBounds positions={allPoints} />
+                    <InvalidateSize />
                   </MapContainer>
                 ) : (
                   <div
@@ -648,7 +668,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                   </span>
                   <span className="text-[11px] font-semibold text-text truncate flex-1 min-w-0">{p.name}</span>
                   {p.pending && (
-                    <span className="font-mono text-[8px] tracking-[0.12em] text-amber shrink-0">PENDING</span>
+                    <span className="font-mono text-[9px] tracking-[0.12em] text-amber shrink-0">PENDING</span>
                   )}
                 </div>
               ))}

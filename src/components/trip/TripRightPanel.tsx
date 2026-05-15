@@ -141,12 +141,12 @@ function WaypointList({
                 </div>
                 <div className="flex items-center gap-1.5 mt-[2px]">
                   <span
-                    className="font-mono text-[8px] tracking-[0.08em] uppercase"
+                    className="font-mono text-[9px] tracking-[0.08em] uppercase"
                     style={{ color }}
                   >
                     {WAYPOINT_LABEL[wp.type]}
                   </span>
-                  <span className="font-mono text-[8px] tracking-[0.04em] text-text-dim">
+                  <span className="font-mono text-[9px] tracking-[0.04em] text-text-dim">
                     {wp.lat.toFixed(4)}, {wp.lon.toFixed(4)}
                   </span>
                 </div>

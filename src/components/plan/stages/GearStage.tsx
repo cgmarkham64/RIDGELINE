@@ -251,7 +251,7 @@ export function GearStage({ onJump, plan, onChange }: StageBodyProps) {
             <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">Loadout preview</div>
             <div>
               <div className="font-heading text-[18px] font-extrabold text-amber leading-none">{checkedCount} of {totalCount}</div>
-              <div className="font-mono text-[8px] tracking-[0.16em] uppercase text-text-dim mt-1">items packed</div>
+              <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mt-1">items packed</div>
             </div>
             <div className="h-px bg-border my-3" />
             <div className="flex flex-col gap-2.5">
@@ -262,14 +262,14 @@ export function GearStage({ onJump, plan, onChange }: StageBodyProps) {
               ].map(s => (
                 <div key={s.label}>
                   <div className="font-heading text-[16px] font-extrabold text-text leading-none">{s.value}</div>
-                  <div className="font-mono text-[8px] tracking-[0.16em] uppercase text-text-dim mt-0.5">{s.label}</div>
+                  <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mt-0.5">{s.label}</div>
                 </div>
               ))}
             </div>
             <div className="h-px bg-border my-3" />
             <div>
               <div className="font-heading text-[20px] font-extrabold text-amber leading-none">{totalLb} lb</div>
-              <div className="font-mono text-[8px] tracking-[0.16em] uppercase text-text-dim mt-0.5">total D1 pack</div>
+              <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mt-0.5">total D1 pack</div>
             </div>
           </div>
 

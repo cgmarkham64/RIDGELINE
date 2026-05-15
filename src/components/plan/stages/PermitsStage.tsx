@@ -170,7 +170,7 @@ function TypeChip({ type }: { type: PermitTypeName }) {
 function Field({ label, value, readOnly }: { label: string; value: string; readOnly?: boolean }) {
   return (
     <div>
-      <label className="font-mono text-[8px] tracking-[0.14em] uppercase text-text-dim mb-1 block">{label}</label>
+      <label className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-1 block">{label}</label>
       <input
         className="w-full px-2.5 py-1.5 border border-border rounded-sm text-[11px] bg-surface-2 text-text outline-none font-mono focus:border-border-mid transition-colors read-only:text-text-mid read-only:cursor-default"
         defaultValue={value}
@@ -370,7 +370,7 @@ function MapZoneSvg({ highlightId }: { highlightId?: string }) {
           )
         })}
       </svg>
-      <div className="absolute bottom-2.5 left-2.5 flex gap-3 px-2.5 py-1.5 rounded border border-border font-mono text-[8px] text-text-dim bg-[rgba(15,13,11,0.8)]">
+      <div className="absolute bottom-2.5 left-2.5 flex gap-3 px-2.5 py-1.5 rounded border border-border font-mono text-[9px] text-text-dim bg-[rgba(15,13,11,0.8)]">
         <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-px bg-amber" /> route</span>
         <span className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 border border-sky bg-[rgba(90,180,220,0.25)] opacity-60" /> zone</span>
       </div>
@@ -807,7 +807,7 @@ function PermitsMapView({ permits, suggestions, onAccept, onViewMap, onJump }: {
               )
             })}
           </svg>
-          <div className="absolute bottom-2.5 left-2.5 flex gap-3 px-2.5 py-1.5 rounded border border-border font-mono text-[8px] text-text-dim bg-[rgba(15,13,11,0.8)]">
+          <div className="absolute bottom-2.5 left-2.5 flex gap-3 px-2.5 py-1.5 rounded border border-border font-mono text-[9px] text-text-dim bg-[rgba(15,13,11,0.8)]">
             <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-px bg-amber" /> route</span>
             <span className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 border border-sky bg-[rgba(90,180,220,0.25)] opacity-60" /> zone</span>
           </div>

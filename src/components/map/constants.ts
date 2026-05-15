@@ -56,7 +56,7 @@ export function resolveStartEnd(
   return null
 }
 
-export const PLANNED_COLOR = '#38bdf8'
+export const PLANNED_COLOR = '#00d4ff'
 
 export const TRACK_COLORS = [
   '#4ade80',

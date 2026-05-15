@@ -220,7 +220,7 @@ export function DaySelector({ startDate, endDate, selectedDate, entries, onSelec
                   {cell.dayNumber}
                 </span>
                 <span className={[
-                  'font-mono text-[8px] tracking-[0.06em] uppercase leading-none',
+                  'font-mono text-[9px] tracking-[0.06em] uppercase leading-none',
                   isSelected ? 'text-amber/55' : 'text-text-dim',
                 ].join(' ')}>
                   {calDate}

@@ -221,7 +221,7 @@ export function DepartStage({ plan, onChange }: StageBodyProps) {
                 </span>
                 <span className="text-[12px] text-text">{r.description}</span>
                 {r.set ? (
-                  <span className="font-mono text-[8px] tracking-[0.12em] uppercase text-pine text-right">SET</span>
+                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-pine text-right">SET</span>
                 ) : (
                   <button
                     type="button"

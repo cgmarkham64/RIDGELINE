@@ -29,7 +29,7 @@ function FitBounds({ positions }: { positions: [number, number][] }) {
 
 // ─── Color palette ───────────────────────────────────────────────────────────
 
-const PLANNED_COLOR = '#38bdf8' // sky blue — dashed, reads as "future"
+const PLANNED_COLOR = '#00d4ff'
 
 const TRACK_COLORS = [
   '#4ade80', // green

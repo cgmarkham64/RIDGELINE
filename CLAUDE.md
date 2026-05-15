@@ -12,6 +12,7 @@ An outdoor/hiking trip planning and logging app with a React frontend and Expres
 - **State**: Zustand (auth persisted to localStorage under key `ridgeline-auth`)
 - **Forms**: React Hook Form + Zod
 - **Styling**: Tailwind CSS v4 — always prefer Tailwind utility classes over inline `style={{}}` props or custom CSS. Use `hover:`, `focus:`, `group`/`group-hover:` pseudo-classes instead of JS event handlers for style changes. Only use inline styles for truly dynamic/computed values (e.g. colors from variables/props) or SVG-specific attributes.
+- **Minimum font size: 9px** — `text-[9px]` is the floor for all UI text project-wide. Use `text-[9px]` for dense labels (section headers, chips, filter labels, mono metadata), `text-[10px]`–`text-[11px]` for secondary text, `text-[12px]`–`text-[13px]` for body/list items, `text-[14px]`+ for headings. Exception: SVG inline `fontSize` in chart/map elements may go smaller only when the element is intentionally decorative at reduced scale (e.g. a print-preview one-pager).
 
 ### Backend (`/server`)
 - **Runtime**: Node.js + Express 4

@@ -154,7 +154,7 @@ export function DaysStage({ onJump, plan }: StageBodyProps) {
             ].map(s => (
               <div key={s.l} className="bg-surface px-3 py-2">
                 <div className="font-heading text-[18px] font-extrabold text-amber leading-none">{s.v}</div>
-                <div className="font-mono text-[8px] tracking-[0.16em] uppercase text-text-dim mt-1">{s.l}</div>
+                <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mt-1">{s.l}</div>
               </div>
             ))}
           </div>

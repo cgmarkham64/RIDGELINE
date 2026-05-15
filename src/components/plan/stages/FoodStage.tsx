@@ -95,7 +95,7 @@ function TargetsCard({ targets, onTargetChange, days, onJump }: {
           <div key={f.key}>
             <label
               htmlFor={`${uid}-${f.key}`}
-              className="font-mono text-[8px] tracking-[0.14em] uppercase text-text-dim mb-1 block"
+              className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-1 block"
             >
               {f.label}
             </label>
@@ -197,7 +197,7 @@ function MealGrid({ meals, onMealsChange, mealsLocked, onToggleLock }: {
         </div>
       </div>
 
-      <div className="grid px-4 py-2 bg-surface-2 border-b border-border font-mono text-[8px] tracking-[0.12em] uppercase text-text-dim grid-cols-[44px_1fr_1fr_1fr_1fr_64px]">
+      <div className="grid px-4 py-2 bg-surface-2 border-b border-border font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim grid-cols-[44px_1fr_1fr_1fr_1fr_64px]">
         <span>Day</span>
         <span>Breakfast</span>
         <span>Lunch</span>
@@ -299,7 +299,7 @@ function ResupplyCard({ status, onToggleShipped, fields, onFieldChange }: {
           <div key={f.key}>
             <label
               htmlFor={`${uid}-${f.key}`}
-              className="font-mono text-[8px] tracking-[0.14em] uppercase text-text-dim mb-1 block"
+              className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-1 block"
             >
               {f.label}
             </label>
@@ -427,7 +427,7 @@ function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
                     {can.name}
                   </span>
                   {can.recommended && (
-                    <span className="font-mono text-[8px] tracking-[0.1em] uppercase text-pine bg-pine-dim border border-pine-border px-1.5 py-0.5 rounded">
+                    <span className="font-mono text-[9px] tracking-[0.1em] uppercase text-pine bg-pine-dim border border-pine-border px-1.5 py-0.5 rounded">
                       recommended
                     </span>
                   )}
@@ -437,7 +437,7 @@ function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
                   {can.note && <span className="text-amber"> · {can.note}</span>}
                 </div>
               </div>
-              <span className={`font-mono text-[8px] tracking-[0.1em] uppercase px-1.5 py-0.5 rounded border shrink-0 ${CAN_TYPE_CLS[can.type]}`}>
+              <span className={`font-mono text-[9px] tracking-[0.1em] uppercase px-1.5 py-0.5 rounded border shrink-0 ${CAN_TYPE_CLS[can.type]}`}>
                 {can.type}
               </span>
               {isSelected && <span className="text-amber shrink-0"><IconCheck size={12} /></span>}
@@ -587,7 +587,7 @@ export function FoodStage({ onJump, plan, onChange }: StageBodyProps) {
               {totals.map(s => (
                 <div key={s.label}>
                   <div className="font-heading text-[18px] font-extrabold text-amber leading-none">{s.value}</div>
-                  <div className="font-mono text-[8px] tracking-[0.16em] uppercase text-text-dim mt-1">{s.label}</div>
+                  <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mt-1">{s.label}</div>
                 </div>
               ))}
             </div>
