@@ -45,7 +45,7 @@ router.get('/', async (req, res) => {
   try {
     const sub = req.user.sub
     const trips = await Trip.find({
-      $or: [{ ownerSub: sub }, { sharedWith: sub }],
+      $or: [{ ownerSub: sub }, { 'sharedWith.sub': sub }],
     })
       .populate('loadoutId')
       .lean()

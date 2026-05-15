@@ -15,7 +15,8 @@ import { PLANNED_COLOR, resolveStartEnd, TILE_LAYERS, type TileLayerKey } from '
 import { MapRefCapture, ZoomControls } from '../../map/MapHelpers'
 import { MapTileToggle } from '../../map/MapTileToggle'
 import { makeStartIcon, makeEndIcon, makeWaypointIcon } from '../../map/leafletIcons'
-import { IconPlus, IconMap, IconDownload, IconFile, IconX } from '../../icons'
+import { IconPlus, IconMinus, IconMap, IconDownload, IconFile, IconX, IconMoreVertical } from '../../icons'
+import { useAuthStore } from '../../../store/auth'
 import type { StageBodyProps } from '../types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -346,6 +347,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     ...(trip?.sharedWith?.map(c => ({ sub: c.sub, name: c.name })) ?? []),
   ]
 
+
   // ── GPX upload ───────────────────────────────────────────────────────────────
 
   async function handleGpxUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -429,6 +431,17 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
   // ── Partner invite ───────────────────────────────────────────────────────────
 
+  const [partnersMenuOpen, setPartnersMenuOpen] = useState(false)
+  const partnersMenuRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!partnersMenuOpen) return
+    function handleOutside(e: MouseEvent) {
+      if (!partnersMenuRef.current?.contains(e.target as Node)) setPartnersMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [partnersMenuOpen])
+
   const [inviteOpen,      setInviteOpen]      = useState(false)
   const [inviteQuery,     setInviteQuery]     = useState('')
   const [inviteResults,   setInviteResults]   = useState<UserSearchResult[]>([])
@@ -437,6 +450,10 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   const [pendingInvites,  setPendingInvites]  = useState<{ sub: string; name: string }[]>([])
   const inviteTimer    = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const inviteSearchId = useRef(0)
+
+  const currentUserSub = useAuthStore(s => s.user?.id)
+  const isOwner  = !!currentUserSub && currentUserSub === trip?.ownerSub
+  const soloTrip = partners.length <= 1 && pendingInvites.length === 0
 
   function handleInviteQueryChange(q: string) {
     setInviteQuery(q)
@@ -466,6 +483,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     try {
       await shareTrip(trip._id, user.sub, 'edit')
       setPendingInvites(prev => [...prev, { sub: user.sub, name: user.name }])
+      setChecklist(prev => prev.map(c => PARTNER_ITEMS.includes(c.text) ? { ...c, done: false } : c))
       setInviteQuery('')
       setInviteResults([])
       setInviteMsg({ text: `Invite sent to ${user.name}`, tone: 'pine' })
@@ -484,8 +502,14 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
   // ── Checklist ────────────────────────────────────────────────────────────────
 
+  const PARTNER_ITEMS = ['Partners added', 'Partners reviewed']
+
   function toggleCheck(i: number) {
     setChecklist(prev => prev.map((c, idx) => idx === i ? { ...c, done: !c.done } : c))
+  }
+
+  function confirmNoPartners() {
+    setChecklist(prev => prev.map(c => PARTNER_ITEMS.includes(c.text) ? { ...c, done: true } : c))
   }
 
   // ── Draw mode ────────────────────────────────────────────────────────────────
@@ -1250,6 +1274,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                   key={c.text}
                   text={c.text}
                   done={c.done}
+                  na={soloTrip && !c.done && PARTNER_ITEMS.includes(c.text)}
                   onToggle={canEdit ? () => toggleCheck(i) : undefined}
                 />
               ))}
@@ -1270,14 +1295,34 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                   Partners ({partners.length + pendingInvites.length})
                 </span>
                 {canEdit && !inviteOpen && (
-                  <button
-                    onClick={() => setInviteOpen(true)}
-                    title="Add partner"
-                    className="inline-flex items-center gap-1 font-heading text-[9px] font-bold tracking-[0.1em] uppercase px-2 py-1 rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
-                  >
-                    <IconPlus size={9} />
-                    Add
-                  </button>
+                  <div ref={partnersMenuRef} className="relative">
+                    <button
+                      onClick={() => setPartnersMenuOpen(v => !v)}
+                      className="p-1 rounded text-text-dim hover:text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none"
+                    >
+                      <IconMoreVertical size={14} />
+                    </button>
+                    {partnersMenuOpen && (
+                      <div className="absolute right-0 top-full mt-1 bg-surface border border-border-mid rounded shadow-xl z-20 overflow-hidden min-w-[160px]">
+                        <button
+                          onMouseDown={() => { setPartnersMenuOpen(false); setInviteOpen(true) }}
+                          className="w-full flex items-center gap-2 px-3 py-2 font-heading text-[10px] font-bold tracking-[0.08em] uppercase text-text-dim hover:text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none text-left"
+                        >
+                          <IconPlus size={10} />
+                          Add partner
+                        </button>
+                        {isOwner && soloTrip && (
+                          <button
+                            onMouseDown={() => { setPartnersMenuOpen(false); confirmNoPartners() }}
+                            className="w-full flex items-center gap-2 px-3 py-2 font-heading text-[10px] font-bold tracking-[0.08em] uppercase text-text-dim hover:text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none text-left border-t border-border"
+                          >
+                            <IconMinus size={10} />
+                            No partners
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 

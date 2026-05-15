@@ -18,36 +18,8 @@ All seven stages render with internal state. The items below are UI stubs, disco
 - ⚠ `Stage.done / Stage.total` are wired for Stage 1 (Route) — other stages still need their checklists connected to `onProgress` as they are built out.
 
 **Stage 1 — Route**
-- Figure out if there's a free way to plot points along a non track GPX entry collecting elevation data. Use that information to generate the elevation plot.
-- Make the Map a bit bigger vertically; I'd think around 50vh of the container would be a little nicer for use.
-- Add attribution strip to Route stage since I think it's required wherever the map is used.
-
-- **Map-interactive segment definition** — Replace the "Add segment" form dialog with a map-driven flow. Full plan:
-  1. **Entry point**: clicking "Add segment" (or a new "+ Draw" button in the segments panel) enters a *segment-draw mode* — a banner appears above the map ("Click to place start point") and the cursor changes to a crosshair.
-  2. **Start pin**: first map click drops a green start marker (labeled "Start"). Banner updates to "Click to place end point".
-  3. **End pin**: second click drops a red end marker (labeled "End"). Both pins are draggable after placement so the user can fine-tune.
-  4. **Auto-calculation preview**: immediately on end-pin placement, query the [OSRM public foot-walking API](https://router.project-osrm.org) (or fall back to straight-line haversine if OSRM fails) to snap the two coords to the nearest trail/road and return a routed polyline. Use the polyline + [Open-Elevation API](https://open-elevation.com) (sampled at ~50 points) to compute:
-     - **Distance** — sum of haversine segments along the routed polyline (miles, 1 dp)
-     - **Elevation gain** — cumulative positive elevation delta across sampled points (ft, rounded to nearest 10)
-     Display these as a live preview card below the map ("~4.2 mi · +1,840 ft gain") while the user still has pins on the map. Show a loading spinner while fetching; show a "Could not auto-calculate — enter manually" fallback if both APIs fail.
-  5. **Elevation mini-profile**: render a compact ~80px-tall sparkline (SVG or recharts) of the elevation along the routed polyline inside the preview card, so the user can sanity-check the terrain before confirming.
-  6. **Confirm panel**: a slim slide-up tray (not a modal) appears at the bottom of the map with:
-     - Editable name field (pre-filled from OSM reverse-geocode of start/end if available, otherwise "Segment N")
-     - Read-only distance + gain fields showing the auto-calculated values with a small pencil icon to override manually
-     - Optional Class and Notes fields (collapsed by default behind a "More" toggle)
-     - "Add segment" confirm button + "Cancel" to discard
-  7. **Committed segment**: on confirm the polyline is stored on the `SegRow` (as a `path: [lat, lng][]` field) and drawn on the map as a colored dashed line using the existing planned-route style, with the segment label mid-path. Start/end pins convert to standard waypoint markers.
-  8. **Editing**: clicking an existing segment row's edit icon re-enters draw mode with the existing pins pre-placed and the segment polyline visible; user can drag pins or replace. Calculated values refresh on pin move.
-  9. **Ordering**: segments remain orderable via existing drag-handle (or add one) in the table; map polylines redraw in index order. End of segment N snaps to start of segment N+1 if within ~50m.
-  10. **Fallback**: if the user is offline or both routing APIs fail entirely, the form fields (distance, gain) become manually-editable inputs and the map shows a straight dashed line between the two pins as a placeholder.
-  - *APIs to use (all free, no key required)*: OSRM (`/route/v1/foot/{lng},{lat};{lng},{lat}?overview=full&geometries=geojson`), Open-Elevation (`/api/v1/lookup?locations=…`), Nominatim for reverse geocode.
-  - *Implementation files*: `RouteStage.tsx` (draw-mode state machine, pin event handlers), new `SegmentDrawLayer.tsx` Leaflet layer component (pins + polyline + preview card), `RouteStage.tsx` `SegRow` type gains optional `path` field.
-
-- Consider suggested campsites feature to autopopulate segments.
-  - Initially could be an even division of the route by number of days. 
-  - Grow into AI driven suggestions based on the initial with things like treelines, possible water spots based on topography, proximity to trail, and map info (i.e. known creeks), and flatness (again driven by map topography and proximity to trail)
-  - Place waypoints on map for campsites and possible water sources.
-  - Populate journal map tab with the Route map data.
+  - Add attribution strip to Route stage since I think it's required wherever the map is used.
+  
 
 **Stage 2 — Days**
 - ⚠ Time fields (Wake / On-trail / Camp by) use `defaultValue` — edits are not captured in state.
@@ -164,10 +136,15 @@ Full gear inventory system:
 ## Ideas / Research
 
 - Investigate OnX Backcountry integration options for personal app projects — import tracks, waypoints, or gear lists.
-- **Route stage — auto-populate segments from GPX**: when a planned GPX is uploaded, offer to split it into segments automatically using waypoints or named track segments from the file. User could review and accept/edit the suggested splits rather than entering each segment by hand.
 - Investigate Garmin API integration — Vo2 max as a metric to inform trip difficulty rating / user readiness.
 - Plan Wizard tables: ADD / EDIT / REMOVE buttons with row selection where appropriate. Pop open dialogs rather than editing inline — the table is a truncated view of what's in the dialog.
 - Selective retroactive stage unlock: allow users to unlock individual planning stages after `on-trail` for corrections (e.g., gear changes mid-trip). Discourage but don't block. Start with the all-or-nothing "Back to planning" escape hatch in Phase 5, then refine.
+- **Route stage — autopopulate segments from GPX**
+  - When a planned GPX is uploaded, offer to split it into segments automatically using waypoints or named track segments from the file. User could review and accept/edit the suggested splits rather than entering each segment by hand.
+  - Initially could be an even division of the route by number of days.
+  - Grow into AI driven suggestions based on the initial with things like treelines, possible water spots based on topography, proximity to trail, and map info (i.e. known creeks), and flatness (again driven by map topography and proximity to trail)
+  - Place waypoints on map for possible water sources.
+  - Populate journal map tab with the Route map data.
 
 ---
 
