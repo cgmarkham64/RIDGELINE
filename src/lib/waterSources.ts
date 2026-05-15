@@ -17,6 +17,7 @@ export interface DetectedWaterSource {
   waypointType: WaypointType
   distFromStartMi: number
   snapDistM: number
+  checkDate?: string  // OSM check_date or survey:date tag (YYYY-MM-DD)
 }
 
 // ─── Geometry ─────────────────────────────────────────────────────────────────
@@ -235,6 +236,7 @@ out center;`
       distFromStartMi: snap.distFromStartMi,
       snapDistM: snap.snapDistM,
       snapEleM: snap.snapEleM,
+      checkDate: tags['check_date'] ?? tags['survey:date'],
     })
   }
 

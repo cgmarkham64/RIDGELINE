@@ -1038,11 +1038,16 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                         icon={activeRowId === src.id
                           ? makeWaypointIcon(src.waypointType, true, 28)
                           : makeDetectedWaterIcon(src.waypointType, 24)}
-                        eventHandlers={{ click: () => scrollToRow(src.id) }}
+                        eventHandlers={{ click: () => mapRef.current?.panTo([src.lat, src.lon]) }}
                       >
                         <Tooltip direction="top" offset={[0, -10]} opacity={0.95}>
                           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>
                             {src.label} · {src.distFromStartMi.toFixed(1)} mi from TH
+                            {src.checkDate && (
+                              <span style={{ display: 'block', opacity: 0.6, fontSize: 9 }}>
+                                OSM updated {src.checkDate}
+                              </span>
+                            )}
                           </span>
                         </Tooltip>
                       </Marker>
