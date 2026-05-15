@@ -17,10 +17,6 @@ All seven stages render with internal state. The items below are UI stubs, disco
 **All stages**
 - ⚠ `Stage.done / Stage.total` are wired for Stage 1 (Route) — other stages still need their checklists connected to `onProgress` as they are built out.
 
-**Stage 1 — Route**
-  - Add attribution strip to Route stage since I think it's required wherever the map is used.
-  
-
 **Stage 2 — Days**
 - ⚠ Time fields (Wake / On-trail / Camp by) use `defaultValue` — edits are not captured in state.
 - ⚠ Right-rail checklist is hard-wired to 8/8 done.
