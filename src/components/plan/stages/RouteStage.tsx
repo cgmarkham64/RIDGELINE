@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { MapContainer, TileLayer, Polyline, Marker, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L, { type LatLngBoundsExpression } from 'leaflet'
 import { useQueryClient } from '@tanstack/react-query'
@@ -14,12 +14,47 @@ import { ElevationProfile } from '../../trip/ElevationProfile'
 import { PLANNED_COLOR, resolveStartEnd, TILE_LAYERS, type TileLayerKey } from '../../map/constants'
 import { MapRefCapture, ZoomControls } from '../../map/MapHelpers'
 import { MapTileToggle } from '../../map/MapTileToggle'
-import { makeStartIcon, makeEndIcon } from '../../map/leafletIcons'
+import { makeStartIcon, makeEndIcon, makeWaypointIcon } from '../../map/leafletIcons'
 import { IconPlus, IconMap, IconDownload, IconFile, IconX } from '../../icons'
 import type { StageBodyProps } from '../types'
 
-type SegRow   = { n: number; name: string; mi: number; gain: number; cls: string; notes: string }
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type SegRow = {
+  n: number
+  name: string
+  mi: number
+  gain: number
+  notes: string
+  path?: [number, number][]
+}
+
 type CheckRow = { text: string; done: boolean }
+
+type RoutePreview = {
+  path: [number, number][]
+  mi: number
+  gain: number
+  sparkElevs: number[]
+}
+
+type DrawState =
+  | { phase: 'idle' }
+  | { phase: 'placing-start'; editingSeg?: SegRow }
+  | { phase: 'placing-end'; start: [number, number]; snappedToPrev: boolean; editingSeg?: SegRow }
+  | {
+      phase: 'active'
+      start: [number, number]
+      end: [number, number]
+      loading: boolean
+      result: RoutePreview | null
+      error: string | null
+      name: string
+      nameAuto: boolean
+      notes: string
+      showMore: boolean
+      editingSeg?: SegRow
+    }
 
 const DEFAULT_CHECKLIST: CheckRow[] = [
   { text: 'Route picked',              done: false },
@@ -30,7 +65,9 @@ const DEFAULT_CHECKLIST: CheckRow[] = [
   { text: 'Partners reviewed',         done: false },
 ]
 
-// ─── Leaflet helpers ──────────────────────────────────────────────────────────
+const SEG_COLORS = ['#f0a030', '#4ade80', '#a78bfa', '#f472b6', '#60a5fa', '#34d399', '#fb923c', '#f87171']
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toLatLngs(coords: [number, number, number][] | undefined): [number, number][] {
   return coords?.map(([lon, lat]) => [lat, lon]) ?? []
@@ -41,6 +78,19 @@ function coordsToMiles(coords: [number, number, number][]): number {
   for (let i = 1; i < coords.length; i++) {
     const [lon1, lat1] = coords[i - 1]
     const [lon2, lat2] = coords[i]
+    const dLat = ((lat2 - lat1) * Math.PI) / 180
+    const dLon = ((lon2 - lon1) * Math.PI) / 180
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2
+    d += 3958.8 * 2 * Math.asin(Math.sqrt(a))
+  }
+  return d
+}
+
+function haversinePathMiles(path: [number, number][]): number {
+  let d = 0
+  for (let i = 1; i < path.length; i++) {
+    const [lat1, lon1] = path[i - 1]
+    const [lat2, lon2] = path[i]
     const dLat = ((lat2 - lat1) * Math.PI) / 180
     const dLon = ((lon2 - lon1) * Math.PI) / 180
     const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2
@@ -74,6 +124,114 @@ function downloadGpx(coords: [number, number, number][], name: string) {
   URL.revokeObjectURL(url)
 }
 
+// Finds the index of the GPX coordinate closest to a [lat, lng] pin.
+function closestGpxIdx(coords: [number, number, number][], pin: [number, number]): number {
+  let best = 0, bestDist = Infinity
+  for (let i = 0; i < coords.length; i++) {
+    const dlat = coords[i][1] - pin[0]
+    const dlon = coords[i][0] - pin[1]
+    const d = dlat * dlat + dlon * dlon
+    if (d < bestDist) { bestDist = d; best = i }
+  }
+  return best
+}
+
+async function fetchRoutePreview(
+  start: [number, number],
+  end: [number, number],
+  gpxCoords?: [number, number, number][],  // [lon, lat, ele] — preferred source
+): Promise<RoutePreview> {
+
+  // ── Primary: clip the uploaded GPX track between the two pins ────────────────
+  if (gpxCoords && gpxCoords.length > 1) {
+    let si = closestGpxIdx(gpxCoords, start)
+    let ei = closestGpxIdx(gpxCoords, end)
+    if (si !== ei) {
+      if (si > ei) [si, ei] = [ei, si]
+      const slice = gpxCoords.slice(si, ei + 1)
+      const path: [number, number][] = slice.map(([lon, lat]) => [lat, lon])
+      const rawElevs = slice.map(([,, ele]) => ele)
+      const mi = haversinePathMiles(path)
+      let gain = 0
+      for (let i = 1; i < rawElevs.length; i++) {
+        const delta = rawElevs[i] - rawElevs[i - 1]
+        if (delta > 0) gain += delta * 3.28084
+      }
+      gain = Math.round(gain / 10) * 10
+      const SAMPLES = 60
+      const step = Math.max(1, Math.floor(rawElevs.length / SAMPLES))
+      const sparkElevs = rawElevs.filter((_, i) => i % step === 0 || i === rawElevs.length - 1)
+      return { path, mi, gain, sparkElevs }
+    }
+  }
+
+  // ── Fallback: straight line + Open-Elevation ──────────────────────────────────
+  const STEPS = 20
+  const path: [number, number][] = Array.from({ length: STEPS + 1 }, (_, i) => [
+    start[0] + (end[0] - start[0]) * (i / STEPS),
+    start[1] + (end[1] - start[1]) * (i / STEPS),
+  ] as [number, number])
+  const mi = haversinePathMiles(path)
+  const sampled = path.filter((_, i) => i % 2 === 0 || i === path.length - 1)
+  let sparkElevs: number[] = []
+  let gain = 0
+  try {
+    const locations = sampled.map(([lat, lng]) => ({ latitude: lat, longitude: lng }))
+    const res = await fetch('https://api.open-elevation.com/api/v1/lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ locations }),
+    })
+    const data = await res.json()
+    sparkElevs = (data.results as { elevation: number }[]).map(r => r.elevation)
+    for (let i = 1; i < sparkElevs.length; i++) {
+      const delta = sparkElevs[i] - sparkElevs[i - 1]
+      if (delta > 0) gain += delta * 3.28084
+    }
+    gain = Math.round(gain / 10) * 10
+  } catch { /* no elevation data */ }
+  return { path, mi, gain, sparkElevs }
+}
+
+async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+      { headers: { 'Accept-Language': 'en' } },
+    )
+    const data = await res.json()
+    return data.name || data.display_name?.split(',')[0] || ''
+  } catch {
+    return ''
+  }
+}
+
+// ─── Sparkline ────────────────────────────────────────────────────────────────
+
+function ElevSparkline({ elevs }: { elevs: number[] }) {
+  if (elevs.length < 2) return null
+  const min = Math.min(...elevs)
+  const max = Math.max(...elevs)
+  const range = max - min || 1
+  const W = 1000
+  const H = 60
+  const PAD = 4
+  const pts = elevs.map((e, i): [number, number] => [
+    (i / (elevs.length - 1)) * W,
+    H - PAD - ((e - min) / range) * (H - PAD * 2),
+  ])
+  const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')
+  const fill = `${d} L${W},${H} L0,${H} Z`
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 44 }} preserveAspectRatio="none">
+      <path d={fill} fill="var(--amber)" fillOpacity={0.08} />
+      <path d={d} fill="none" stroke="var(--amber)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+// ─── Leaflet helpers ──────────────────────────────────────────────────────────
+
 function FitBounds({ positions }: { positions: [number, number][] }) {
   const map = useMap()
   useEffect(() => {
@@ -89,107 +247,71 @@ function InvalidateSize() {
   return null
 }
 
-// ─── Segment dialog ───────────────────────────────────────────────────────────
-
-function SegmentDialog({
-  initial,
-  onSave,
-  onClose,
+// Handles map click events and applies crosshair cursor in draw mode
+function DrawInteractionLayer({
+  drawState,
+  onMapClick,
 }: {
-  initial?: SegRow
-  onSave: (s: Omit<SegRow, 'n'>) => void
-  onClose: () => void
+  drawState: DrawState
+  onMapClick: (lat: number, lng: number) => void
 }) {
-  const [name,  setName]  = useState(initial?.name  ?? '')
-  const [mi,    setMi]    = useState(String(initial?.mi   ?? ''))
-  const [gain,  setGain]  = useState(String(initial?.gain ?? ''))
-  const [cls,   setCls]   = useState(initial?.cls   ?? '')
-  const [notes, setNotes] = useState(initial?.notes ?? '')
+  const map = useMap()
+  const active = drawState.phase === 'placing-start' || drawState.phase === 'placing-end'
 
-  function submit() {
-    if (!name.trim()) return
-    onSave({
-      name:  name.trim(),
-      mi:    parseFloat(mi)  || 0,
-      gain:  parseInt(gain)  || 0,
-      cls:   cls.trim(),
-      notes: notes.trim(),
-    })
-  }
+  useEffect(() => {
+    const container = map.getContainer()
+    container.style.cursor = active ? 'crosshair' : ''
+    return () => { container.style.cursor = '' }
+  }, [map, active])
 
-  const inputCls = 'w-full px-2.5 py-[6px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]'
-  const labelCls = 'font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block'
+  useMapEvents({
+    click(e) {
+      if (active) onMapClick(e.latlng.lat, e.latlng.lng)
+    },
+  })
 
-  return (
-    <div className="fixed inset-0 bg-black/60 z-[1000] flex items-center justify-center">
-      <div className="bg-surface border border-border-mid rounded-xl p-6 w-full max-w-md shadow-2xl">
-        <h2 className="font-heading text-[16px] font-extrabold text-text mb-5">
-          {initial ? 'Edit segment' : 'Add segment'}
-        </h2>
-        <div className="flex flex-col gap-3">
-          <div>
-            <label className={labelCls}>Segment name</label>
-            <input
-              className={inputCls}
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="e.g. Onion Valley → Kearsarge Pass"
-              autoFocus
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-2.5">
-            <div>
-              <label className={labelCls}>Miles</label>
-              <input type="number" step="0.1" min="0" className={inputCls} value={mi} onChange={e => setMi(e.target.value)} placeholder="0.0" />
-            </div>
-            <div>
-              <label className={labelCls}>Elev gain (ft)</label>
-              <input type="number" step="100" min="0" className={inputCls} value={gain} onChange={e => setGain(e.target.value)} placeholder="0" />
-            </div>
-            <div>
-              <label className={labelCls}>Class</label>
-              <input className={inputCls} value={cls} onChange={e => setCls(e.target.value)} placeholder="1, 2, 2-3…" />
-            </div>
-          </div>
-          <div>
-            <label className={labelCls}>Notes</label>
-            <input className={inputCls} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Trail conditions, hazards, waypoints…" />
-          </div>
-        </div>
-        <div className="flex gap-2 justify-end mt-5">
-          <button
-            onClick={onClose}
-            className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={submit}
-            disabled={!name.trim()}
-            className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase rounded border cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: 'var(--amber-dim)', borderColor: 'var(--amber-border)', color: 'var(--amber)' }}
-          >
-            Save
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+  return null
 }
 
-// ─── Route Stage ─────────────────────────────────────────────────────────────
+// ─── Draw pins icon variants ──────────────────────────────────────────────────
+
+function makeDrawStartIcon(): L.DivIcon {
+  return L.divIcon({
+    html: `<div style="width:20px;height:20px;border-radius:50%;background:#0f0d0b;border:2px solid #4ade80;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px #4ade8088;cursor:grab;">
+      <div style="width:6px;height:6px;border-radius:50%;background:#4ade80;"></div>
+    </div>`,
+    className: '',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  })
+}
+
+function makeDrawEndIcon(): L.DivIcon {
+  return L.divIcon({
+    html: `<div style="width:20px;height:20px;border-radius:50%;background:#0f0d0b;border:2px solid #f87171;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px #f8717188;cursor:grab;">
+      <div style="width:6px;height:6px;border-radius:50%;background:#f87171;"></div>
+    </div>`,
+    className: '',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  })
+}
+
+// ─── Route Stage ──────────────────────────────────────────────────────────────
 
 export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }: StageBodyProps) {
-  const [segments,    setSegments]    = useState<SegRow[]>(plan?.route?.segments ?? [])
-  const [checklist,   setChecklist]   = useState<CheckRow[]>(plan?.route?.checklist ?? DEFAULT_CHECKLIST)
-  const [segDialog, setSegDialog]     = useState<{ mode: 'add' } | { mode: 'edit'; seg: SegRow } | null>(null)
-  const [tileLayer,   setTileLayer]   = useState<TileLayerKey>('topo')
+  const [segments,    setSegments]  = useState<SegRow[]>(plan?.route?.segments ?? [])
+  const [checklist,   setChecklist] = useState<CheckRow[]>(plan?.route?.checklist ?? DEFAULT_CHECKLIST)
+  const [drawState,   setDrawState] = useState<DrawState>({ phase: 'idle' })
+  const [tileLayer,   setTileLayer] = useState<TileLayerKey>('topo')
   const [uploadLabel, setUploadLabel] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const [isDragging,  setIsDragging]  = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const mapRef = useRef<L.Map | null>(null)
-  const dragCounter  = useRef(0)
+  const [isDragging,    setIsDragging]    = useState(false)
+  const [repositioning, setRepositioning] = useState(new Set<number>())
+  const fileInputRef  = useRef<HTMLInputElement>(null)
+  const mapRef        = useRef<L.Map | null>(null)
+  const dragCounter   = useRef(0)
+  const fetchSeqRef   = useRef(0)
   const qc = useQueryClient()
 
   const isMounted     = useRef(false)
@@ -198,7 +320,6 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   useEffect(() => { onChangeRef.current   = onChange   }, [onChange])
   useEffect(() => { onProgressRef.current = onProgress }, [onProgress])
 
-  // Keep stage rail in sync whenever checklist changes (fires on mount too).
   useEffect(() => {
     onProgressRef.current?.(checklist.filter(c => c.done).length, checklist.length)
   }, [checklist])
@@ -217,7 +338,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     ...(trip?.sharedWith?.map(c => ({ sub: c.sub, name: c.name })) ?? []),
   ]
 
-  // ── GPX upload ──────────────────────────────────────────────────────────────
+  // ── GPX upload ───────────────────────────────────────────────────────────────
 
   async function handleGpxUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -269,9 +390,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     if (dragCounter.current === 0) setIsDragging(false)
   }
 
-  function handleDragOver(e: React.DragEvent) {
-    e.preventDefault()
-  }
+  function handleDragOver(e: React.DragEvent) { e.preventDefault() }
 
   async function handleDrop(e: React.DragEvent) {
     e.preventDefault()
@@ -300,24 +419,21 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     }
   }
 
-  // ── Partner invite ──────────────────────────────────────────────────────────
+  // ── Partner invite ───────────────────────────────────────────────────────────
+
   const [inviteOpen,      setInviteOpen]      = useState(false)
   const [inviteQuery,     setInviteQuery]     = useState('')
   const [inviteResults,   setInviteResults]   = useState<UserSearchResult[]>([])
   const [inviteSearching, setInviteSearching] = useState(false)
   const [inviteMsg,       setInviteMsg]       = useState<{ text: string; tone: 'pine' | 'red' } | null>(null)
   const [pendingInvites,  setPendingInvites]  = useState<{ sub: string; name: string }[]>([])
-  const inviteTimer   = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const inviteTimer    = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const inviteSearchId = useRef(0)
 
   function handleInviteQueryChange(q: string) {
     setInviteQuery(q)
     clearTimeout(inviteTimer.current)
-    if (q.trim().length < 2) {
-      setInviteResults([])
-      setInviteSearching(false)
-      return
-    }
+    if (q.trim().length < 2) { setInviteResults([]); setInviteSearching(false); return }
     setInviteSearching(true)
     const id = ++inviteSearchId.current
     const existingSubs = new Set([
@@ -357,29 +473,188 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     setInviteResults([])
     setInviteMsg(null)
   }
-  // ───────────────────────────────────────────────────────────────────────────
+
+  // ── Checklist ────────────────────────────────────────────────────────────────
 
   function toggleCheck(i: number) {
     setChecklist(prev => prev.map((c, idx) => idx === i ? { ...c, done: !c.done } : c))
   }
 
-  function handleSaveSegment(data: Omit<SegRow, 'n'>) {
-    if (segDialog?.mode === 'edit') {
-      setSegments(prev => prev.map(s => s.n === segDialog.seg.n ? { ...data, n: segDialog.seg.n } : s))
+  // ── Draw mode ────────────────────────────────────────────────────────────────
+
+  function enterDraw(editingSeg?: SegRow) {
+    if (editingSeg?.path && editingSeg.path.length >= 2) {
+      // Edit: re-enter with existing pins pre-loaded
+      const start = editingSeg.path[0]
+      const end   = editingSeg.path[editingSeg.path.length - 1]
+      setDrawState({
+        phase: 'active', start, end,
+        loading: false, result: null, error: null,
+        name: editingSeg.name, nameAuto: false,
+        notes: editingSeg.notes,
+        showMore: !!editingSeg.notes,
+        editingSeg,
+      })
+      triggerFetch(start, end, editingSeg.name, false, trip?.gpxPlanned?.coordinates)
+    } else {
+      // New segment: auto-snap start to previous segment's endpoint if available
+      const prevPath = segments[segments.length - 1]?.path
+      const snapPoint = prevPath?.length ? prevPath[prevPath.length - 1] : null
+      if (snapPoint) {
+        setDrawState({ phase: 'placing-end', start: snapPoint, snappedToPrev: true })
+      } else {
+        setDrawState({ phase: 'placing-start' })
+      }
+    }
+  }
+
+  function cancelDraw() {
+    setDrawState({ phase: 'idle' })
+    fetchSeqRef.current++
+  }
+
+  const triggerFetch = useCallback(async (
+    start: [number, number],
+    end: [number, number],
+    existingName: string,
+    autoName: boolean,
+    gpxCoords?: [number, number, number][],
+  ) => {
+    const seq = ++fetchSeqRef.current
+    setDrawState(prev =>
+      prev.phase === 'active'
+        ? { ...prev, loading: true, result: null, error: null }
+        : prev
+    )
+
+    const [preview, geocodedName] = await Promise.all([
+      fetchRoutePreview(start, end, gpxCoords).catch(() => null),
+      autoName ? reverseGeocode(start[0], start[1]) : Promise.resolve(''),
+    ])
+
+    if (fetchSeqRef.current !== seq) return
+
+    setDrawState(prev => {
+      if (prev.phase !== 'active') return prev
+      const suggestedName = autoName && geocodedName ? geocodedName : existingName
+      return {
+        ...prev,
+        loading: false,
+        result: preview,
+        error: preview ? null : 'Could not auto-calculate — enter values manually',
+        name: prev.nameAuto ? suggestedName : prev.name,
+      }
+    })
+  }, [])
+
+  function handleMapClick(lat: number, lng: number) {
+    if (drawState.phase === 'placing-start') {
+      setDrawState({
+        phase: 'placing-end',
+        start: [lat, lng],
+        snappedToPrev: false,
+        editingSeg: drawState.editingSeg,
+      })
+    } else if (drawState.phase === 'placing-end') {
+      const start = drawState.start
+      const end: [number, number] = [lat, lng]
+      const segN = drawState.editingSeg?.n ?? ((segments[segments.length - 1]?.n ?? 0) + 1)
+      const defaultName = `Segment ${segN}`
+      setDrawState({
+        phase: 'active', start, end,
+        loading: true, result: null, error: null,
+        name: defaultName, nameAuto: true,
+        notes: drawState.editingSeg?.notes ?? '',
+        showMore: !!drawState.editingSeg?.notes,
+        editingSeg: drawState.editingSeg,
+      })
+      triggerFetch(start, end, defaultName, true, trip?.gpxPlanned?.coordinates)
+    }
+  }
+
+  function handlePinDrag(which: 'start' | 'end', lat: number, lng: number) {
+    if (drawState.phase !== 'active') return
+    const start = which === 'start' ? [lat, lng] as [number, number] : drawState.start
+    const end   = which === 'end'   ? [lat, lng] as [number, number] : drawState.end
+    setDrawState(prev =>
+      prev.phase === 'active' ? { ...prev, start, end } : prev
+    )
+    triggerFetch(start, end, drawState.name, drawState.nameAuto, trip?.gpxPlanned?.coordinates)
+  }
+
+  function handleConfirmSegment() {
+    if (drawState.phase !== 'active') return
+    const { result, name, notes, editingSeg } = drawState
+    const newSeg: Omit<SegRow, 'n'> = {
+      name: name.trim() || 'Unnamed segment',
+      mi:   result ? parseFloat(result.mi.toFixed(1)) : 0,
+      gain: result?.gain ?? 0,
+      notes: notes.trim(),
+      path: result?.path,
+    }
+    if (editingSeg) {
+      setSegments(prev => prev.map(s => s.n === editingSeg.n ? { ...newSeg, n: editingSeg.n } : s))
     } else {
       const n = (segments[segments.length - 1]?.n ?? 0) + 1
-      setSegments(prev => [...prev, { ...data, n }])
+      setSegments(prev => [...prev, { ...newSeg, n }])
     }
-    setSegDialog(null)
+    setDrawState({ phase: 'idle' })
   }
 
   function deleteSegment(n: number) {
-    setSegments(prev =>
-      prev.filter(s => s.n !== n).map((s, i) => ({ ...s, n: i + 1 }))
-    )
+    setSegments(prev => prev.filter(s => s.n !== n).map((s, i) => ({ ...s, n: i + 1 })))
   }
 
-  // ── Map data ─────────────────────────────────────────────────────────────────
+  async function handleEndpointDrag(segIdx: number, which: 'start' | 'end', lat: number, lng: number) {
+    const snap = segments  // capture at drag-end time
+    const seg = snap[segIdx]
+    if (!seg?.path?.length) return
+
+    const newPos: [number, number] = [lat, lng]
+    const toUpdate: { si: number; start: [number, number]; end: [number, number] }[] = []
+
+    toUpdate.push({
+      si: segIdx,
+      start: which === 'start' ? newPos : seg.path[0],
+      end:   which === 'end'   ? newPos : seg.path[seg.path.length - 1],
+    })
+
+    // Keep chain connected: moving the end of seg N also moves the start of seg N+1
+    if (which === 'end') {
+      const next = snap[segIdx + 1]
+      if (next?.path?.length)
+        toUpdate.push({ si: segIdx + 1, start: newPos, end: next.path[next.path.length - 1] })
+    }
+    // Moving the start of seg N also moves the end of seg N-1
+    if (which === 'start') {
+      const prev = snap[segIdx - 1]
+      if (prev?.path?.length)
+        toUpdate.push({ si: segIdx - 1, start: prev.path[0], end: newPos })
+    }
+
+    setRepositioning(new Set(toUpdate.map(u => u.si)))
+
+    const results = await Promise.all(
+      toUpdate.map(async ({ si, start, end }) => ({
+        si,
+        preview: await fetchRoutePreview(start, end, trip?.gpxPlanned?.coordinates).catch(() => null),
+      }))
+    )
+
+    setRepositioning(new Set())
+    setSegments(prev => {
+      let next = [...prev]
+      for (const { si, preview } of results) {
+        if (!preview) continue
+        next = next.map((s, i) =>
+          i === si ? { ...s, mi: parseFloat(preview.mi.toFixed(1)), gain: preview.gain, path: preview.path } : s
+        )
+      }
+      return next
+    })
+  }
+
+  // ── Map data ──────────────────────────────────────────────────────────────────
 
   const plannedLatLngs = toLatLngs(trip?.gpxPlanned?.coordinates)
   const tracksWithLatLngs = (trip?.gpxTracks ?? []).map((entry, i) => ({
@@ -394,7 +669,6 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   const bounds = allPoints.length > 1 ? L.latLngBounds(allPoints) : null
   const startEnd = resolveStartEnd(plannedLatLngs, tracksWithLatLngs)
 
-  // Derived source files — auto-populates once GPX is uploaded to the trip
   const sourceFiles = [
     ...(trip?.gpxPlanned
       ? [{ name: 'Planned Route', meta: `${coordsToMiles(trip.gpxPlanned.coordinates).toFixed(1)} mi · GPX`, coords: trip.gpxPlanned.coordinates }]
@@ -406,6 +680,22 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     })),
   ]
 
+  // Draw mode derived
+  const isDrawing = drawState.phase !== 'idle'
+  const bannerText =
+    drawState.phase === 'placing-start' ? 'Click map to place start point' :
+    drawState.phase === 'placing-end' && drawState.snappedToPrev ? 'Snapped to last campsite — click map to place end point' :
+    drawState.phase === 'placing-end'   ? 'Click map to place end point' :
+    drawState.phase === 'active' && drawState.loading ? 'Calculating route…' :
+    drawState.phase === 'active' ? 'Drag pins to adjust, then confirm below' :
+    ''
+
+  const mapProps = bounds
+    ? { bounds: bounds as LatLngBoundsExpression, boundsOptions: { padding: [20, 20] as [number, number] } }
+    : { center: [40.0, -105.5] as [number, number], zoom: 5 }
+
+  const showMap = !!bounds || isDrawing || segments.some(s => s.path?.length)
+
   return (
     <>
       <div className="flex-1 overflow-y-auto p-8 pb-20">
@@ -416,7 +706,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
             {/* Route summary + map */}
             <div
-              className={`bg-surface border rounded-lg p-[18px] transition-colors ${isDragging ? 'border-amber-border' : 'border-border'}`}
+              className={`bg-surface border rounded-lg p-[18px] transition-colors ${isDragging ? 'border-amber-border' : isDrawing ? 'border-amber-border' : 'border-border'}`}
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
               onDragOver={handleDragOver}
@@ -436,7 +726,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                       : 'No segments added yet'}
                   </div>
                 </div>
-                {canEdit && (
+                {canEdit && !isDrawing && (
                   <div className="flex items-center gap-1.5 shrink-0">
                     {trip?.gpxPlanned && uploadLabel === null && (
                       <button
@@ -463,8 +753,26 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                 <p className="font-mono text-[9px] text-red mb-2">{uploadError}</p>
               )}
 
+              {/* Draw mode banner */}
+              {isDrawing && (
+                <div className="flex items-center justify-between px-3 py-2 mb-3 rounded border border-amber-border bg-amber-dim">
+                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-amber">
+                    {bannerText}
+                  </span>
+                  <button
+                    onClick={cancelDraw}
+                    className="font-mono text-[9px] text-text-dim hover:text-text transition-colors cursor-pointer bg-transparent border-none p-0 ml-4 shrink-0"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
               {/* Map */}
-              <div className="relative rounded overflow-hidden border border-border" style={{ height: '40vh' }}>
+              <div
+                className="relative rounded overflow-hidden border border-border"
+                style={{ height: '44vh' }}
+              >
                 <MapTileToggle current={tileLayer} onToggle={() => setTileLayer(k => k === 'topo' ? 'dark' : 'topo')} />
                 {isDragging && canEdit && (
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 pointer-events-none"
@@ -473,39 +781,138 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                     <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-amber">Drop .gpx to import</p>
                   </div>
                 )}
-                {bounds ? (<>
+
+                {showMap ? (
                   <MapContainer
-                    bounds={bounds as LatLngBoundsExpression}
-                    boundsOptions={{ padding: [20, 20] }}
+                    key="route-map"
+                    {...mapProps}
                     style={{ height: '100%', width: '100%' }}
                     scrollWheelZoom={false}
                     zoomControl={false}
                     attributionControl={false}
                   >
-                    <TileLayer
-                      {...TILE_LAYERS[tileLayer]}
-                    />
+                    <TileLayer {...TILE_LAYERS[tileLayer]} />
+
+                    {/* Planned route */}
                     {plannedLatLngs.length > 1 && (<>
                       <Polyline positions={plannedLatLngs} color={PLANNED_COLOR} weight={14} opacity={0.18} />
                       <Polyline positions={plannedLatLngs} color={PLANNED_COLOR} weight={4} opacity={0.95} dashArray="10 6" />
                     </>)}
+
+                    {/* GPS tracks */}
                     {tracksWithLatLngs.map(({ entry, color, positions }) =>
                       positions.length > 1 ? (
                         <Polyline key={entry.id} positions={positions} color={color} weight={3} opacity={0.9} />
                       ) : null
                     )}
-                    {startEnd && (
-                      <>
-                        <Marker position={startEnd.start} icon={makeStartIcon(16)} interactive={false} />
-                        <Marker position={startEnd.end} icon={makeEndIcon(16)} interactive={false} />
-                      </>
+
+                    {/* Committed segment polylines — solid, prominent, on top of GPX trail */}
+                    {segments.map((s, i) =>
+                      s.path && s.path.length > 1 ? (
+                        <Polyline
+                          key={`seg-${s.n}`}
+                          positions={s.path}
+                          color={SEG_COLORS[i % SEG_COLORS.length]}
+                          weight={4}
+                          opacity={1}
+                        />
+                      ) : null
                     )}
+
+                    {/* Campsite tent markers — draggable intermediate endpoints */}
+                    {segments.map((s, i) =>
+                      i < segments.length - 1 && s.path?.length ? (
+                        <Marker
+                          key={`camp-${s.n}`}
+                          position={s.path[s.path.length - 1]}
+                          icon={makeWaypointIcon('campsite', true, 28)}
+                          draggable={!isDrawing && repositioning.size === 0}
+                          eventHandlers={{
+                            dragend(e) {
+                              const { lat, lng } = (e.target as L.Marker).getLatLng()
+                              handleEndpointDrag(i, 'end', lat, lng)
+                            },
+                          }}
+                        />
+                      ) : null
+                    )}
+
+                    {/* Start/end markers — draggable when from segment data (not GPX) */}
+                    {startEnd ? (<>
+                      <Marker position={startEnd.start} icon={makeStartIcon(16)} interactive={false} />
+                      <Marker position={startEnd.end}   icon={makeEndIcon(16)}   interactive={false} />
+                    </>) : (<>
+                      {segments[0]?.path?.length ? (
+                        <Marker
+                          position={segments[0].path![0]}
+                          icon={makeStartIcon(18)}
+                          draggable={!isDrawing && repositioning.size === 0}
+                          eventHandlers={{
+                            dragend(e) {
+                              const { lat, lng } = (e.target as L.Marker).getLatLng()
+                              handleEndpointDrag(0, 'start', lat, lng)
+                            },
+                          }}
+                        />
+                      ) : null}
+                      {segments[segments.length - 1]?.path?.length ? (
+                        <Marker
+                          position={segments[segments.length - 1].path![segments[segments.length - 1].path!.length - 1]}
+                          icon={makeEndIcon(18)}
+                          draggable={!isDrawing && repositioning.size === 0}
+                          eventHandlers={{
+                            dragend(e) {
+                              const { lat, lng } = (e.target as L.Marker).getLatLng()
+                              handleEndpointDrag(segments.length - 1, 'end', lat, lng)
+                            },
+                          }}
+                        />
+                      ) : null}
+                    </>)}
+
+                    {/* Draw mode: preview polyline + draggable pins */}
+                    {drawState.phase === 'active' && drawState.result && (
+                      <Polyline
+                        positions={drawState.result.path}
+                        color="#f0a030"
+                        weight={3}
+                        opacity={0.9}
+                        dashArray="8 5"
+                      />
+                    )}
+                    {(drawState.phase === 'placing-end' || drawState.phase === 'active') && (
+                      <Marker
+                        position={drawState.start}
+                        icon={makeDrawStartIcon()}
+                        draggable={drawState.phase === 'active'}
+                        eventHandlers={{
+                          dragend(e) {
+                            const { lat, lng } = (e.target as L.Marker).getLatLng()
+                            handlePinDrag('start', lat, lng)
+                          },
+                        }}
+                      />
+                    )}
+                    {drawState.phase === 'active' && (
+                      <Marker
+                        position={drawState.end}
+                        icon={makeDrawEndIcon()}
+                        draggable
+                        eventHandlers={{
+                          dragend(e) {
+                            const { lat, lng } = (e.target as L.Marker).getLatLng()
+                            handlePinDrag('end', lat, lng)
+                          },
+                        }}
+                      />
+                    )}
+
+                    <DrawInteractionLayer drawState={drawState} onMapClick={handleMapClick} />
                     <MapRefCapture mapRef={mapRef} />
-                    <FitBounds positions={allPoints} />
+                    {bounds && <FitBounds positions={allPoints} />}
                     <InvalidateSize />
                   </MapContainer>
-                  <ZoomControls mapRef={mapRef} allPoints={allPoints} />
-                </>) : (
+                ) : (
                   <div
                     className="h-full flex flex-col items-center justify-center gap-2"
                     style={{ background: 'var(--surface-2)' }}
@@ -524,10 +931,100 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                     )}
                   </div>
                 )}
+
+                <ZoomControls mapRef={mapRef} allPoints={allPoints} />
               </div>
+
+              {/* Draw mode confirm tray */}
+              {drawState.phase === 'active' && (
+                <div className="mt-3 rounded border border-border bg-surface-2 p-3">
+                  {/* Preview stats row */}
+                  <div className="flex items-center gap-3 mb-2.5">
+                    {drawState.loading ? (
+                      <span className="font-mono text-[9px] text-text-dim tracking-[0.1em]">Calculating…</span>
+                    ) : drawState.result ? (
+                      <>
+                        <span className="font-mono text-[11px] font-bold text-amber">
+                          {drawState.result.mi.toFixed(1)} mi
+                        </span>
+                        <span className="font-mono text-[10px] text-text-mid">
+                          +{drawState.result.gain.toLocaleString()} ft gain
+                        </span>
+                        {drawState.result.sparkElevs.length > 1 && (
+                          <span className="font-mono text-[9px] text-text-dim">
+                            (drag pins to recalculate)
+                          </span>
+                        )}
+                      </>
+                    ) : drawState.error ? (
+                      <span className="font-mono text-[9px] text-text-dim">{drawState.error}</span>
+                    ) : null}
+                  </div>
+
+                  {/* Sparkline */}
+                  {drawState.result?.sparkElevs && drawState.result.sparkElevs.length > 1 && (
+                    <div className="mb-2.5 rounded overflow-hidden" style={{ background: 'var(--surface)' }}>
+                      <ElevSparkline elevs={drawState.result.sparkElevs} />
+                    </div>
+                  )}
+
+                  {/* Name field */}
+                  <div className="flex flex-col gap-2">
+                    <div>
+                      <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block">
+                        Segment name
+                      </label>
+                      <input
+                        className="w-full px-2.5 py-[6px] bg-surface border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
+                        value={drawState.name}
+                        onChange={e =>
+                          setDrawState(prev =>
+                            prev.phase === 'active'
+                              ? { ...prev, name: e.target.value, nameAuto: false }
+                              : prev
+                          )
+                        }
+                        placeholder="e.g. Onion Valley → Kearsarge Pass"
+                        autoFocus
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block">Notes</label>
+                      <input
+                        className="w-full px-2.5 py-[6px] bg-surface border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
+                        value={drawState.notes}
+                        onChange={e =>
+                          setDrawState(prev =>
+                            prev.phase === 'active' ? { ...prev, notes: e.target.value } : prev
+                          )
+                        }
+                        placeholder="Trail conditions, hazards…"
+                      />
+                    </div>
+
+                    <div className="flex gap-2 justify-end mt-1">
+                      <button
+                        onClick={cancelDraw}
+                        className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleConfirmSegment}
+                        disabled={!drawState.name.trim() || drawState.loading}
+                        className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase rounded border cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{ background: 'var(--amber-dim)', borderColor: 'var(--amber-border)', color: 'var(--amber)' }}
+                      >
+                        {drawState.editingSeg ? 'Update segment' : 'Add segment'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Elevation profile — shown once GPX data is available */}
+            {/* Elevation profile */}
             {(trip?.gpxPlanned || (trip?.gpxTracks ?? []).length > 0) && (
               <div className="bg-surface border border-border rounded-lg p-[18px]">
                 <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-3">
@@ -550,9 +1047,9 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                     <JumpChip to="days" onJump={onJump}>Days</JumpChip>
                   </span>
                 )}
-                {canEdit && (
+                {canEdit && !isDrawing && (
                   <button
-                    onClick={() => setSegDialog({ mode: 'add' })}
+                    onClick={() => enterDraw()}
                     className="ml-auto inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase px-2.5 py-1.5 rounded border border-border text-text bg-transparent hover:border-border-mid transition-colors cursor-pointer"
                   >
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -562,37 +1059,65 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                     Add segment
                   </button>
                 )}
+                {isDrawing && (
+                  <span className="ml-auto font-mono text-[9px] tracking-[0.1em] uppercase text-amber">Drawing…</span>
+                )}
               </div>
+
+              {segments.length > 0 && (
+                <div
+                  className="grid items-center px-4 py-1.5 gap-3 border-b border-border"
+                  style={{ gridTemplateColumns: '36px 1fr 60px 76px 1fr auto' }}
+                >
+                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">#</span>
+                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Name</span>
+                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Miles</span>
+                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Gain</span>
+                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Notes</span>
+                  {canEdit && <span />}
+                </div>
+              )}
 
               {segments.length === 0 ? (
                 <div className="px-4 py-8 text-center">
                   <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1.5">No segments yet</p>
                   <p className="text-[12px] text-text-mid">
                     {canEdit
-                      ? 'Add segments to define each leg of your route.'
+                      ? 'Click "Add segment" above, then click two points on the map to define a leg.'
                       : 'No segments have been added to this route.'}
                   </p>
                 </div>
               ) : segments.map((s, i) => (
                 <div
                   key={s.n}
-                  className={`grid items-center px-4 py-2.5 gap-3 ${i < segments.length - 1 ? 'border-b border-border' : ''} hover:bg-surface-2 transition-colors`}
-                  style={{ gridTemplateColumns: '36px 1fr 60px 76px 52px 1fr auto' }}
+                  className={`grid items-center px-4 py-2.5 gap-3 ${i < segments.length - 1 ? 'border-b border-border' : ''} transition-colors ${repositioning.has(i) ? 'opacity-50' : 'hover:bg-surface-2'}`}
+                  style={{ gridTemplateColumns: '36px 1fr 60px 76px 1fr auto' }}
                 >
-                  <span className="font-mono text-[9px] font-bold text-pine text-center py-0.5 rounded border border-pine-border bg-pine-dim">
+                  <span
+                    className="font-mono text-[9px] font-bold text-center py-0.5 rounded border"
+                    style={{
+                      color: SEG_COLORS[i % SEG_COLORS.length],
+                      borderColor: SEG_COLORS[i % SEG_COLORS.length] + '55',
+                      background: SEG_COLORS[i % SEG_COLORS.length] + '18',
+                    }}
+                  >
                     S{s.n}
                   </span>
                   <span className="text-[12px] font-semibold text-text truncate">{s.name}</span>
-                  <span className="font-mono text-[10px] text-text">{s.mi.toFixed(1)} mi</span>
-                  <span className="font-mono text-[10px] text-text-mid">+{s.gain.toLocaleString()} ft</span>
-                  <span className="font-mono text-[10px] text-amber">{s.cls ? `cl ${s.cls}` : '—'}</span>
+                  <span className="font-mono text-[10px] text-text">
+                    {repositioning.has(i) ? '…' : `${s.mi.toFixed(1)} mi`}
+                  </span>
+                  <span className="font-mono text-[10px] text-text-mid">
+                    {repositioning.has(i) ? '…' : `+${s.gain.toLocaleString()} ft`}
+                  </span>
                   <span className="text-[10px] text-text-mid italic truncate">{s.notes || '—'}</span>
                   {canEdit && (
                     <div className="flex items-center gap-0.5 shrink-0">
                       <button
-                        onClick={() => setSegDialog({ mode: 'edit', seg: s })}
+                        onClick={() => { if (!isDrawing) enterDraw(s) }}
+                        disabled={isDrawing}
                         title="Edit segment"
-                        className="p-1 rounded text-text-dim hover:text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none"
+                        className="p-1 rounded text-text-dim hover:text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -600,9 +1125,10 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                         </svg>
                       </button>
                       <button
-                        onClick={() => deleteSegment(s.n)}
+                        onClick={() => { if (!isDrawing) deleteSegment(s.n) }}
+                        disabled={isDrawing}
                         title="Delete segment"
-                        className="p-1 rounded text-text-dim hover:text-red hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none"
+                        className="p-1 rounded text-text-dim hover:text-red hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="3 6 5 6 21 6" />
@@ -751,14 +1277,6 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
           </aside>
         </div>
       </div>
-
-      {segDialog && (
-        <SegmentDialog
-          initial={segDialog.mode === 'edit' ? segDialog.seg : undefined}
-          onSave={handleSaveSegment}
-          onClose={() => setSegDialog(null)}
-        />
-      )}
 
       <input
         ref={fileInputRef}

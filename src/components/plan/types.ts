@@ -28,7 +28,7 @@ export type ZoneStatus = 'available' | 'limited' | 'sold_out'
 // ─── Per-stage plan data — used to seed state from an existing plan ───────────
 
 export interface PlanRouteData {
-  segments: { n: number; name: string; mi: number; gain: number; cls: string; notes: string }[]
+  segments: { n: number; name: string; mi: number; gain: number; notes: string; path?: [number, number][] }[]
   sourceFiles: { name: string; meta: string }[]
   checklist: { text: string; done: boolean }[]
 }
