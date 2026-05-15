@@ -92,6 +92,18 @@ export function makeEndIcon(size = 22): L.DivIcon {
   )
 }
 
+export function makeDetectedWaterIcon(type: WaypointType, size = 24): L.DivIcon {
+  const color = WAYPOINT_COLOR[type]
+  const svgSize = Math.round(size * 0.52)
+  return L.divIcon({
+    html: `<div class="wp-marker-wrap wp-marker-detected" style="--wp-border-color:${color};width:${size}px;height:${size}px;">${waypointSvgString(type, svgSize)}</div>`,
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -(size / 2) - 2],
+  })
+}
+
 export function makePendingIcon(type: WaypointType): L.DivIcon {
   const color = WAYPOINT_COLOR[type]
   const size = 30

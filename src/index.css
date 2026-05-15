@@ -555,6 +555,10 @@
     border-color: var(--wp-border-color);
     animation: wp-glow-pulse 1.6s ease-in-out infinite;
   }
+  .wp-marker-detected {
+    border-style: dashed;
+    opacity: 0.75;
+  }
 
   /* Loading overlay */
   .hiker-overlay {

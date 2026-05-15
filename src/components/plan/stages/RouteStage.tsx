@@ -15,8 +15,11 @@ import { ElevationProfile } from '../../trip/ElevationProfile'
 import { PLANNED_COLOR, resolveStartEnd, TILE_LAYERS, type TileLayerKey } from '../../map/constants'
 import { AttributionStrip, MapRefCapture, ZoomControls } from '../../map/MapHelpers'
 import { MapTileToggle } from '../../map/MapTileToggle'
-import { makeStartIcon, makeEndIcon, makeWaypointIcon } from '../../map/leafletIcons'
-import { IconPlus, IconMinus, IconMap, IconDownload, IconFile, IconX, IconMoreVertical } from '../../icons'
+import { makeStartIcon, makeEndIcon, makeWaypointIcon, makeDetectedWaterIcon } from '../../map/leafletIcons'
+import { WaypointIcon } from '../../map/WaypointIcon'
+import { WAYPOINT_COLOR, WAYPOINT_LABEL } from '../../map/constants'
+import { fetchDetectedWaterSources, type DetectedWaterSource } from '../../../lib/waterSources'
+import { IconPlus, IconMinus, IconMap, IconDownload, IconFile, IconX, IconMoreVertical, IconSparkle } from '../../icons'
 import { useAuthStore } from '../../../store/auth'
 import type { StageBodyProps } from '../types'
 
@@ -309,9 +312,12 @@ function makeDrawEndIcon(): L.DivIcon {
 // ─── Route Stage ──────────────────────────────────────────────────────────────
 
 export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }: StageBodyProps) {
-  const [segments,    setSegments]  = useState<SegRow[]>(plan?.route?.segments ?? [])
-  const [checklist,   setChecklist] = useState<CheckRow[]>(plan?.route?.checklist ?? DEFAULT_CHECKLIST)
-  const [drawState,   setDrawState] = useState<DrawState>({ phase: 'idle' })
+  const [segments,      setSegments]      = useState<SegRow[]>(plan?.route?.segments ?? [])
+  const [checklist,     setChecklist]     = useState<CheckRow[]>(plan?.route?.checklist ?? DEFAULT_CHECKLIST)
+  const [drawState,     setDrawState]     = useState<DrawState>({ phase: 'idle' })
+  const [detectedWater, setDetectedWater] = useState<DetectedWaterSource[]>([])
+  const [waterLoading,  setWaterLoading]  = useState(false)
+  const [waterError,    setWaterError]    = useState<string | null>(null)
   const [tileLayer,   setTileLayer] = useState<TileLayerKey>('topo')
   const [uploadLabel, setUploadLabel] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -338,6 +344,25 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     if (!isMounted.current) { isMounted.current = true; return }
     onChangeRef.current?.({ route: { segments, checklist, sourceFiles: [] } })
   }, [segments, checklist])
+
+  // ── Detected water sources ───────────────────────────────────────────────────
+
+  const gpxCoords = trip?.gpxPlanned?.coordinates
+  useEffect(() => {
+    if (!gpxCoords || gpxCoords.length < 2) {
+      setDetectedWater([])
+      setWaterError(null)
+      return
+    }
+    let cancelled = false
+    setWaterLoading(true)
+    setWaterError(null)
+    fetchDetectedWaterSources(gpxCoords)
+      .then(sources => { if (!cancelled) { setDetectedWater(sources); setWaterLoading(false) } })
+      .catch(err   => { if (!cancelled) { setWaterError(err instanceof Error ? err.message : 'Detection failed'); setWaterLoading(false) } })
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gpxCoords])
 
   const totalMiles = segments.reduce((s, x) => s + x.mi, 0)
   const totalGain  = segments.reduce((s, x) => s + x.gain, 0)
@@ -859,6 +884,16 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                       ) : null
                     )}
 
+                    {/* Auto-detected water source markers */}
+                    {detectedWater.map(src => (
+                      <Marker
+                        key={src.id}
+                        position={[src.lat, src.lon]}
+                        icon={makeDetectedWaterIcon(src.waypointType, 24)}
+                        interactive={false}
+                      />
+                    ))}
+
                     {/* Campsite tent markers — draggable intermediate endpoints */}
                     {segments.map((s, i) =>
                       i < segments.length - 1 && s.path?.length ? (
@@ -1163,6 +1198,67 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                   planned={trip?.gpxPlanned}
                   gpxTracks={trip?.gpxTracks}
                 />
+              </div>
+            )}
+
+            {/* Water Sources */}
+            {gpxCoords && gpxCoords.length >= 2 && (
+              <div className="bg-surface border border-border rounded-lg overflow-hidden">
+                <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
+                  <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Water Sources</span>
+                  {waterLoading && (
+                    <span className="font-mono text-[9px] text-text-dim">Detecting…</span>
+                  )}
+                  {!waterLoading && detectedWater.length > 0 && (
+                    <span className="font-mono text-[9px] text-text-dim">{detectedWater.length}</span>
+                  )}
+                  <span className="ml-auto inline-flex items-center gap-1 font-mono text-[9px] tracking-[0.08em] uppercase text-text-dim/50 border border-dashed border-border rounded-sm px-1.5 py-0.5">
+                    <IconSparkle />
+                    OSM auto-detected
+                  </span>
+                </div>
+
+                {waterError && (
+                  <p className="px-4 py-3 font-mono text-[9px] text-red">{waterError}</p>
+                )}
+
+                {!waterLoading && !waterError && detectedWater.length === 0 && (
+                  <div className="px-4 py-6 text-center">
+                    <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">No water sources detected within 400 m of route</p>
+                  </div>
+                )}
+
+                {detectedWater.length > 0 && (
+                  <>
+                    <div
+                      className="grid items-center px-4 py-1.5 gap-3 border-b border-border"
+                      style={{ gridTemplateColumns: '20px 1fr 64px 80px 56px' }}
+                    >
+                      <span />
+                      <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Name</span>
+                      <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">From start</span>
+                      <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Type</span>
+                      <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Off trail</span>
+                    </div>
+                    {detectedWater.map((src, i) => (
+                      <div
+                        key={src.id}
+                        className={`grid items-center px-4 py-2.5 gap-3 hover:bg-surface-2 transition-colors ${i < detectedWater.length - 1 ? 'border-b border-border' : ''}`}
+                        style={{ gridTemplateColumns: '20px 1fr 64px 80px 56px' }}
+                      >
+                        <span style={{ color: WAYPOINT_COLOR[src.waypointType] }}>
+                          <WaypointIcon type={src.waypointType} size={14} />
+                        </span>
+                        <span className="text-[12px] font-semibold text-text truncate">{src.label}</span>
+                        <span className="font-mono text-[10px] text-text">{src.distFromStartMi.toFixed(1)} mi</span>
+                        <span className="font-mono text-[10px]" style={{ color: WAYPOINT_COLOR[src.waypointType] }}>
+                          {WAYPOINT_LABEL[src.waypointType]}
+                        </span>
+                        <span className="font-mono text-[10px] text-text-dim">{src.snapDistM} m</span>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             )}
 
