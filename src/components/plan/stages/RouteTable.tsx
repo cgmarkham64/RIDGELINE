@@ -55,7 +55,7 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
             onClick={() => onEnterDraw()}
             className="ml-auto inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-widest uppercase px-2.5 py-1.5 rounded border border-border text-text bg-transparent hover:border-border-mid transition-colors cursor-pointer"
           >
-            <IconPlus size={10} />
+            <IconPlus size={13} />
             Add segment
           </button>
         )}
@@ -104,7 +104,7 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
             style={{ gridTemplateColumns: GRID, background: activeRowId === 'trailhead' ? ACTIVE_BG : 'var(--surface-2)' }}
             onClick={() => onFlyTo(row.lat, row.lon, 'trailhead')}
           >
-            <span className="text-pine"><IconTriangleRight size={12} /></span>
+            <span className="text-pine"><IconTriangleRight size={15} /></span>
             <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Trailhead</span>
             <span className="font-mono text-[10px] text-text-dim">0.0 mi</span>
             <span className="font-mono text-[10px] text-text-mid">
@@ -131,7 +131,7 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
               onClick={() => onFlyTo(campPos?.[0] ?? null, campPos?.[1] ?? null, rowId)}
             >
               <span className={row.isFinish ? 'text-red' : 'text-amber'}>
-                {row.isFinish ? <IconCheck size={12} /> : <IconTent />}
+                {row.isFinish ? <IconCheck size={15} /> : <IconTent />}
               </span>
               <span className="text-[12px] font-semibold text-text truncate">{row.seg.name}</span>
               <span className="font-mono text-[10px] text-text">
@@ -161,12 +161,12 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
                     <button onClick={() => { if (!isDrawing) onEnterDraw(row.seg) }} disabled={isDrawing}
                       title="Edit segment"
                       className="p-1 rounded text-text-dim hover:text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none disabled:opacity-30 disabled:cursor-not-allowed">
-                      <IconPencil size={11} />
+                      <IconPencil size={15} />
                     </button>
                     <button onClick={() => { if (!isDrawing) onDeleteSegment(row.seg.n) }} disabled={isDrawing}
                       title="Delete segment"
                       className="p-1 rounded text-text-dim hover:text-red hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none disabled:opacity-30 disabled:cursor-not-allowed">
-                      <IconTrash size={11} />
+                      <IconTrash size={15} />
                     </button>
                   </div>
                 : <span />
@@ -183,7 +183,7 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
             onClick={() => onFlyTo(row.entry.lat, row.entry.lon, row.entry.id)}
           >
             <span style={{ color: WAYPOINT_COLOR[row.entry.waypointType] }}>
-              <WaypointIcon type={row.entry.waypointType} size={14} />
+              <WaypointIcon type={row.entry.waypointType} size={15} />
             </span>
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="text-[12px] font-semibold text-text truncate">{row.entry.label}</span>

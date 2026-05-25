@@ -316,7 +316,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
   return (
     <div className="flex-1 overflow-y-auto p-8 pb-20">
-      <div className="grid gap-7 max-w-275 grid-cols-[1fr_320px]">
+      <div className="grid gap-7 grid-cols-[1fr_360px]">
 
         {/* ── Left column ── */}
         <div className="flex flex-col gap-4.5">
