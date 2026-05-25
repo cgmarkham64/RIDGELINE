@@ -1,29 +1,30 @@
 import { Router } from 'express'
 import { Loadout } from '../models/Loadout'
+import { asyncRoute, requireOwner, HttpError } from '../utils/routeHelpers'
 
 const router = Router()
 
-router.get('/', async (req, res) => {
+router.get('/', asyncRoute(async (req, res) => {
   const loadouts = await Loadout.find({ ownerSub: req.user.sub }).populate('items').lean()
   res.json(loadouts)
-})
+}))
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', asyncRoute(async (req, res) => {
   const loadout = await Loadout.findById(req.params.id).populate('items').lean() as { ownerSub: string } | null
-  if (!loadout) return res.status(404).json({ error: 'Not found' })
-  if (loadout.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
+  if (!loadout) throw new HttpError(404, 'Not found')
+  requireOwner(loadout.ownerSub, req.user.sub)
   res.json(loadout)
-})
+}))
 
-router.post('/', async (req, res) => {
+router.post('/', asyncRoute(async (req, res) => {
   const loadout = await Loadout.create({ ...req.body, ownerSub: req.user.sub })
   res.status(201).json(loadout)
-})
+}))
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', asyncRoute(async (req, res) => {
   const loadout = await Loadout.findById(req.params.id).lean() as { ownerSub: string } | null
-  if (!loadout) return res.status(404).json({ error: 'Not found' })
-  if (loadout.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
+  if (!loadout) throw new HttpError(404, 'Not found')
+  requireOwner(loadout.ownerSub, req.user.sub)
   const rest = { ...(req.body as Record<string, unknown>) }
   delete rest.ownerSub
   const updated = await Loadout.findByIdAndUpdate(req.params.id, rest, {
@@ -33,14 +34,14 @@ router.put('/:id', async (req, res) => {
     .populate('items')
     .lean()
   res.json(updated)
-})
+}))
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', asyncRoute(async (req, res) => {
   const loadout = await Loadout.findById(req.params.id).lean() as { ownerSub: string } | null
-  if (!loadout) return res.status(404).json({ error: 'Not found' })
-  if (loadout.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
+  if (!loadout) throw new HttpError(404, 'Not found')
+  requireOwner(loadout.ownerSub, req.user.sub)
   await Loadout.findByIdAndDelete(req.params.id)
   res.status(204).send()
-})
+}))
 
 export default router

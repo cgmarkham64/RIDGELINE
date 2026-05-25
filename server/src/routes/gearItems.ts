@@ -1,29 +1,30 @@
 import { Router } from 'express'
 import { GearItem } from '../models/GearItem'
+import { asyncRoute, requireOwner, HttpError } from '../utils/routeHelpers'
 
 const router = Router()
 
-router.get('/', async (req, res) => {
+router.get('/', asyncRoute(async (req, res) => {
   const items = await GearItem.find({ ownerSub: req.user.sub }).lean()
   res.json(items)
-})
+}))
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', asyncRoute(async (req, res) => {
   const item = await GearItem.findById(req.params.id).lean() as { ownerSub: string } | null
-  if (!item) return res.status(404).json({ error: 'Not found' })
-  if (item.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
+  if (!item) throw new HttpError(404, 'Not found')
+  requireOwner(item.ownerSub, req.user.sub)
   res.json(item)
-})
+}))
 
-router.post('/', async (req, res) => {
+router.post('/', asyncRoute(async (req, res) => {
   const item = await GearItem.create({ ...req.body, ownerSub: req.user.sub })
   res.status(201).json(item)
-})
+}))
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', asyncRoute(async (req, res) => {
   const item = await GearItem.findById(req.params.id).lean() as { ownerSub: string } | null
-  if (!item) return res.status(404).json({ error: 'Not found' })
-  if (item.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
+  if (!item) throw new HttpError(404, 'Not found')
+  requireOwner(item.ownerSub, req.user.sub)
   const rest = { ...(req.body as Record<string, unknown>) }
   delete rest.ownerSub
   const updated = await GearItem.findByIdAndUpdate(req.params.id, rest, {
@@ -31,14 +32,14 @@ router.put('/:id', async (req, res) => {
     runValidators: true,
   }).lean()
   res.json(updated)
-})
+}))
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', asyncRoute(async (req, res) => {
   const item = await GearItem.findById(req.params.id).lean() as { ownerSub: string } | null
-  if (!item) return res.status(404).json({ error: 'Not found' })
-  if (item.ownerSub !== req.user.sub) return res.status(403).json({ error: 'Forbidden' })
+  if (!item) throw new HttpError(404, 'Not found')
+  requireOwner(item.ownerSub, req.user.sub)
   await GearItem.findByIdAndDelete(req.params.id)
   res.status(204).send()
-})
+}))
 
 export default router

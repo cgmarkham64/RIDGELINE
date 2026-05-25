@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import Anthropic from '@anthropic-ai/sdk'
+import { asyncRoute, HttpError } from '../utils/routeHelpers'
 
 const router = Router()
 
@@ -20,23 +21,22 @@ Do not include markdown, explanation, or any text outside the JSON object.`
 // Anthropic's per-image limit is 5 MB of raw image data
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
-router.post('/', async (req, res) => {
+router.post('/', asyncRoute(async (req, res) => {
   const { imageBase64, mediaType } = req.body as {
     imageBase64?: string
     mediaType?: string
   }
 
-  if (!imageBase64) {
-    return res.status(400).json({ error: 'imageBase64 is required' })
-  }
+  if (!imageBase64) throw new HttpError(400, 'imageBase64 is required')
 
   // Base64 is ~4/3 the size of the raw bytes
   const estimatedBytes = Math.ceil((imageBase64.length * 3) / 4)
   if (estimatedBytes > MAX_IMAGE_BYTES) {
     const sizeMB = (estimatedBytes / 1024 / 1024).toFixed(1)
-    return res.status(413).json({
-      error: `Image is too large (${sizeMB} MB). Please reduce it to under 5 MB before scanning — try lowering the resolution or compressing it first.`,
-    })
+    throw new HttpError(
+      413,
+      `Image is too large (${sizeMB} MB). Please reduce it to under 5 MB before scanning — try lowering the resolution or compressing it first.`,
+    )
   }
 
   const validMediaTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
@@ -84,6 +84,6 @@ router.post('/', async (req, res) => {
   }
 
   res.json(extracted)
-})
+}))
 
 export default router
