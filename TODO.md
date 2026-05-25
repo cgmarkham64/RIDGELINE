@@ -151,20 +151,6 @@ Files that export more than one React component and need to be split to comply w
 
 ### Backend
 
-**Duplicated patterns (highest value to fix)**
-
-- **ObjectId validation duplicated** — `validId` (or equivalent inline check) appears in `plans.ts`, `trips.ts`, `journalDays.ts`. Extract once to `server/src/utils/objectId.ts`.
-
-**Business logic living in route files**
-
-- **`trips.ts`** — `normalizeShared`, `canRead`, `populateTripUsers` are utility/service functions, not routing. Move to `server/src/services/tripService.ts`.
-- **`journalDays.ts`** — `getTripForRead` / `getTripForWrite` duplicate trip-access logic already expressed in `trips.ts` `canRead`. Unify and move to `tripService.ts`.
-- **`journalScan.ts`** — Claude API call, image validation, and system prompt are inlined in the route. Move to `server/src/services/scanService.ts`; keep system prompt in a constants file.
-
-**Near-identical files**
-
-- **`loadouts.ts` and `gearItems.ts`** — Both are owner-scoped GET/POST/PUT/DELETE with no meaningful differences. Consider a `makeOwnerCrudRouter(Model)` factory, or at minimum share the ownership/error helpers so they don't drift independently.
-
 ---
 
 ## Ideas / Research
@@ -206,3 +192,4 @@ Files that export more than one React component and need to be split to comply w
 - **Wizard Stage Gaps** — Segments CRUD (add/edit/delete via dialog), live checklist with `onProgress` wired to stage rail, real partners from `sharedWith`, inline partner invite panel, map placeholder pending Leaflet + GPX.
 - **Route stage map + GPX** — Replaced map placeholder with live Leaflet map (CARTO dark tiles, dashed planned-route polyline, start/end markers). GPX import via button and drag-and-drop onto the map card; replace and remove supported. `ElevationProfile` card wired below the map. Source files section derives from `trip.gpxPlanned` / `gpxTracks` with computed distance; per-file download button reconstructs and saves a valid `.gpx` from stored coordinates.
 - **Backend cleanup — route helpers** — `server/src/utils/routeHelpers.ts` introduces `HttpError`, `asyncRoute`, `requireOwner`, and `formatUserResponse`. Every route handler now wrapped in `asyncRoute` (fixes previously unprotected handlers in `loadouts.ts`, `gearItems.ts`, `journalDays.ts`, `journalScan.ts`, notifications GET/DELETE/patch). Ownership guards replaced with `requireOwner` throughout. `signToken` extracted locally in `localAuth.ts`. `journalDays.ts` `sharedWith` access check fixed to handle both string and `{sub,role}` entries.
+- **Backend cleanup — service extraction + dedup** — `server/src/services/tripService.ts` centralises trip access logic (`normalizeShared`, `canRead`, `populateTripUsers`, `fetchTripForRead/Write`); `scanService.ts` moves the Claude API call, size validation, and JSON parse out of the route. `utils/objectId.ts` exports `validObjectId`; `utils/crudFactory.ts` exports `makeOwnerCrudRouter` — `loadouts.ts` and `gearItems.ts` each collapse to 3 lines. Backend Code Cleanup section fully resolved.

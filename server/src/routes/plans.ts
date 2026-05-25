@@ -1,13 +1,9 @@
 import { Router } from 'express'
-import { Types } from 'mongoose'
 import { Plan } from '../models/Plan'
 import { asyncRoute, requireOwner, HttpError } from '../utils/routeHelpers'
+import { validObjectId } from '../utils/objectId'
 
 const router = Router()
-
-function validId(id: string) {
-  return Types.ObjectId.isValid(id)
-}
 
 router.get('/', asyncRoute(async (req, res) => {
   const plans = await Plan.find({ ownerSub: req.user.sub }).sort({ updatedAt: -1 }).lean()
@@ -24,7 +20,7 @@ router.post('/', asyncRoute(async (req, res) => {
 }))
 
 router.get('/:id', asyncRoute(async (req, res) => {
-  if (!validId(req.params.id)) throw new HttpError(400, 'Invalid id')
+  if (!validObjectId(req.params.id)) throw new HttpError(400, 'Invalid id')
   const plan = await Plan.findById(req.params.id).lean<{ ownerSub: string }>()
   if (!plan) throw new HttpError(404, 'Not found')
   requireOwner(plan.ownerSub, req.user.sub)
@@ -32,7 +28,7 @@ router.get('/:id', asyncRoute(async (req, res) => {
 }))
 
 router.put('/:id', asyncRoute(async (req, res) => {
-  if (!validId(req.params.id)) throw new HttpError(400, 'Invalid id')
+  if (!validObjectId(req.params.id)) throw new HttpError(400, 'Invalid id')
   const plan = await Plan.findById(req.params.id)
   if (!plan) throw new HttpError(404, 'Not found')
   requireOwner(plan.ownerSub, req.user.sub)
@@ -43,7 +39,7 @@ router.put('/:id', asyncRoute(async (req, res) => {
 }))
 
 router.delete('/:id', asyncRoute(async (req, res) => {
-  if (!validId(req.params.id)) throw new HttpError(400, 'Invalid id')
+  if (!validObjectId(req.params.id)) throw new HttpError(400, 'Invalid id')
   const plan = await Plan.findById(req.params.id)
   if (!plan) throw new HttpError(404, 'Not found')
   requireOwner(plan.ownerSub, req.user.sub)
