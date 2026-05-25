@@ -4,40 +4,9 @@ import { UserProfile } from '../models/UserProfile'
 import { JournalDay } from '../models/JournalDay'
 import { Notification } from '../models/Notification'
 import { asyncRoute, requireOwner, HttpError } from '../utils/routeHelpers'
+import { normalizeShared, canRead, populateTripUsers, TripLean, SharedEntry } from '../services/tripService'
 
 const router = Router()
-
-type SharedEntry = { sub: string; role: string }
-
-function normalizeShared(sw: Array<SharedEntry | string>): SharedEntry[] {
-  return (sw ?? []).map((e) => (typeof e === 'string' ? { sub: e, role: 'edit' } : e))
-}
-
-function canRead(trip: { ownerSub: string; sharedWith: Array<SharedEntry | string> }, sub: string) {
-  return trip.ownerSub === sub || normalizeShared(trip.sharedWith).some((e) => e.sub === sub)
-}
-
-interface TripLean extends Record<string, unknown> {
-  ownerSub: string
-  sharedWith: Array<SharedEntry | string>
-}
-
-async function populateTripUsers(trip: TripLean) {
-  const entries = normalizeShared(trip.sharedWith)
-  const toFetch = [...new Set([...entries.map((e) => e.sub), trip.ownerSub].filter(Boolean))]
-  const users = toFetch.length
-    ? await UserProfile.find({ sub: { $in: toFetch } }).select('sub name').lean<{ sub: string; name: string }[]>()
-    : []
-  const owner = users.find((u) => u.sub === trip.ownerSub)
-  return {
-    ...trip,
-    ownerName: owner?.name ?? 'Unknown',
-    sharedWith: entries.map((entry) => {
-      const u = users.find((u) => u.sub === entry.sub)
-      return { sub: entry.sub, name: u?.name ?? 'Unknown', role: entry.role }
-    }),
-  }
-}
 
 router.get('/', asyncRoute(async (req, res) => {
   const sub = req.user.sub

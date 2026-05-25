@@ -1,33 +1,9 @@
 import { Router } from 'express'
 import { JournalDay } from '../models/JournalDay'
-import { Trip } from '../models/Trip'
 import { asyncRoute, HttpError } from '../utils/routeHelpers'
+import { fetchTripForRead, fetchTripForWrite } from '../services/tripService'
 
 const router = Router()
-
-type SharedEntry = { sub: string } | string
-type TripLean = { ownerSub: string; sharedWith: SharedEntry[] }
-
-function canReadTrip(trip: TripLean, sub: string): boolean {
-  return (
-    trip.ownerSub === sub ||
-    trip.sharedWith.some((e) => (typeof e === 'string' ? e : e.sub) === sub)
-  )
-}
-
-async function fetchTripForRead(tripId: string, sub: string): Promise<TripLean> {
-  const trip = await Trip.findById(tripId).lean() as TripLean | null
-  if (!trip) throw new HttpError(404, 'Trip not found')
-  if (!canReadTrip(trip, sub)) throw new HttpError(403, 'Forbidden')
-  return trip
-}
-
-async function fetchTripForWrite(tripId: string, sub: string): Promise<TripLean> {
-  const trip = await Trip.findById(tripId).lean() as TripLean | null
-  if (!trip) throw new HttpError(404, 'Trip not found')
-  if (trip.ownerSub !== sub) throw new HttpError(403, 'Forbidden')
-  return trip
-}
 
 router.get('/', asyncRoute(async (req, res) => {
   const { tripId } = req.query
