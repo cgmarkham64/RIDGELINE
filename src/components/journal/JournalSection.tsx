@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { initials } from '../../lib/utils'
-import { useDebounce } from '../../hooks/useDebounce'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { Trip, JournalDay } from '../../types'
 import { useJournalDays, useSaveJournalDay } from '../../hooks/useJournalDays'
 import { api } from '../../lib/api'
-import { searchUsers, shareTrip, type UserSearchResult } from '../../lib/users'
+import { shareTrip } from '../../lib/users'
 import { HikerOverlay } from '../ui/HikerOverlay'
 import { MoonLoader } from '../ui/MoonLoader'
 import { DaySelector } from './DaySelector'
+import { TagInput } from './TagInput'
+import { CompanionTagInput } from './CompanionTagInput'
 
 const WEATHER_OPTIONS = [
   'Clear',
@@ -54,9 +54,43 @@ interface Props {
   readOnly?: boolean
 }
 
-// Shared className for condition inputs
 const condInputCls =
   'w-full px-2 py-[6px] border border-border focus:border-border-mid rounded-sm text-[12px] bg-surface text-text outline-none transition-[border-color] duration-[140ms]'
+
+function CondCell({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-surface-2 border border-border rounded-md px-2.75 py-2.25">
+      <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-mid mb-1.25">
+        {label}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function entryToDefaults(entry: JournalDay | undefined) {
+  return {
+    title: entry?.title ?? '',
+    weatherNotes: entry?.weatherNotes ?? '',
+    tempLowF: entry?.tempLowF?.toString() ?? '',
+    tempHighF: entry?.tempHighF?.toString() ?? '',
+    milesCovered: entry?.milesCovered?.toString() ?? '',
+    elevationGainFt: entry?.elevationGainFt?.toString() ?? '',
+    body: entry?.body ?? '',
+  }
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      resolve(result.split(',')[1])
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
 
 export function JournalSection({ trip, readOnly }: Props) {
   const [selectedDate, setSelectedDate] = useState(trip.startDate.slice(0, 10))
@@ -104,7 +138,6 @@ export function JournalSection({ trip, readOnly }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, currentEntry?._id, reset]) // intentional: re-run on ID change only, not every mutation
 
-  // Auto-save when focus leaves the form — but only if body has content
   function handleFormBlur(e: React.FocusEvent<HTMLFormElement>) {
     if (readOnly) return
     if (e.currentTarget.contains(e.relatedTarget as Node)) return
@@ -149,7 +182,6 @@ export function JournalSection({ trip, readOnly }: Props) {
         await new Promise((r) => setTimeout(r, remaining))
       }
 
-      // Share trip with any @mentioned companions added this save
       const subsToShare = pendingShareSubsRef.current.slice()
       pendingShareSubsRef.current = []
       setPendingInviteCount(0)
@@ -167,7 +199,6 @@ export function JournalSection({ trip, readOnly }: Props) {
   async function handleScanFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    // Reset so the same file can be re-selected if needed
     e.target.value = ''
 
     setScanError(null)
@@ -180,7 +211,6 @@ export function JournalSection({ trip, readOnly }: Props) {
         mediaType: file.type,
       })
 
-      // Populate whichever fields the AI returned
       if (data.title) setValue('title', data.title, { shouldDirty: true })
       if (data.milesCovered)
         setValue('milesCovered', String(data.milesCovered), { shouldDirty: true })
@@ -191,8 +221,7 @@ export function JournalSection({ trip, readOnly }: Props) {
       if (data.weatherNotes) setValue('weatherNotes', data.weatherNotes, { shouldDirty: true })
       if (data.body) setValue('body', data.body, { shouldDirty: true })
 
-      // Blur any focused form field so the auto-save fires now (while the
-      // scan overlay is still up) rather than when the user next clicks elsewhere.
+      // Blur any focused field so the auto-save fires while the scan overlay is still up
       ;(document.activeElement as HTMLElement)?.blur()
     } catch (err: unknown) {
       const message =
@@ -231,7 +260,6 @@ export function JournalSection({ trip, readOnly }: Props) {
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} onBlur={handleFormBlur}>
           <fieldset disabled={!!readOnly} style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
-          {/* Hidden file input for journal scan */}
           <input
             ref={fileInputRef}
             type="file"
@@ -240,7 +268,6 @@ export function JournalSection({ trip, readOnly }: Props) {
             onChange={handleScanFile}
           />
 
-          {/* Entry header: "Day N" + title input + scan button */}
           <div className="flex items-baseline gap-2.5 flex-wrap pb-3.5 mb-4.5 border-b border-border">
             <span className="font-heading text-[28px] font-extrabold text-amber leading-none tracking-[-0.01em] shrink-0">
               Day {dayNumber}
@@ -269,7 +296,6 @@ export function JournalSection({ trip, readOnly }: Props) {
             <p className="text-[11px] text-red mb-3">{scanError}</p>
           )}
 
-          {/* Conditions — 5 columns */}
           <div className="grid grid-cols-5 gap-1.5 mb-5.5">
             <CondCell label="Miles">
               <input
@@ -327,7 +353,6 @@ export function JournalSection({ trip, readOnly }: Props) {
             </CondCell>
           </div>
 
-          {/* Narrative */}
           <div className="flex items-center gap-3 mb-4">
             <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim shrink-0">Field Notes</span>
             <hr className="flex-1 border-0 border-t border-border" />
@@ -347,7 +372,6 @@ export function JournalSection({ trip, readOnly }: Props) {
             </p>
           )}
 
-          {/* Wildlife */}
           <div className="flex items-center gap-3 mb-3 mt-1">
             <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim shrink-0">Wildlife</span>
             <hr className="flex-1 border-0 border-t border-border" />
@@ -360,7 +384,6 @@ export function JournalSection({ trip, readOnly }: Props) {
             />
           </div>
 
-          {/* Companions */}
           <div className="flex items-center gap-3 mb-3">
             <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim shrink-0">Companions</span>
             <hr className="flex-1 border-0 border-t border-border" />
@@ -407,235 +430,4 @@ export function JournalSection({ trip, readOnly }: Props) {
       )}
     </section>
   )
-}
-
-function CondCell({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-surface-2 border border-border rounded-md px-2.75 py-2.25">
-      <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-mid mb-1.25">
-        {label}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-function entryToDefaults(entry: JournalDay | undefined) {
-  return {
-    title: entry?.title ?? '',
-    weatherNotes: entry?.weatherNotes ?? '',
-    tempLowF: entry?.tempLowF?.toString() ?? '',
-    tempHighF: entry?.tempHighF?.toString() ?? '',
-    milesCovered: entry?.milesCovered?.toString() ?? '',
-    elevationGainFt: entry?.elevationGainFt?.toString() ?? '',
-    body: entry?.body ?? '',
-  }
-}
-
-function TagInput({
-  tags,
-  placeholder,
-  onChange,
-}: {
-  tags: string[]
-  placeholder: string
-  onChange: (tags: string[]) => void
-}) {
-  const [input, setInput] = useState('')
-
-  function addTag(value: string) {
-    const trimmed = value.trim()
-    if (!trimmed || tags.includes(trimmed)) return
-    onChange([...tags, trimmed])
-    setInput('')
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      addTag(input)
-    } else if (e.key === 'Backspace' && !input && tags.length) {
-      onChange(tags.slice(0, -1))
-    }
-  }
-
-  return (
-    <div className="flex flex-wrap gap-1.5 items-center min-h-[32px]">
-      {tags.map((tag) => (
-        <span
-          key={tag}
-          className="flex items-center gap-1 bg-surface-2 border border-border rounded-sm px-2 py-0.5 font-mono text-[10px] text-text-mid"
-        >
-          {tag}
-          <button
-            type="button"
-            onClick={() => onChange(tags.filter((t) => t !== tag))}
-            className="text-text-dim hover:text-amber leading-none"
-          >
-            ×
-          </button>
-        </span>
-      ))}
-      <input
-        type="text"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onBlur={() => { if (input.trim()) addTag(input) }}
-        placeholder={tags.length === 0 ? placeholder : ''}
-        className="flex-1 min-w-24 bg-transparent border-0 outline-none font-mono text-[11px] text-text placeholder:text-text-dim"
-      />
-    </div>
-  )
-}
-
-function CompanionTagInput({
-  tags,
-  onChange,
-  onMentionAdded,
-}: {
-  tags: string[]
-  onChange: (tags: string[]) => void
-  onMentionAdded: (sub: string) => void
-}) {
-  const [input, setInput] = useState('')
-  const [results, setResults] = useState<UserSearchResult[]>([])
-  const [searching, setSearching] = useState(false)
-  const [open, setOpen] = useState(false)
-  const searchIdRef = useRef(0)
-
-  const debouncedInput = useDebounce(input, 300)
-  const showDropdown = open && debouncedInput.trim().length >= 2
-
-  const runSearch = useCallback(async (query: string) => {
-    const id = ++searchIdRef.current
-    setSearching(true)
-    try {
-      const users = await searchUsers(query)
-      if (id !== searchIdRef.current) return
-      setResults(users)
-      setOpen(true)
-    } catch {
-      if (id !== searchIdRef.current) return
-      setResults([])
-    } finally {
-      if (id === searchIdRef.current) setSearching(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (debouncedInput.trim().length >= 2) runSearch(debouncedInput.trim())
-    else { setResults([]); setOpen(false) }
-  }, [debouncedInput, runSearch])
-
-  function addTag(label: string, sub?: string) {
-    const trimmed = label.trim()
-    // Store Ridgeline users with @ prefix as an internal discriminator
-    const stored = sub ? `@${trimmed}` : trimmed
-    if (!stored || tags.includes(stored)) return
-    onChange([...tags, stored])
-    if (sub) onMentionAdded(sub)
-    setInput('')
-    setOpen(false)
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      if (showDropdown && results.length > 0) {
-        addTag(results[0].name, results[0].sub)
-      } else if (input.trim()) {
-        addTag(input)
-      }
-    } else if (e.key === 'Backspace' && !input && tags.length) {
-      onChange(tags.slice(0, -1))
-    } else if (e.key === 'Escape') {
-      setOpen(false)
-    }
-  }
-
-  return (
-    <div className="relative">
-      <div className="flex flex-wrap gap-1.5 items-center min-h-[32px]">
-        {tags.map((tag) => {
-          const isRidgeline = tag.startsWith('@')
-          const display = isRidgeline ? tag.slice(1) : tag
-          return (
-            <span
-              key={tag}
-              className={`flex items-center gap-1 border rounded-sm px-2 py-0.5 font-mono text-[10px] ${
-                isRidgeline
-                  ? 'bg-amber-dim border-amber-border text-amber'
-                  : 'bg-surface-2 border-border text-text-mid'
-              }`}
-            >
-              {display}
-              <button
-                type="button"
-                onClick={() => onChange(tags.filter((t) => t !== tag))}
-                className="text-text-dim hover:text-amber leading-none"
-              >
-                ×
-              </button>
-            </span>
-          )
-        })}
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onBlur={() => {
-            setTimeout(() => setOpen(false), 150)
-            if (input.trim() && !showDropdown) addTag(input)
-          }}
-          placeholder={tags.length === 0 ? 'Add names…' : ''}
-          className="flex-1 min-w-24 bg-transparent border-0 outline-none font-mono text-[11px] text-text placeholder:text-text-dim"
-        />
-      </div>
-
-      {showDropdown && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border-mid rounded-md overflow-hidden z-10 shadow-lg">
-          {searching ? (
-            <div className="px-3 py-2.5 font-mono text-[10px] text-text-dim">Searching…</div>
-          ) : results.length > 0 ? (
-            results.map((user) => (
-              <button
-                key={user.sub}
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); addTag(user.name, user.sub) }}
-                className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-surface-2 transition-colors duration-100"
-              >
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-mono text-[9px] font-bold"
-                  style={{ background: 'var(--amber-dim)', color: 'var(--amber)' }}
-                >
-                  {initials(user.name)}
-                </div>
-                <div className="min-w-0">
-                  <div className="font-sans text-[12px] font-medium text-text truncate">{user.name}</div>
-                  <div className="font-mono text-[9px] text-text-dim">Ridgeline user — will be invited</div>
-                </div>
-              </button>
-            ))
-          ) : (
-            <div className="px-3 py-2.5 font-mono text-[10px] text-text-dim">No Ridgeline users found — will be saved as a name only</div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      // Strip the data URL prefix (e.g. "data:image/jpeg;base64,")
-      resolve(result.split(',')[1])
-    }
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
 }

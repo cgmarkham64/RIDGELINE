@@ -163,7 +163,7 @@ Files that export more than one React component and need to be split to comply w
 
 ### Journal
 
-- **`src/components/journal/JournalSection.tsx`** — exports `JournalSection`, `CondCell`, `TagInput`, `CompanionTagInput`. Extract each to its own file in `src/components/journal/`.
+- ✅ **`src/components/journal/JournalSection.tsx`** — extracted `TagInput` and `CompanionTagInput` to their own files; `CondCell`, `entryToDefaults`, `fileToBase64` remain as unexported locals (too small/coupled to move).
 
 ### Map
 
