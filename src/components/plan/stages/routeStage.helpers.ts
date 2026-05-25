@@ -1,4 +1,6 @@
-import type { CheckRow, RoutePreview } from './routeStage.types'
+import type { CheckRow, RoutePreview, SegRow, WaterEntry, MergedRow } from './routeStage.types'
+import type { DetectedWaterSource } from '../../../lib/waterSources'
+import type { Waypoint } from '../../../types'
 
 export const DEFAULT_CHECKLIST: CheckRow[] = [
   { text: 'Route picked',             done: false },
@@ -164,4 +166,90 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
   } catch {
     return ''
   }
+}
+
+// ─── Merged route + water rows ────────────────────────────────────────────────
+
+const WATER_TYPES = new Set(['lots-of-water', 'some-water', 'no-water'])
+
+export function buildMergedRows(
+  segments: SegRow[],
+  detectedWater: DetectedWaterSource[],
+  waypoints: Waypoint[] | undefined,
+  routeCoords: [number, number, number][] | undefined,
+): MergedRow[] {
+  const waterEntries: WaterEntry[] = detectedWater.map(d => ({
+    id: d.id, label: d.label, waypointType: d.waypointType,
+    distFromStartMi: d.distFromStartMi, snapDistM: d.snapDistM,
+    isDetected: true, lat: d.lat, lon: d.lon,
+  }))
+
+  if (routeCoords && routeCoords.length >= 2) {
+    for (const wp of (waypoints ?? [])) {
+      if (!WATER_TYPES.has(wp.type)) continue
+      waterEntries.push({
+        id: wp.id, label: wp.label || wp.type,
+        waypointType: wp.type as WaterEntry['waypointType'],
+        distFromStartMi: snapToRouteMi(wp.lat, wp.lon, routeCoords),
+        isDetected: false, lat: wp.lat, lon: wp.lon,
+      })
+    }
+  }
+  waterEntries.sort((a, b) => a.distFromStartMi - b.distFromStartMi)
+
+  if (segments.length === 0 && waterEntries.length === 0) return []
+
+  let cumul = 0
+  const campDists: number[] = []
+  for (const seg of segments) { cumul += seg.mi; campDists.push(cumul) }
+
+  const rows: MergedRow[] = []
+
+  if (segments.length > 0) {
+    const firstWater = waterEntries.find(w => w.waypointType !== 'no-water')
+    const thPos = segments[0]?.path?.[0] ?? null
+    rows.push({
+      kind: 'start',
+      toNextCampMi: campDists[0] ?? null,
+      toNextWaterMi: firstWater?.distFromStartMi ?? null,
+      lat: thPos ? thPos[0] : null,
+      lon: thPos ? thPos[1] : null,
+    })
+  }
+
+  for (let i = 0; i < segments.length; i++) {
+    const dist     = campDists[i]
+    const isFinish = i === segments.length - 1
+    const nextDist = campDists[i + 1] ?? null
+    const nextWater = waterEntries.find(w => w.distFromStartMi > dist && w.waypointType !== 'no-water')
+    const dryLeg   = !isFinish && !waterEntries.some(
+      w => w.distFromStartMi > dist && nextDist !== null && w.distFromStartMi < nextDist && w.waypointType !== 'no-water'
+    )
+    rows.push({
+      kind: 'camp', seg: segments[i], segIdx: i,
+      distFromStartMi: dist, isFinish,
+      toNextCampMi: nextDist !== null ? nextDist - dist : null,
+      toNextWaterMi: nextWater ? nextWater.distFromStartMi - dist : null,
+      dryLeg,
+    })
+  }
+
+  for (let i = 0; i < waterEntries.length; i++) {
+    const next = waterEntries[i + 1]
+    rows.push({
+      kind: 'water', entry: waterEntries[i],
+      toNextWaterMi: next ? next.distFromStartMi - waterEntries[i].distFromStartMi : null,
+    })
+  }
+
+  rows.sort((a, b) => {
+    const da = a.kind === 'start' ? -Infinity : a.kind === 'camp' ? a.distFromStartMi : a.entry.distFromStartMi
+    const db = b.kind === 'start' ? -Infinity : b.kind === 'camp' ? b.distFromStartMi : b.entry.distFromStartMi
+    if (da !== db) return da - db
+    if (a.kind === 'water' && b.kind !== 'water') return 1
+    if (b.kind === 'water' && a.kind !== 'water') return -1
+    return 0
+  })
+
+  return rows
 }
