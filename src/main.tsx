@@ -34,9 +34,9 @@ async function bootstrap() {
       const { setAuth } = useAuthStore.getState()
 
       setAuth(keycloak.token, {
-        id: parsed.sub!,
-        email: (parsed.email as string) ?? '',
-        name: ((parsed.name ?? parsed.preferred_username) as string) ?? '',
+        id: parsed.sub ?? '',
+        email: parsed.email ?? '',
+        name: (parsed.name ?? parsed.preferred_username) ?? '',
         avatarUrl: undefined,
       })
 

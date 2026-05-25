@@ -84,7 +84,8 @@ function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => {
-      const result = reader.result as string
+      const result = reader.result
+      if (typeof result !== 'string') { reject(new Error('Unexpected FileReader result type')); return }
       resolve(result.split(',')[1])
     }
     reader.onerror = reject
