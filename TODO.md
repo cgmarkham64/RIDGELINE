@@ -145,6 +145,43 @@ Full gear inventory system:
 
 ---
 
+## Code Cleanup
+
+Files that export more than one React component and need to be split to comply with the one-component-per-file rule.
+
+### Pages
+
+- **`src/pages/LoginPage.tsx`** — exports `LoginPage`, `KeycloakRedirect`, `LocalLoginForm`. Extract `KeycloakRedirect` and `LocalLoginForm` into their own files.
+- **`src/pages/RegisterPage.tsx`** — exports `RegisterPage`, `KeycloakRedirect`, `LocalRegisterForm`. Same split as above; `KeycloakRedirect` is duplicated between Login and Register and should become a single shared component.
+- **`src/pages/HomePage.tsx`** — exports `HomePage`, `EmptyState`. Move `EmptyState` to `src/components/trip/` (it is trip-list–specific) or a shared `ui/` file.
+- **`src/pages/PhotosPage.tsx`**, **`src/pages/GearPage.tsx`**, **`src/pages/MapPage.tsx`** — each exports a `ComingSoon` placeholder. Extract to one shared `src/components/ui/ComingSoon.tsx` and import from there.
+
+### Layout
+
+- **`src/components/layout/AuthLayout.tsx`** — exports `AuthLayout`, `MountainsSvg`, `RiverSvg`. Move the two SVG components to `src/components/layout/authLayout.svgs.tsx` or inline them as unexported local constants.
+- **`src/components/layout/IconRail.tsx`** — exports `IconRail`, `NavLink`. Extract `NavLink` to `NavLink.tsx` alongside it.
+- **`src/components/layout/NotificationBell.tsx`** — exports `NotificationBell`, `NotificationItem`. Extract `NotificationItem` to `NotificationItem.tsx`.
+
+### Journal
+
+- **`src/components/journal/JournalSection.tsx`** — exports `JournalSection`, `CondCell`, `TagInput`, `CompanionTagInput`. Extract each to its own file in `src/components/journal/`.
+
+### Map
+
+- **`src/components/map/MapTab.tsx`** — exports `MapTab`, `ControlsBar`, `MapArea`, `ZoomControls`, `AddModeHint`, `TrackLegend`, `ContextMenu`, `ContextMenuItem`, `WaypointAddDialog`, `WaypointEditDialog` (10 components). This is the most egregious violation — split into at minimum: `MapArea.tsx`, `MapControls.tsx` (`ControlsBar` + `ZoomControls` + `AddModeHint` + `TrackLegend`), `MapContextMenu.tsx` (`ContextMenu` + `ContextMenuItem`), `WaypointAddDialog.tsx`, `WaypointEditDialog.tsx`.
+
+### Trip
+
+- **`src/components/trip/TripDetail.tsx`** — exports `TripDetail`, `TabRow`, `TabComingSoon`. Extract `TabRow` to `TabRow.tsx`.
+- **`src/components/trip/TripRightPanel.tsx`** — exports `TripRightPanel`, `RpSection`, `WaypointList`, `ComingSoon`. Extract `WaypointList` to `WaypointList.tsx`; make `RpSection` and `ComingSoon` unexported local components or move to shared `ui/`.
+- **`src/components/trip/WaypointChip.tsx`** — exports `WaypointChip`, `ChipMenuItem`. Extract `ChipMenuItem` or make it unexported.
+
+### Plan / RouteMapCard
+
+- **`src/components/plan/stages/RouteMapCard.tsx`** — exports `RouteMapCard`, `FitBounds`, `InvalidateSize`, `DrawInteractionLayer`, `ElevSparkline`, `DrawConfirmTray`. `FitBounds`, `InvalidateSize`, and `DrawInteractionLayer` are Leaflet helpers — move to `routeMapCard.helpers.tsx`. `ElevSparkline` and `DrawConfirmTray` can each become their own file in `stages/`.
+
+---
+
 ## Ideas / Research
 
 - Investigate OnX Backcountry integration options for personal app projects — import tracks, waypoints, or gear lists.
