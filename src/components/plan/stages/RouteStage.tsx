@@ -10,6 +10,7 @@ import type { SegRow, CheckRow, DrawState } from './routeStage.types'
 import { RouteMapCard, type RouteMapCardHandle } from './RouteMapCard'
 import { RouteTable, type RouteTableHandle } from './RouteTable'
 import { RouteRightRail } from './RouteRightRail'
+import { suggestHard } from '../../../lib/trailDifficulty'
 import type { StageBodyProps } from '../types'
 
 export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }: StageBodyProps) {
@@ -245,12 +246,18 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   function handleConfirmSegment() {
     if (drawState.phase !== 'active') return
     const { result, name, notes, editingSeg } = drawState
+    const mi   = result ? parseFloat(result.mi.toFixed(1)) : 0
+    const gain = result?.gain ?? 0
     const newSeg: Omit<SegRow, 'n'> = {
-      name: name.trim() || 'Unnamed segment',
-      mi:   result ? parseFloat(result.mi.toFixed(1)) : 0,
-      gain: result?.gain ?? 0,
+      name:  name.trim() || 'Unnamed segment',
+      mi,
+      gain,
       notes: notes.trim(),
-      path: result?.path,
+      path:  result?.path,
+      water: editingSeg?.water,
+      exp:   editingSeg?.exp,
+      hard:  editingSeg ? editingSeg.hard : (suggestHard(mi, gain) || undefined),
+      pass:  editingSeg?.pass,
     }
     if (editingSeg) {
       setSegments(prev => prev.map(s => s.n === editingSeg.n ? { ...newSeg, n: editingSeg.n } : s))
