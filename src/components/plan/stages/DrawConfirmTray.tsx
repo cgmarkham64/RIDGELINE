@@ -91,8 +91,11 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
           <input
             className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
             value={drawState.name}
-            onChange={e => set(setDrawState, 'name', e.target.value)}
-            onFocus={() => set(setDrawState, 'nameAuto', false)}
+            onChange={e =>
+              setDrawState(prev =>
+                prev.phase === 'active' ? { ...prev, name: e.target.value, nameAuto: false } : prev
+              )
+            }
             placeholder="e.g. Onion Valley → Kearsarge Pass"
             autoFocus
           />
