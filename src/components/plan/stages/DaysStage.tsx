@@ -257,7 +257,7 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
                 <label className="flex items-center gap-2 cursor-pointer select-none">
                   <input
                     type="checkbox"
-                    className="sr-only"
+                    className="sr-only appearance-none"
                     checked={d.hard ?? false}
                     onChange={e => updateSeg(sel, { hard: e.target.checked || undefined })}
                   />

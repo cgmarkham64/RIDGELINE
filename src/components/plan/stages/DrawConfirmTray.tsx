@@ -175,7 +175,7 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"
-                className="sr-only"
+                className="sr-only appearance-none"
                 checked={drawState.hard ?? false}
                 onChange={e => set(setDrawState, 'hard', e.target.checked || undefined)}
               />
