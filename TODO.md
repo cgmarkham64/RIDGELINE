@@ -157,9 +157,9 @@ Files that export more than one React component and need to be split to comply w
 
 ### Layout
 
-- **`src/components/layout/AuthLayout.tsx`** — exports `AuthLayout`, `MountainsSvg`, `RiverSvg`. Move the two SVG components to `src/components/layout/authLayout.svgs.tsx` or inline them as unexported local constants.
-- **`src/components/layout/IconRail.tsx`** — exports `IconRail`, `NavLink`. Extract `NavLink` to `NavLink.tsx` alongside it.
-- **`src/components/layout/NotificationBell.tsx`** — exports `NotificationBell`, `NotificationItem`. Extract `NotificationItem` to `NotificationItem.tsx`.
+- ~~**`src/components/layout/AuthLayout.tsx`**~~ — `MountainsSvg` and `RiverSvg` are unexported locals; not a violation.
+- ~~**`src/components/layout/IconRail.tsx`**~~ — `NavLink` is an unexported local; not a violation.
+- ✅ **`src/components/layout/NotificationBell.tsx`** — extracted `NotificationItem` (+ `messageFor`, `relativeTime` helpers) to `NotificationItem.tsx`.
 
 ### Journal
 
