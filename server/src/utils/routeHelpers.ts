@@ -1,5 +1,14 @@
 import { Request, Response, RequestHandler } from 'express'
 
+export function formatUserResponse(
+  sub: string,
+  email: string,
+  name: string,
+  profile?: { avatarUrl?: string | null } | null,
+): { id: string; email: string; name: string; avatarUrl: string | null } {
+  return { id: sub, email, name, avatarUrl: profile?.avatarUrl ?? null }
+}
+
 export class HttpError extends Error {
   constructor(public status: number, message: string) {
     super(message)

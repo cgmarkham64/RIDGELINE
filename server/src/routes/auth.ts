@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { UserProfile } from '../models/UserProfile'
-import { asyncRoute, HttpError } from '../utils/routeHelpers'
+import { asyncRoute, HttpError, formatUserResponse } from '../utils/routeHelpers'
 
 const router = Router()
 
@@ -15,7 +15,7 @@ router.get('/me', asyncRoute(async (req, res) => {
     { $set: { name, email } },
     { upsert: true, new: true }
   )
-  res.json({ user: { id: sub, email, name, avatarUrl: profile.avatarUrl ?? null } })
+  res.json({ user: formatUserResponse(sub, email, name, profile) })
 }))
 
 router.put('/me/avatar', asyncRoute(async (req, res) => {
@@ -33,7 +33,7 @@ router.put('/me/avatar', asyncRoute(async (req, res) => {
     { $set: { avatarUrl: avatarDataUrl, name, email } },
     { upsert: true, new: true }
   )
-  res.json({ user: { id: sub, email, name, avatarUrl: profile.avatarUrl ?? null } })
+  res.json({ user: formatUserResponse(sub, email, name, profile) })
 }))
 
 router.delete('/me/avatar', asyncRoute(async (req, res) => {
@@ -43,7 +43,7 @@ router.delete('/me/avatar', asyncRoute(async (req, res) => {
     { $unset: { avatarUrl: '' }, $set: { name, email } },
     { upsert: true }
   )
-  res.json({ user: { id: sub, email, name, avatarUrl: null } })
+  res.json({ user: formatUserResponse(sub, email, name) })
 }))
 
 export default router
