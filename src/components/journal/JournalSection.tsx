@@ -44,9 +44,9 @@ const schema = z.object({
   tempHighF: z.string().optional(),
   milesCovered: z.string().optional(),
   elevationGainFt: z.string().optional(),
-  wakeActual: z.string().optional(),
-  onTrailActual: z.string().optional(),
-  campActual: z.string().optional(),
+  wakeActual: z.string().refine(v => !v || /^([01]\d|2[0-3]):[0-5]\d$/.test(v), 'Use HH:MM format'),
+  onTrailActual: z.string().refine(v => !v || /^([01]\d|2[0-3]):[0-5]\d$/.test(v), 'Use HH:MM format'),
+  campActual: z.string().refine(v => !v || /^([01]\d|2[0-3]):[0-5]\d$/.test(v), 'Use HH:MM format'),
   body: z.string().min(1, 'Write something before saving'),
 })
 
@@ -385,8 +385,8 @@ export function JournalSection({ trip, readOnly }: Props) {
                     <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-mid mb-1.25">{label}</div>
                     <div className="font-mono text-[9px] text-text-dim mb-1">Plan: {planned}</div>
                     <input
+                      type="time"
                       {...register(field)}
-                      placeholder="Actual"
                       className={condInputCls}
                     />
                   </div>

@@ -245,10 +245,10 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
                       {['Wake', 'On trail', 'Camp by'][i]}
                     </label>
                     <input
-                      className="w-full px-2.5 py-1.5 border border-border rounded-sm text-[12px] bg-surface-2 text-text outline-none focus:border-border-mid transition-colors font-mono placeholder:text-text-dim"
+                      type="time"
+                      className="w-full px-2.5 py-1.5 border border-border rounded-sm text-[12px] bg-surface-2 text-text outline-none focus:border-border-mid transition-colors font-mono"
                       value={d[field] ?? ''}
                       onChange={e => updateSeg(sel, { [field]: e.target.value || undefined })}
-                      placeholder="05:30"
                     />
                   </div>
                 ))}
