@@ -153,11 +153,7 @@ Files that export more than one React component and need to be split to comply w
 
 **Duplicated patterns (highest value to fix)**
 
-- **Ownership guard repeated 16+ times** — `if (plan.ownerSub !== req.user.sub) return res.status(403).json(...)` appears independently in `plans.ts`, `loadouts.ts`, `gearItems.ts`, and `trips.ts`. Extract to a `requireOwner(doc, req)` helper in `server/src/utils/auth.ts` (or a shared middleware).
-- **Try/catch/500 boilerplate repeated ~20 times** — Every route handler wraps identically: `try { … } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }) }`. Replace with an `asyncRoute(fn)` wrapper or Express error-handling middleware so handlers can just `throw`.
 - **ObjectId validation duplicated** — `validId` (or equivalent inline check) appears in `plans.ts`, `trips.ts`, `journalDays.ts`. Extract once to `server/src/utils/objectId.ts`.
-- **User-response object constructed 4+ times** — `{ id: sub, email, name, avatarUrl: profile?.avatarUrl ?? null }` built identically in `auth.ts` (lines 18, 43, 58) and `localAuth.ts`. Extract to a `formatUserResponse(sub, profile)` helper.
-- **JWT creation duplicated** — `jwt.sign` called with near-identical payloads in two places in `localAuth.ts` (register + login). Extract to a `signToken(user)` helper.
 
 **Business logic living in route files**
 
@@ -168,15 +164,6 @@ Files that export more than one React component and need to be split to comply w
 **Near-identical files**
 
 - **`loadouts.ts` and `gearItems.ts`** — Both are owner-scoped GET/POST/PUT/DELETE with no meaningful differences. Consider a `makeOwnerCrudRouter(Model)` factory, or at minimum share the ownership/error helpers so they don't drift independently.
-
-**Missing error handling**
-
-- `loadouts.ts` and `gearItems.ts` lack try/catch around DB calls.
-- `notifications.ts` DELETE handler (line ~83) is missing try/catch while all other handlers in that file have it.
-
-**Data model inconsistency**
-
-- `trips.ts` treats `sharedWith` entries as `{ sub, role }` objects; `journalDays.ts` still treats them as plain strings. Align `journalDays.ts` access checks to match the Trip model.
 
 ---
 
@@ -218,3 +205,4 @@ Files that export more than one React component and need to be split to comply w
 - **Unification Phase 6** — Stage 7 · Journal wired in. `JournalStage` renders lock banner for `planning`/`ready`; mounts `JournalSection` at `on-trail`+. `JournalSection` gains `readOnly` prop (fieldset-disabled inputs + view-only banner) for read-access collaborators. `PlanWizard` fetches journal entries and intercepts the `complete` status transition with an amber nudge dialog when zero entries exist ("Add entries" jumps to Stage 7, "Complete anyway" proceeds). `canEdit` derived from owner/edit-role and passed to all stage bodies. Stages 1–5 read-only locking deferred. Stage 7 gaps (right rail, in-stage nav, photo attachments) logged in Wizard Stage Gaps.
 - **Wizard Stage Gaps** — Segments CRUD (add/edit/delete via dialog), live checklist with `onProgress` wired to stage rail, real partners from `sharedWith`, inline partner invite panel, map placeholder pending Leaflet + GPX.
 - **Route stage map + GPX** — Replaced map placeholder with live Leaflet map (CARTO dark tiles, dashed planned-route polyline, start/end markers). GPX import via button and drag-and-drop onto the map card; replace and remove supported. `ElevationProfile` card wired below the map. Source files section derives from `trip.gpxPlanned` / `gpxTracks` with computed distance; per-file download button reconstructs and saves a valid `.gpx` from stored coordinates.
+- **Backend cleanup — route helpers** — `server/src/utils/routeHelpers.ts` introduces `HttpError`, `asyncRoute`, `requireOwner`, and `formatUserResponse`. Every route handler now wrapped in `asyncRoute` (fixes previously unprotected handlers in `loadouts.ts`, `gearItems.ts`, `journalDays.ts`, `journalScan.ts`, notifications GET/DELETE/patch). Ownership guards replaced with `requireOwner` throughout. `signToken` extracted locally in `localAuth.ts`. `journalDays.ts` `sharedWith` access check fixed to handle both string and `{sub,role}` entries.
