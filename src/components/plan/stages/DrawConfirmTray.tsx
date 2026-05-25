@@ -164,10 +164,10 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
                     {['Wake', 'On trail', 'Camp by'][i]}
                   </label>
                   <input
-                    type="time"
-                    className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-sm font-mono text-[11px] text-text outline-none focus:border-border-mid transition-[border-color]"
+                    className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
                     value={drawState[field] ?? ''}
                     onChange={e => set(setDrawState, field, e.target.value || undefined)}
+                    placeholder="HH:MM"
                   />
                 </div>
               ))}

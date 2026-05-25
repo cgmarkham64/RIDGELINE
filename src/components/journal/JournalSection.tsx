@@ -385,8 +385,8 @@ export function JournalSection({ trip, readOnly }: Props) {
                     <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-mid mb-1.25">{label}</div>
                     <div className="font-mono text-[9px] text-text-dim mb-1">Plan: {planned}</div>
                     <input
-                      type="time"
                       {...register(field)}
+                      placeholder="HH:MM"
                       className={condInputCls}
                     />
                   </div>
