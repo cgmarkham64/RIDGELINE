@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useDebounce } from '../../../hooks/useDebounce'
 import { MapContainer, TileLayer, Polyline, Marker, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L, { type LatLngBoundsExpression } from 'leaflet'
@@ -19,8 +20,9 @@ import { makeStartIcon, makeEndIcon, makeWaypointIcon, makeDetectedWaterIcon } f
 import { WaypointIcon } from '../../map/WaypointIcon'
 import { WAYPOINT_COLOR } from '../../map/constants'
 import { fetchDetectedWaterSources, type DetectedWaterSource } from '../../../lib/waterSources'
-import { IconPlus, IconMinus, IconMap, IconDownload, IconFile, IconX, IconMoreVertical, IconSparkle, IconTent, IconCheck } from '../../icons'
+import { IconPlus, IconMinus, IconMap, IconDownload, IconFile, IconX, IconMoreVertical, IconSparkle, IconTent, IconCheck, IconPencil, IconTrash, IconTriangleRight } from '../../icons'
 import { useAuthStore } from '../../../store/auth'
+import { MoonLoader } from '../../ui/MoonLoader'
 import type { StageBodyProps } from '../types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -100,23 +102,14 @@ const DEFAULT_CHECKLIST: CheckRow[] = [
 
 const SEG_COLORS = ['#f0a030', '#4ade80', '#a78bfa', '#f472b6', '#60a5fa', '#34d399', '#fb923c', '#f87171']
 
+const PARTNER_ITEMS = ['Partners added', 'Partners reviewed']
+const GRID = '20px 1fr 60px 72px 72px 40px'
+const ACTIVE_BG = 'rgba(240,160,48,0.08)'
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function toLatLngs(coords: [number, number, number][] | undefined): [number, number][] {
   return coords?.map(([lon, lat]) => [lat, lon]) ?? []
-}
-
-function coordsToMiles(coords: [number, number, number][]): number {
-  let d = 0
-  for (let i = 1; i < coords.length; i++) {
-    const [lon1, lat1] = coords[i - 1]
-    const [lon2, lat2] = coords[i]
-    const dLat = ((lat2 - lat1) * Math.PI) / 180
-    const dLon = ((lon2 - lon1) * Math.PI) / 180
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2
-    d += 3958.8 * 2 * Math.asin(Math.sqrt(a))
-  }
-  return d
 }
 
 function haversinePathMiles(path: [number, number][]): number {
@@ -130,6 +123,10 @@ function haversinePathMiles(path: [number, number][]): number {
     d += 3958.8 * 2 * Math.asin(Math.sqrt(a))
   }
   return d
+}
+
+function gpxCoordsToMiles(coords: [number, number, number][]): number {
+  return haversinePathMiles(coords.map(([lon, lat]) => [lat, lon]))
 }
 
 function buildGpx(coords: [number, number, number][], name: string): string {
@@ -352,6 +349,95 @@ function makeDrawEndIcon(): L.DivIcon {
   })
 }
 
+// ─── Draw confirm tray ────────────────────────────────────────────────────────
+
+type DrawConfirmTrayProps = {
+  drawState: Extract<DrawState, { phase: 'active' }>
+  setDrawState: React.Dispatch<React.SetStateAction<DrawState>>
+  onCancel: () => void
+  onConfirm: () => void
+}
+
+function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }: DrawConfirmTrayProps) {
+  return (
+    <div className="mt-3 rounded border border-border bg-surface-2 p-3">
+      <div className="flex items-center gap-3 mb-2.5">
+        {drawState.loading ? (
+          <span className="font-mono text-[9px] text-text-dim tracking-widest">Calculating…</span>
+        ) : drawState.result ? (
+          <>
+            <span className="font-mono text-[11px] font-bold text-amber">
+              {drawState.result.mi.toFixed(1)} mi
+            </span>
+            <span className="font-mono text-[10px] text-text-mid">
+              +{drawState.result.gain.toLocaleString()} ft gain
+            </span>
+            {drawState.result.sparkElevs.length > 1 && (
+              <span className="font-mono text-[9px] text-text-dim">(drag pins to recalculate)</span>
+            )}
+          </>
+        ) : drawState.error ? (
+          <span className="font-mono text-[9px] text-text-dim">{drawState.error}</span>
+        ) : null}
+      </div>
+
+      {drawState.result?.sparkElevs && drawState.result.sparkElevs.length > 1 && (
+        <div className="mb-2.5 rounded overflow-hidden" style={{ background: 'var(--surface)' }}>
+          <ElevSparkline elevs={drawState.result.sparkElevs} />
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2">
+        <div>
+          <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block">
+            Segment name
+          </label>
+          <input
+            className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
+            value={drawState.name}
+            onChange={e =>
+              setDrawState(prev =>
+                prev.phase === 'active' ? { ...prev, name: e.target.value, nameAuto: false } : prev
+              )
+            }
+            placeholder="e.g. Onion Valley → Kearsarge Pass"
+            autoFocus
+          />
+        </div>
+        <div>
+          <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block">Notes</label>
+          <input
+            className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
+            value={drawState.notes}
+            onChange={e =>
+              setDrawState(prev =>
+                prev.phase === 'active' ? { ...prev, notes: e.target.value } : prev
+              )
+            }
+            placeholder="Trail conditions, hazards…"
+          />
+        </div>
+        <div className="flex gap-2 justify-end mt-1">
+          <button
+            onClick={onCancel}
+            className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-widest uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={!drawState.name.trim() || drawState.loading}
+            className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-widest uppercase rounded border cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: 'var(--amber-dim)', borderColor: 'var(--amber-border)', color: 'var(--amber)' }}
+          >
+            {drawState.editingSeg ? 'Update segment' : 'Add segment'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Route Stage ──────────────────────────────────────────────────────────────
 
 export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }: StageBodyProps) {
@@ -505,9 +591,8 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
   // ── GPX upload ───────────────────────────────────────────────────────────────
 
-  async function handleGpxUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file || !trip?._id) return
+  async function importGpxFile(file: File) {
+    if (!trip?._id) return
     setUploadLabel('Importing…')
     setUploadError(null)
     try {
@@ -525,8 +610,14 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
       setUploadError(err instanceof Error ? err.message : 'Failed to import GPX')
     } finally {
       setUploadLabel(null)
-      if (fileInputRef.current) fileInputRef.current.value = ''
     }
+  }
+
+  async function handleGpxUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await importGpxFile(file)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   async function handleGpxRemove() {
@@ -561,27 +652,10 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     e.preventDefault()
     dragCounter.current = 0
     setIsDragging(false)
-    if (!canEdit || !trip?._id) return
+    if (!canEdit) return
     const file = Array.from(e.dataTransfer.files).find(f => f.name.endsWith('.gpx'))
     if (!file) { setUploadError('Drop a .gpx file to import'); return }
-    setUploadLabel('Importing…')
-    setUploadError(null)
-    try {
-      const text = await file.text()
-      const { track } = parseGpx(text)
-      let coordinates = track.coordinates
-      if (!coordinates.some(([,, ele]) => ele !== 0)) {
-        setUploadLabel('Fetching elevation…')
-        try { coordinates = await enrichWithElevation(coordinates) } catch { /* keep zeros */ }
-      }
-      setUploadLabel('Saving…')
-      await api.put(`/api/trips/${trip._id}`, { gpxPlanned: { ...track, coordinates } })
-      qc.invalidateQueries({ queryKey: ['plan', trip._id] })
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Failed to import GPX')
-    } finally {
-      setUploadLabel(null)
-    }
+    await importGpxFile(file)
   }
 
   // ── Partner invite ───────────────────────────────────────────────────────────
@@ -603,34 +677,30 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   const [inviteSearching, setInviteSearching] = useState(false)
   const [inviteMsg,       setInviteMsg]       = useState<{ text: string; tone: 'pine' | 'red' } | null>(null)
   const [pendingInvites,  setPendingInvites]  = useState<{ sub: string; name: string }[]>([])
-  const inviteTimer    = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const inviteSearchId = useRef(0)
+  const debouncedInviteQuery = useDebounce(inviteQuery, 300)
 
   const currentUserSub = useAuthStore(s => s.user?.id)
   const isOwner  = !!currentUserSub && currentUserSub === trip?.ownerSub
   const soloTrip = partners.length <= 1 && pendingInvites.length === 0
 
-  function handleInviteQueryChange(q: string) {
-    setInviteQuery(q)
-    clearTimeout(inviteTimer.current)
-    if (q.trim().length < 2) { setInviteResults([]); setInviteSearching(false); return }
+  useEffect(() => {
+    if (debouncedInviteQuery.trim().length < 2) { setInviteResults([]); setInviteSearching(false); return }
+    let cancelled = false
     setInviteSearching(true)
-    const id = ++inviteSearchId.current
     const existingSubs = new Set([
       ...(trip?.sharedWith?.map(c => c.sub) ?? []),
       ...(trip?.ownerSub ? [trip.ownerSub] : []),
       ...pendingInvites.map(p => p.sub),
     ])
-    inviteTimer.current = setTimeout(() => {
-      searchUsers(q.trim())
-        .then(users => {
-          if (id !== inviteSearchId.current) return
-          setInviteResults(users.filter(u => !existingSubs.has(u.sub)))
-          setInviteSearching(false)
-        })
-        .catch(() => { if (id === inviteSearchId.current) setInviteSearching(false) })
-    }, 300)
-  }
+    searchUsers(debouncedInviteQuery.trim())
+      .then(users => {
+        if (cancelled) return
+        setInviteResults(users.filter(u => !existingSubs.has(u.sub)))
+        setInviteSearching(false)
+      })
+      .catch(() => { if (!cancelled) setInviteSearching(false) })
+    return () => { cancelled = true }
+  }, [debouncedInviteQuery, trip?.sharedWith, trip?.ownerSub, pendingInvites])
 
   async function handleInvite(user: UserSearchResult) {
     if (!trip?._id) return
@@ -665,8 +735,6 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   }
 
   // ── Checklist ────────────────────────────────────────────────────────────────
-
-  const PARTNER_ITEMS = ['Partners added', 'Partners reviewed']
 
   function toggleCheck(i: number) {
     setChecklist(prev => prev.map((c, idx) => idx === i ? { ...c, done: !c.done } : c))
@@ -892,11 +960,11 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
   const sourceFiles = [
     ...(trip?.gpxPlanned
-      ? [{ name: 'Planned Route', meta: `${coordsToMiles(trip.gpxPlanned.coordinates).toFixed(1)} mi · GPX`, coords: trip.gpxPlanned.coordinates }]
+      ? [{ name: 'Planned Route', meta: `${gpxCoordsToMiles(trip.gpxPlanned.coordinates).toFixed(1)} mi · GPX`, coords: trip.gpxPlanned.coordinates }]
       : []),
     ...(trip?.gpxTracks ?? []).map(t => ({
       name: t.label,
-      meta: `${coordsToMiles(t.track.coordinates).toFixed(1)} mi · GPS track`,
+      meta: `${gpxCoordsToMiles(t.track.coordinates).toFixed(1)} mi · GPS track`,
       coords: t.track.coordinates,
     })),
   ]
@@ -924,15 +992,15 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   return (
     <>
       <div className="flex-1 overflow-y-auto p-8 pb-20">
-        <div className="grid gap-7 max-w-[1100px] grid-cols-[1fr_320px]">
+        <div className="grid gap-7 max-w-275 grid-cols-[1fr_320px]">
 
           {/* ── Left column ── */}
-          <div className="flex flex-col gap-[18px]">
+          <div className="flex flex-col gap-4.5">
 
             {/* Route summary + map */}
             <div
               ref={mapCardRef}
-              className={`bg-surface border rounded-lg p-[18px] transition-colors ${isDragging ? 'border-amber-border' : isDrawing ? 'border-amber-border' : 'border-border'}`}
+              className={`bg-surface border rounded-lg p-4.5 transition-colors ${isDragging ? 'border-amber-border' : isDrawing ? 'border-amber-border' : 'border-border'}`}
               onDragEnter={handleDragEnter}
               onDragLeave={handleDragLeave}
               onDragOver={handleDragOver}
@@ -966,7 +1034,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploadLabel !== null}
-                      className="inline-flex items-center gap-1.5 font-heading text-[9px] font-bold tracking-[0.1em] uppercase px-2 py-1 rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="inline-flex items-center gap-1.5 font-heading text-[9px] font-bold tracking-widest uppercase px-2 py-1 rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <IconDownload size={9} />
                       {uploadLabel ?? (trip?.gpxPlanned ? 'Replace' : 'Import .gpx')}
@@ -1096,19 +1164,23 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                           }}
                         />
                       ) : null}
-                      {segments[segments.length - 1]?.path?.length ? (
-                        <Marker
-                          position={segments[segments.length - 1].path![segments[segments.length - 1].path!.length - 1]}
-                          icon={makeEndIcon(18)}
-                          draggable={!isDrawing && repositioning.size === 0}
-                          eventHandlers={{
-                            dragend(e) {
-                              const { lat, lng } = (e.target as L.Marker).getLatLng()
-                              handleEndpointDrag(segments.length - 1, 'end', lat, lng)
-                            },
-                          }}
-                        />
-                      ) : null}
+                      {(() => {
+                        const lastSeg = segments[segments.length - 1]
+                        const lastPos = lastSeg?.path?.length ? lastSeg.path[lastSeg.path.length - 1] : null
+                        return lastPos ? (
+                          <Marker
+                            position={lastPos}
+                            icon={makeEndIcon(18)}
+                            draggable={!isDrawing && repositioning.size === 0}
+                            eventHandlers={{
+                              dragend(e) {
+                                const { lat, lng } = (e.target as L.Marker).getLatLng()
+                                handleEndpointDrag(segments.length - 1, 'end', lat, lng)
+                              },
+                            }}
+                          />
+                        ) : null
+                      })()}
                     </>)}
 
                     {/* Draw mode: preview polyline + draggable pins */}
@@ -1187,15 +1259,15 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                       {/* Step 1 — Start */}
                       <div className="flex items-center gap-1.5">
                         {startPlaced ? (
-                          <span className="w-[14px] h-[14px] rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--pine)' }}>
+                          <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--pine)' }}>
                             <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5 3.5-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
                           </span>
                         ) : (
-                          <span className="w-[14px] h-[14px] rounded-full border border-amber flex items-center justify-center shrink-0">
+                          <span className="w-3.5 h-3.5 rounded-full border border-amber flex items-center justify-center shrink-0">
                             <span className="font-mono text-[7px] font-bold text-amber">1</span>
                           </span>
                         )}
-                        <span className={`font-mono text-[9px] tracking-[0.1em] uppercase ${startPlaced ? 'text-pine' : 'text-amber font-bold'}`}>Start</span>
+                        <span className={`font-mono text-[9px] tracking-widest uppercase ${startPlaced ? 'text-pine' : 'text-amber font-bold'}`}>Start</span>
                       </div>
 
                       <span className="text-text-dim text-[9px]">→</span>
@@ -1203,15 +1275,15 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                       {/* Step 2 — End */}
                       <div className="flex items-center gap-1.5">
                         {endPlaced ? (
-                          <span className="w-[14px] h-[14px] rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--pine)' }}>
+                          <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--pine)' }}>
                             <svg width="8" height="8" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5 3.5-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
                           </span>
                         ) : (
-                          <span className={`w-[14px] h-[14px] rounded-full border flex items-center justify-center shrink-0 ${startPlaced ? 'border-amber' : 'border-border'}`}>
+                          <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ${startPlaced ? 'border-amber' : 'border-border'}`}>
                             <span className={`font-mono text-[7px] font-bold ${startPlaced ? 'text-amber' : 'text-text-dim'}`}>2</span>
                           </span>
                         )}
-                        <span className={`font-mono text-[9px] tracking-[0.1em] uppercase ${endPlaced ? 'text-pine' : startPlaced ? 'text-amber font-bold' : 'text-text-dim'}`}>End</span>
+                        <span className={`font-mono text-[9px] tracking-widest uppercase ${endPlaced ? 'text-pine' : startPlaced ? 'text-amber font-bold' : 'text-text-dim'}`}>End</span>
                         {!endPlaced && startPlaced && (
                           <span className="font-mono text-[9px] text-text-dim">— click map</span>
                         )}
@@ -1223,7 +1295,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
                     <button
                       onClick={cancelDraw}
-                      className="inline-flex items-center gap-1 font-heading text-[10px] font-bold tracking-[0.1em] uppercase px-2.5 py-1 rounded border border-border text-text-dim bg-surface hover:text-text hover:border-border-mid transition-colors cursor-pointer ml-4 shrink-0"
+                      className="inline-flex items-center gap-1 font-heading text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded border border-border text-text-dim bg-surface hover:text-text hover:border-border-mid transition-colors cursor-pointer ml-4 shrink-0"
                     >
                       <IconX size={9} />
                       Cancel
@@ -1243,7 +1315,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                       }`}
                     >
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ background: startPlaced ? 'var(--pine)' : 'var(--border)' }} />
-                      <span className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim shrink-0">Start</span>
+                      <span className="font-mono text-[9px] tracking-widest uppercase text-text-dim shrink-0">Start</span>
                       <span className={`font-mono text-[9px] truncate ${startPlaced ? 'text-pine' : 'text-text-dim italic'}`}>
                         {startPlaced ? formatCoord(drawState.start) : 'not placed'}
                       </span>
@@ -1255,7 +1327,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                         : 'border-border bg-surface-2 opacity-40'
                     }`}>
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ background: endPlaced ? 'var(--amber)' : 'transparent', border: endPlaced ? 'none' : `1px solid ${startPlaced ? 'var(--amber)' : 'var(--border)'}` }} />
-                      <span className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim shrink-0">End</span>
+                      <span className="font-mono text-[9px] tracking-widest uppercase text-text-dim shrink-0">End</span>
                       <span className={`font-mono text-[9px] truncate ${endPlaced ? 'text-amber' : 'text-text-dim italic'}`}>
                         {endPlaced ? formatCoord(drawState.end) : startPlaced ? 'click map to place' : 'waiting…'}
                       </span>
@@ -1267,90 +1339,12 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
               {/* Draw mode confirm tray */}
               {drawState.phase === 'active' && (
-                <div className="mt-3 rounded border border-border bg-surface-2 p-3">
-                  {/* Preview stats row */}
-                  <div className="flex items-center gap-3 mb-2.5">
-                    {drawState.loading ? (
-                      <span className="font-mono text-[9px] text-text-dim tracking-[0.1em]">Calculating…</span>
-                    ) : drawState.result ? (
-                      <>
-                        <span className="font-mono text-[11px] font-bold text-amber">
-                          {drawState.result.mi.toFixed(1)} mi
-                        </span>
-                        <span className="font-mono text-[10px] text-text-mid">
-                          +{drawState.result.gain.toLocaleString()} ft gain
-                        </span>
-                        {drawState.result.sparkElevs.length > 1 && (
-                          <span className="font-mono text-[9px] text-text-dim">
-                            (drag pins to recalculate)
-                          </span>
-                        )}
-                      </>
-                    ) : drawState.error ? (
-                      <span className="font-mono text-[9px] text-text-dim">{drawState.error}</span>
-                    ) : null}
-                  </div>
-
-                  {/* Sparkline */}
-                  {drawState.result?.sparkElevs && drawState.result.sparkElevs.length > 1 && (
-                    <div className="mb-2.5 rounded overflow-hidden" style={{ background: 'var(--surface)' }}>
-                      <ElevSparkline elevs={drawState.result.sparkElevs} />
-                    </div>
-                  )}
-
-                  {/* Name field */}
-                  <div className="flex flex-col gap-2">
-                    <div>
-                      <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block">
-                        Segment name
-                      </label>
-                      <input
-                        className="w-full px-2.5 py-[6px] bg-surface border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
-                        value={drawState.name}
-                        onChange={e =>
-                          setDrawState(prev =>
-                            prev.phase === 'active'
-                              ? { ...prev, name: e.target.value, nameAuto: false }
-                              : prev
-                          )
-                        }
-                        placeholder="e.g. Onion Valley → Kearsarge Pass"
-                        autoFocus
-                      />
-                    </div>
-
-                    <div>
-                      <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block">Notes</label>
-                      <input
-                        className="w-full px-2.5 py-[6px] bg-surface border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
-                        value={drawState.notes}
-                        onChange={e =>
-                          setDrawState(prev =>
-                            prev.phase === 'active' ? { ...prev, notes: e.target.value } : prev
-                          )
-                        }
-                        placeholder="Trail conditions, hazards…"
-                      />
-                    </div>
-
-                    <div className="flex gap-2 justify-end mt-1">
-                      <button
-                        onClick={cancelDraw}
-                        className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleConfirmSegment}
-                        disabled={!drawState.name.trim() || drawState.loading}
-                        className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase rounded border cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        style={{ background: 'var(--amber-dim)', borderColor: 'var(--amber-border)', color: 'var(--amber)' }}
-                      >
-                        {drawState.editingSeg ? 'Update segment' : 'Add segment'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <DrawConfirmTray
+                  drawState={drawState}
+                  setDrawState={setDrawState}
+                  onCancel={cancelDraw}
+                  onConfirm={handleConfirmSegment}
+                />
               )}
             </div>
 
@@ -1364,26 +1358,23 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                     <JumpChip to="days" onJump={onJump}>Days</JumpChip>
                   </span>
                 )}
-                {waterLoading && <span className="font-mono text-[9px] text-text-dim">· detecting water…</span>}
                 {waterError && <span className="font-mono text-[9px] text-red" title={waterError}>· water error</span>}
                 {canEdit && !isDrawing && (
                   <button
                     onClick={() => enterDraw()}
-                    className="ml-auto inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase px-2.5 py-1.5 rounded border border-border text-text bg-transparent hover:border-border-mid transition-colors cursor-pointer"
+                    className="ml-auto inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-widest uppercase px-2.5 py-1.5 rounded border border-border text-text bg-transparent hover:border-border-mid transition-colors cursor-pointer"
                   >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
+                    <IconPlus size={10} />
                     Add segment
                   </button>
                 )}
-                {isDrawing && <span className="ml-auto font-mono text-[9px] tracking-[0.1em] uppercase text-amber">Drawing…</span>}
+                {isDrawing && <span className="ml-auto font-mono text-[9px] tracking-widest uppercase text-amber">Drawing…</span>}
               </div>
 
               {mergedRows.length > 0 && (
                 <div
                   className="grid items-center px-4 py-1.5 gap-3 border-b border-border"
-                  style={{ gridTemplateColumns: '20px 1fr 60px 72px 72px 40px' }}
+                  style={{ gridTemplateColumns: GRID }}
                 >
                   <span />
                   <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Name</span>
@@ -1405,11 +1396,15 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                 </div>
               )}
 
+              {waterLoading && (
+                <div className="border-b border-border">
+                  <MoonLoader label="Detecting water sources…" />
+                </div>
+              )}
+
               {mergedRows.map((row, i) => {
                 const isLast = i === mergedRows.length - 1
                 const border = isLast ? '' : 'border-b border-border'
-                const GRID = '20px 1fr 60px 72px 72px 40px'
-                const ACTIVE_BG = 'rgba(240,160,48,0.08)'
 
                 if (row.kind === 'start') return (
                   <div key="trailhead"
@@ -1418,9 +1413,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                     style={{ gridTemplateColumns: GRID, background: activeRowId === 'trailhead' ? ACTIVE_BG : 'var(--surface-2)' }}
                     onClick={() => flyToRow(row.lat, row.lon, 'trailhead')}
                   >
-                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                      <path d="M5.5 4.5L12 8L5.5 11.5Z" fill="#4ade80" opacity="0.95" />
-                    </svg>
+                    <span className="text-pine"><IconTriangleRight size={12} /></span>
                     <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Trailhead</span>
                     <span className="font-mono text-[10px] text-text-dim">0.0 mi</span>
                     <span className="font-mono text-[10px] text-text-mid">
@@ -1477,18 +1470,12 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                             <button onClick={() => { if (!isDrawing) enterDraw(row.seg) }} disabled={isDrawing}
                               title="Edit segment"
                               className="p-1 rounded text-text-dim hover:text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none disabled:opacity-30 disabled:cursor-not-allowed">
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                              </svg>
+                              <IconPencil size={11} />
                             </button>
                             <button onClick={() => { if (!isDrawing) deleteSegment(row.seg.n) }} disabled={isDrawing}
                               title="Delete segment"
                               className="p-1 rounded text-text-dim hover:text-red hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none disabled:opacity-30 disabled:cursor-not-allowed">
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" />
-                                <path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
-                              </svg>
+                              <IconTrash size={11} />
                             </button>
                           </div>
                         : <span />
@@ -1570,7 +1557,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                       <IconMoreVertical size={14} />
                     </button>
                     {partnersMenuOpen && (
-                      <div className="absolute right-0 top-full mt-1 bg-surface border border-border-mid rounded shadow-xl z-20 overflow-hidden min-w-[160px]">
+                      <div className="absolute right-0 top-full mt-1 bg-surface border border-border-mid rounded shadow-xl z-20 overflow-hidden min-w-40">
                         <button
                           onMouseDown={() => { setPartnersMenuOpen(false); setInviteOpen(true) }}
                           className="w-full flex items-center gap-2 px-3 py-2 font-heading text-[10px] font-bold tracking-[0.08em] uppercase text-text-dim hover:text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none text-left"
@@ -1601,7 +1588,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                 const isThisOwner = p.sub === trip?.ownerSub
                 return (
                   <div key={p.sub} className={`flex items-center gap-2.5 py-2 ${i < arr.length - 1 || inviteOpen ? 'border-b border-border' : ''}`}>
-                    <span className="w-[26px] h-[26px] rounded-full bg-surface-2 border border-border-mid flex items-center justify-center font-heading text-[10px] font-extrabold text-amber shrink-0">
+                    <span className="w-6.5 h-6.5 rounded-full bg-surface-2 border border-border-mid flex items-center justify-center font-heading text-[10px] font-extrabold text-amber shrink-0">
                       {initials(p.name)}
                     </span>
                     <span className="text-[11px] font-semibold text-text truncate flex-1 min-w-0">{p.name}</span>
@@ -1627,10 +1614,10 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                     <input
                       type="text"
                       value={inviteQuery}
-                      onChange={e => handleInviteQueryChange(e.target.value)}
+                      onChange={e => setInviteQuery(e.target.value)}
                       placeholder="Search by name or email…"
                       autoFocus
-                      className="w-full px-2.5 py-[6px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
+                      className="w-full px-2.5 py-1.5 bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
                     />
                     {inviteSearching && (
                       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-[9px] text-text-dim">…</span>
@@ -1643,7 +1630,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
                             onMouseDown={e => { e.preventDefault(); handleInvite(u) }}
                             className="w-full flex items-center gap-2.5 px-3 py-2 text-left bg-transparent border-none cursor-pointer hover:bg-surface-2 transition-colors"
                           >
-                            <span className="w-[22px] h-[22px] rounded-full bg-surface-2 border border-border flex items-center justify-center font-heading text-[9px] font-extrabold text-amber shrink-0">
+                            <span className="w-5.5 h-5.5 rounded-full bg-surface-2 border border-border flex items-center justify-center font-heading text-[9px] font-extrabold text-amber shrink-0">
                               {initials(u.name)}
                             </span>
                             <span className="text-[11px] text-text truncate">{u.name}</span>
@@ -1669,7 +1656,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
             {/* Elevation profile */}
             {(trip?.gpxPlanned || (trip?.gpxTracks ?? []).length > 0) && (
-              <div className="bg-surface border border-border rounded-lg p-[18px]">
+              <div className="bg-surface border border-border rounded-lg p-4.5">
                 <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-3">
                   Elevation Profile
                 </div>
