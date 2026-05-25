@@ -167,7 +167,7 @@ Files that export more than one React component and need to be split to comply w
 
 ### Map
 
-- **`src/components/map/MapTab.tsx`** — exports `MapTab`, `ControlsBar`, `MapArea`, `ZoomControls`, `AddModeHint`, `TrackLegend`, `ContextMenu`, `ContextMenuItem`, `WaypointAddDialog`, `WaypointEditDialog` (10 components). This is the most egregious violation — split into at minimum: `MapArea.tsx`, `MapControls.tsx` (`ControlsBar` + `ZoomControls` + `AddModeHint` + `TrackLegend`), `MapContextMenu.tsx` (`ContextMenu` + `ContextMenuItem`), `WaypointAddDialog.tsx`, `WaypointEditDialog.tsx`.
+- ✅ **`src/components/map/MapTab.tsx`** — extracted `MapControlsBar.tsx`, `MapArea.tsx` (with map-only overlays as unexported locals), `WaypointAddDialog.tsx`, `WaypointEditDialog.tsx`. `MapTab.tsx` is now state + handlers only.
 
 ### Trip
 
