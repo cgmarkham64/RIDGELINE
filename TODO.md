@@ -171,9 +171,9 @@ Files that export more than one React component and need to be split to comply w
 
 ### Trip
 
-- **`src/components/trip/TripDetail.tsx`** — exports `TripDetail`, `TabRow`, `TabComingSoon`. Extract `TabRow` to `TabRow.tsx`.
-- **`src/components/trip/TripRightPanel.tsx`** — exports `TripRightPanel`, `RpSection`, `WaypointList`, `ComingSoon`. Extract `WaypointList` to `WaypointList.tsx`; make `RpSection` and `ComingSoon` unexported local components or move to shared `ui/`.
-- **`src/components/trip/WaypointChip.tsx`** — exports `WaypointChip`, `ChipMenuItem`. Extract `ChipMenuItem` or make it unexported.
+- ~~**`src/components/trip/TripDetail.tsx`**~~ — `TabRow` and `TabComingSoon` are unexported locals; 94 lines, not a violation.
+- ✅ **`src/components/trip/TripRightPanel.tsx`** — `RpSection`/`ComingSoon` are unexported locals (fine), `WaypointList` extracted to `WaypointList.tsx` (76 lines, own state).
+- ~~**`src/components/map/WaypointChip.tsx`**~~ — `ChipMenuItem` is an unexported local; 107 lines, not a violation. (Note: was filed under trip/ but lives in map/.)
 
 ### Plan / RouteMapCard
 
