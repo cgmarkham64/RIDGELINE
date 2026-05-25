@@ -5,6 +5,7 @@ import { TripSidebar } from '../components/trip/TripSidebar'
 import { DeleteConfirm } from '../components/trip/DeleteConfirm'
 import { LeaveConfirm } from '../components/trip/LeaveConfirm'
 import { TripDetail } from '../components/trip/TripDetail'
+import { TripEmptyState } from '../components/trip/TripEmptyState'
 
 export function HomePage() {
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null)
@@ -57,7 +58,7 @@ export function HomePage() {
             onTripUpdated={setSelectedTrip}
           />
         ) : (
-          <EmptyState onNew={() => navigate({ to: '/plan', search: { id: undefined, stage: undefined } })} />
+          <TripEmptyState onNew={() => navigate({ to: '/plan', search: { id: undefined, stage: undefined } })} />
         )}
       </main>
 
@@ -75,21 +76,6 @@ export function HomePage() {
           onLeft={handleLeft}
         />
       )}
-    </div>
-  )
-}
-
-function EmptyState({ onNew }: { onNew: () => void }) {
-  return (
-    <div className="empty-state">
-      <div className="empty-state__icon">⛰</div>
-      <h2 className="empty-state__title">No trip selected</h2>
-      <p className="empty-state__body">
-        Pick a trip from the sidebar, or start planning a new one.
-      </p>
-      <button onClick={onNew} className="btn btn-primary">
-        + New trip
-      </button>
     </div>
   )
 }
