@@ -13,6 +13,7 @@ An outdoor/hiking trip planning and logging app with a React frontend and Expres
 - **Forms**: React Hook Form + Zod
 - **Styling**: Tailwind CSS v4 — always prefer Tailwind utility classes over inline `style={{}}` props or custom CSS. Use `hover:`, `focus:`, `group`/`group-hover:` pseudo-classes instead of JS event handlers for style changes. Only use inline styles for truly dynamic/computed values (e.g. colors from variables/props) or SVG-specific attributes.
 - **Minimum font size: 9px** — `text-[9px]` is the floor for all UI text project-wide. Use `text-[9px]` for dense labels (section headers, chips, filter labels, mono metadata), `text-[10px]`–`text-[11px]` for secondary text, `text-[12px]`–`text-[13px]` for body/list items, `text-[14px]`+ for headings. Exception: SVG inline `fontSize` in chart/map elements may go smaller only when the element is intentionally decorative at reduced scale (e.g. a print-preview one-pager).
+- **One component per file** — each file exports one primary component. Extract sub-components, helpers, and types into their own files as soon as a file grows unwieldy (aim to keep files under ~400 lines). Co-locate tightly coupled helpers in a `componentName.helpers.ts` and types in `componentName.types.ts` alongside the component file.
 
 ### Backend (`/server`)
 - **Runtime**: Node.js + Express 4
