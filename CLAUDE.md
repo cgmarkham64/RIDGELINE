@@ -21,6 +21,18 @@ An outdoor/hiking trip planning and logging app with a React frontend and Expres
 - **Language**: TypeScript compiled with tsx (dev) / tsc (prod)
 - **API base**: `http://localhost:8000/api`
 
+## Code Quality
+
+These principles apply to all new code and refactors across the entire codebase (frontend and backend).
+
+- **DRY** — if the same logic appears twice, extract it. Named helpers beat copy-paste every time. This applies to route boilerplate (try/catch, ownership checks, ObjectId validation) as much as UI logic.
+- **No magic numbers or strings** — every non-obvious literal (numeric constants, repeated color values, conversion factors) must be a named constant at the top of the file or in a shared constants module.
+- **Small, focused functions** — aim for under ~30 lines per function. If a function needs a comment to explain what each block does, those blocks should be separate functions.
+- **Consistent abstraction levels** — a function should either orchestrate (call other functions) or implement (do low-level work), not both. Don't mix raw trig with high-level path logic in the same function body.
+- **Type safety** — no unchecked `as` assertions. Use type guards or Zod schemas at system boundaries (JWT parsing, API responses, user input). Internal code that has already been validated can use type narrowing; it should never need `as never`.
+- **Thin route handlers** — Express route handlers wire HTTP to business logic; they don't contain it. Any logic beyond a single DB call belongs in a service (`server/src/services/`) or utility (`server/src/utils/`).
+- **Handle errors where they can occur** — every async DB call needs a try/catch. Don't leave handlers unwrapped because they "look simple".
+
 ## Commands
 
 ```bash

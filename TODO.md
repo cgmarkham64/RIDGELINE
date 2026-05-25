@@ -147,7 +147,30 @@ Full gear inventory system:
 
 ## Code Cleanup
 
-Files that export more than one React component and need to be split to comply with the one-component-per-file rule.
+Files that export more than one React component and need to be split to comply with the one-component-per-file rule. See also the broader clean code issues below.
+
+### Frontend
+
+**Magic numbers / unnamed literals**
+
+- **`src/components/plan/stages/routeStage.helpers.ts`** — `3958.8` (Earth radius in miles), `#f0a030` and `rgba(240,160,48,0.08)` (amber color values) should be named constants. Color values especially should reference CSS variables already defined in the theme.
+- **`src/lib/waterSources.ts`** — `6371000` (Earth radius in metres) and `1609.344` (metres-per-mile) are unexplained inline. Extract to named constants alongside the existing `400`/`40`/`0.35` ones.
+- **`src/components/journal/DaySelector.tsx`** — `86_400_000` (milliseconds per day) used at least twice without a named constant.
+
+**Oversized files (>400 lines)**
+
+- **`src/components/plan/stages/PermitsStage.tsx`** (~1,100 lines) — Bundles permit detection, permit cards, zone map, and free-form dialog. Split into focused files the same way MapTab and RouteMapCard were.
+- **`src/components/trip/GpxMapSection.tsx`** (~483 lines) — GPX upload logic, map rendering, and waypoint management in one file.
+- **`src/components/plan/stages/RouteStage.tsx`** (~510 lines) — Still above the 400-line guideline after earlier refactors; worth a second pass.
+
+**Type safety — unchecked `as` assertions**
+
+- **`src/main.tsx`** (lines 38–39) — JWT claims cast as `string` without type guards: `parsed.email as string`, `parsed.name as string`. Use a proper type guard or Zod schema to parse JWT payloads.
+- **`src/components/journal/JournalSection.tsx`** — `reader.result as string` without checking for `null` / `ArrayBuffer` first.
+
+**Abstraction level mixing**
+
+- **`src/components/plan/stages/routeStage.helpers.ts`** — `haversinePathMiles` calls `haversineMi`, which itself divides by `1609.344`. The two levels of abstraction (high-level path sum vs. raw trig) are entangled; the division constant should live at one level only.
 
 ### Backend
 
