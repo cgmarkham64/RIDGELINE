@@ -104,6 +104,28 @@ export function makeDetectedWaterIcon(type: WaypointType, size = 24): L.DivIcon 
   })
 }
 
+export function makeDrawStartIcon(): L.DivIcon {
+  return L.divIcon({
+    html: `<div style="width:20px;height:20px;border-radius:50%;background:#0f0d0b;border:2px solid #4ade80;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px #4ade8088;cursor:grab;">
+      <div style="width:6px;height:6px;border-radius:50%;background:#4ade80;"></div>
+    </div>`,
+    className: '',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  })
+}
+
+export function makeDrawEndIcon(): L.DivIcon {
+  return L.divIcon({
+    html: `<div style="width:20px;height:20px;border-radius:50%;background:#0f0d0b;border:2px solid #f87171;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px #f8717188;cursor:grab;">
+      <div style="width:6px;height:6px;border-radius:50%;background:#f87171;"></div>
+    </div>`,
+    className: '',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  })
+}
+
 export function makePendingIcon(type: WaypointType): L.DivIcon {
   const color = WAYPOINT_COLOR[type]
   const size = 30
