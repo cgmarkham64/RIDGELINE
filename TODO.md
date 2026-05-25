@@ -154,7 +154,7 @@ Files that export more than one React component and need to be split to comply w
 - **`src/pages/LoginPage.tsx`** — exports `LoginPage`, `KeycloakRedirect`, `LocalLoginForm`. Extract `KeycloakRedirect` and `LocalLoginForm` into their own files.
 - **`src/pages/RegisterPage.tsx`** — exports `RegisterPage`, `KeycloakRedirect`, `LocalRegisterForm`. Same split as above; `KeycloakRedirect` is duplicated between Login and Register and should become a single shared component.
 - **`src/pages/HomePage.tsx`** — exports `HomePage`, `EmptyState`. Move `EmptyState` to `src/components/trip/` (it is trip-list–specific) or a shared `ui/` file.
-- **`src/pages/PhotosPage.tsx`**, **`src/pages/GearPage.tsx`**, **`src/pages/MapPage.tsx`** — each exports a `ComingSoon` placeholder. Extract to one shared `src/components/ui/ComingSoon.tsx` and import from there.
+- ✅ **`src/pages/PhotosPage.tsx`**, **`src/pages/GearPage.tsx`**, **`src/pages/MapPage.tsx`** — extracted to `src/components/ui/ComingSoon.tsx`.
 
 ### Layout
 
