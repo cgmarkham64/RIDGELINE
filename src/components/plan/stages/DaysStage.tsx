@@ -4,25 +4,11 @@ import { Pill } from '../Pill'
 import { ProgressBar } from '../ProgressBar'
 import { CheckItem } from '../CheckItem'
 import { IconTent, IconMountain, IconWater, IconSun } from '../../icons'
-import type { StageBodyProps, PlanDayEntry } from '../types'
-
-// ─── Mock data ────────────────────────────────────────────────────────────────
+import type { StageBodyProps } from '../types'
+import type { SegRow } from './routeStage.types'
 
 type Exposure = 'low' | 'med' | 'high' | 'extreme'
 
-const DAYS: PlanDayEntry[] = [
-  { n: 1, from: 'Onion Valley',   to: 'Charlotte Lake',  mi: 12, gain: 3200, water: 'reliable', exp: 'low'     },
-  { n: 2, from: 'Charlotte Lake', to: 'Rae Lakes',        mi: 14, gain: 2100, water: 'reliable', exp: 'low'     },
-  { n: 3, from: 'Rae Lakes',      to: 'Sixty Lake',       mi: 18, gain: 4400, water: 'reliable', exp: 'med',  pass: 'Glen Pass · 11,978 ft'     },
-  { n: 4, from: 'Sixty Lake',     to: 'Bench Lake',       mi: 22, gain: 5100, water: 'reliable', exp: 'high', pass: 'Cartridge Pass · 12,650 ft', hard: true },
-  { n: 5, from: 'Bench Lake',     to: 'Lake Marjorie',    mi: 16, gain: 3800, water: 'reliable', exp: 'med',  pass: 'Mather Pass · 12,100 ft'   },
-  { n: 6, from: 'Lake Marjorie',  to: 'Crabtree',         mi: 19, gain: 4200, water: 'caches',   exp: 'high', pass: 'Forester Pass · 13,153 ft'  },
-  { n: 7, from: 'Crabtree',       to: 'Guitar Lake',      mi: 14, gain: 2800, water: 'reliable', exp: 'med'     },
-  { n: 8, from: 'Guitar Lake',    to: 'Whitney Portal',   mi: 17, gain: 4400, water: 'reliable', exp: 'extreme', hard: true },
-]
-
-
-// Static Tailwind classes keyed by exposure — avoids dynamic class generation
 const EXP_CLS: Record<Exposure, string> = {
   low:     'text-pine border-pine-border bg-pine-dim',
   med:     'text-sky border-sky-border bg-sky-dim',
@@ -30,28 +16,20 @@ const EXP_CLS: Record<Exposure, string> = {
   extreme: 'text-red border-red-border bg-red-dim',
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function TimeField({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <label className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-1 block">{label}</label>
-      <input
-        className="w-full px-3 py-2 border border-border rounded-sm text-[13px] bg-surface-2 text-text outline-none font-mono focus:border-border-mid transition-colors"
-        defaultValue={value}
-      />
-    </div>
-  )
+const WATER_LABEL: Record<string, string> = {
+  reliable: 'reliable',
+  caches:   'caches',
+  dry:      'dry',
 }
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function WaypointRow({ time, name, loc, icon, last }: {
   time: string; name: string; loc: string
   icon: 'tent' | 'mountain' | 'water'; last?: boolean
 }) {
   return (
-    <div
-      className={`grid items-center gap-3 py-2 grid-cols-[70px_22px_1fr] ${last ? '' : 'border-b border-border'}`}
-    >
+    <div className={`grid items-center gap-3 py-2 grid-cols-[70px_22px_1fr] ${last ? '' : 'border-b border-border'}`}>
       <span className="font-mono text-[10px] text-text-mid">{time}</span>
       {icon === 'tent'     && <IconTent />}
       {icon === 'mountain' && <IconMountain />}
@@ -67,54 +45,55 @@ function WaypointRow({ time, name, loc, icon, last }: {
 // ─── Days Stage ───────────────────────────────────────────────────────────────
 
 export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps) {
-  const [days] = useState<PlanDayEntry[]>(
-    plan?.days?.days ?? (plan !== undefined ? [] : DAYS)
-  )
-  const [sel, setSel] = useState(Math.min(3, Math.max(0, days.length - 1)))
+  const [segs, setSegs] = useState<SegRow[]>(plan?.route?.segments ?? [])
+  const [sel, setSel]   = useState(0)
 
   const onChangeRef   = useRef(onChange)
   const onProgressRef = useRef(onProgress)
   const isMounted     = useRef(false)
+  const routeRef      = useRef({
+    sourceFiles: plan?.route?.sourceFiles ?? [],
+    checklist:   plan?.route?.checklist   ?? [],
+  })
 
-  // Sync callback refs after each render (must be in effect, not render body)
   useEffect(() => {
-    onChangeRef.current  = onChange
+    onChangeRef.current   = onChange
     onProgressRef.current = onProgress
   })
 
   const checklist = useMemo(() => [
-    { text: '8 days mapped',       done: days.length > 0 },
-    { text: 'Camps assigned',      done: days.length > 0 && days.every(d => !!d.from && !!d.to) },
-    { text: 'Daily mileage',       done: days.length > 0 && days.every(d => d.mi > 0) },
-    { text: 'Water sources',       done: days.length > 0 && days.every(d => !!d.water) },
-    { text: 'Exposure flagged',    done: days.length > 0 && days.every(d => !!d.exp) },
-    { text: 'Tough days reviewed', done: days.length > 0 },
-    { text: 'Bail-out points',     done: false },
-    { text: 'Synced with Route',   done: !!(plan?.route?.segments?.length && days.length > 0) },
-  ], [days, plan?.route?.segments?.length])
+    { text: 'Segments added',    done: segs.length > 0 },
+    { text: 'Daily mileage set', done: segs.length > 0 && segs.every(s => s.mi > 0) },
+    { text: 'Water sources set', done: segs.length > 0 && segs.every(s => !!s.water) },
+    { text: 'Exposure flagged',  done: segs.length > 0 && segs.every(s => !!s.exp) },
+    { text: 'Tough days reviewed', done: segs.length > 0 },
+    { text: 'Bail-out points',   done: false },
+  ], [segs])
 
-  // Persist on change — skip initial mount to avoid a redundant save on load
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
-    onChangeRef.current?.({ days: { days } })
-  }, [days])
+    onChangeRef.current?.({ route: { segments: segs, ...routeRef.current } })
+  }, [segs])
 
-  // Report progress whenever checklist state changes (fires on mount too)
   useEffect(() => {
     const done = checklist.filter(c => c.done).length
     onProgressRef.current?.(done, checklist.length)
   }, [checklist])
 
-  const d = days[sel]
+  function updateSeg(idx: number, patch: Partial<SegRow>) {
+    setSegs(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s))
+  }
 
-  const totalMi   = days.reduce((a, x) => a + x.mi, 0)
-  const totalGain = days.reduce((a, x) => a + x.gain, 0)
-  const longest   = days.length > 0 ? Math.max(...days.map(x => x.mi)) : 0
-  const campCount = Math.max(0, days.length - 1)
-  const longDays  = days.filter(x => x.mi > 20)
+  const d = segs[sel]
+
+  const totalMi   = segs.reduce((a, x) => a + x.mi, 0)
+  const totalGain = segs.reduce((a, x) => a + x.gain, 0)
+  const longest   = segs.length > 0 ? Math.max(...segs.map(x => x.mi)) : 0
+  const campCount = Math.max(0, segs.length - 1)
+  const longDays  = segs.filter(x => x.mi > 20)
   const doneCount = checklist.filter(c => c.done).length
 
-  if (days.length === 0) {
+  if (segs.length === 0) {
     return (
       <div className="flex-1 overflow-y-auto p-8">
         <div className="max-w-[520px] mx-auto mt-16 text-center">
@@ -129,7 +108,7 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
             >
               Stage 1 · Route
             </button>
-            {' '}first, or add days manually once that stage is wired to the backend.
+            {' '}first to populate this stage.
           </p>
           <div className="flex items-start gap-3 px-4 py-3 bg-amber-dim border border-amber-border rounded-lg text-left mt-2">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-amber shrink-0 mt-0.5">
@@ -149,6 +128,8 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
 
   if (!d) return null
 
+  const [namePart1, namePart2] = d.name.split(/ to | → /i)
+
   return (
     <div className="flex-1 overflow-y-auto p-8 pb-20">
       <div className="grid gap-7 max-w-[1100px] grid-cols-[1fr_320px]">
@@ -159,10 +140,10 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
           {/* Header stat strip */}
           <div className="grid grid-cols-4 gap-px bg-border rounded-lg overflow-hidden">
             {[
-              { v: String(totalMi),                  l: 'total miles' },
-              { v: totalGain.toLocaleString(),        l: 'gain (ft)' },
-              { v: String(longest),                   l: 'longest day' },
-              { v: String(campCount),                  l: 'camps' },
+              { v: String(totalMi),           l: 'total miles' },
+              { v: totalGain.toLocaleString(), l: 'gain (ft)'   },
+              { v: String(longest),            l: 'longest day' },
+              { v: String(campCount),          l: 'camps'       },
             ].map(s => (
               <div key={s.l} className="bg-surface px-3 py-2">
                 <div className="font-heading text-[18px] font-extrabold text-amber leading-none">{s.v}</div>
@@ -171,33 +152,39 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
             ))}
           </div>
 
-          {/* Day list */}
+          {/* Segment list */}
           <div className="bg-surface border border-border rounded-lg overflow-hidden">
-            {days.map((dd, i) => (
+            {segs.map((seg, i) => (
               <button
-                key={dd.n}
+                key={seg.n}
                 onClick={() => setSel(i)}
                 className={[
                   'w-full text-left grid items-center gap-3.5 px-4 py-3 border-l-2 transition-colors grid-cols-[52px_1fr_70px_90px_70px_60px]',
-                  i < days.length - 1 ? 'border-b border-border' : '',
+                  i < segs.length - 1 ? 'border-b border-border' : '',
                   sel === i
                     ? 'bg-amber-glow border-l-amber'
                     : 'border-l-transparent hover:bg-surface-2',
                 ].join(' ')}
               >
                 <span className="font-mono text-[10px] font-bold text-amber text-center py-1 px-2 bg-amber-dim border border-amber-border rounded">
-                  D{dd.n}
+                  D{seg.n}
                 </span>
                 <div>
-                  <div className="text-[12px] font-semibold text-text">{dd.from} → {dd.to}</div>
-                  <div className="font-mono text-[9px] text-text-dim mt-0.5">Aug {11 + dd.n} · water {dd.water}</div>
+                  <div className="text-[12px] font-semibold text-text">{seg.name}</div>
+                  <div className="font-mono text-[9px] text-text-dim mt-0.5">
+                    water: {seg.water ? WATER_LABEL[seg.water] : '—'}
+                    {seg.pass ? ` · ${seg.pass}` : ''}
+                  </div>
                 </div>
-                <span className="font-mono text-[11px] text-text">{dd.mi} mi</span>
-                <span className="font-mono text-[11px] text-text-mid">{dd.gain.toLocaleString()} ft</span>
-                <span className={`font-mono text-[9px] font-semibold text-center py-0.5 px-1.5 rounded border uppercase tracking-[0.08em] ${EXP_CLS[dd.exp]}`}>
-                  {dd.exp}
-                </span>
-                {dd.hard
+                <span className="font-mono text-[11px] text-text">{seg.mi} mi</span>
+                <span className="font-mono text-[11px] text-text-mid">{seg.gain.toLocaleString()} ft</span>
+                {seg.exp
+                  ? <span className={`font-mono text-[9px] font-semibold text-center py-0.5 px-1.5 rounded border uppercase tracking-[0.08em] ${EXP_CLS[seg.exp]}`}>
+                      {seg.exp}
+                    </span>
+                  : <span className="font-mono text-[9px] text-text-dim text-center py-0.5 px-1.5">—</span>
+                }
+                {seg.hard
                   ? <Pill tone="amber">tough</Pill>
                   : (
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-pine">
@@ -210,41 +197,102 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
 
           {/* Selected day detail */}
           <div key={d.n} className="bg-surface border border-border rounded-lg p-[18px]">
-            <div className="flex items-baseline gap-2.5 mb-3">
+            <div className="flex items-baseline gap-2.5 mb-4">
               <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-amber">Day {d.n}</span>
-              <span className="font-heading text-[16px] font-extrabold text-text">{d.from} → {d.to}</span>
+              <span className="font-heading text-[16px] font-extrabold text-text">{d.name}</span>
               <span className="font-mono text-[9px] text-text-dim ml-auto">{d.mi} mi · {d.gain.toLocaleString()} ft</span>
             </div>
-            <div className="grid grid-cols-3 gap-2.5 mb-3.5">
-              <TimeField label="Wake"     value="5:30 AM" />
-              <TimeField label="On-trail" value="6:15 AM" />
-              <TimeField label="Camp by"  value="6:00 PM" />
+
+            {/* Editable day metadata */}
+            <div className="grid grid-cols-2 gap-2.5 mb-4">
+              <div>
+                <label className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-1 block">Water</label>
+                <select
+                  className="w-full px-2.5 py-1.5 border border-border rounded-sm text-[12px] bg-surface-2 text-text outline-none focus:border-border-mid transition-colors"
+                  value={d.water ?? ''}
+                  onChange={e => {
+                    const v = e.target.value
+                    updateSeg(sel, { water: v === '' ? undefined : v as SegRow['water'] })
+                  }}
+                >
+                  <option value="">— not set —</option>
+                  <option value="reliable">Reliable</option>
+                  <option value="caches">Caches</option>
+                  <option value="dry">Dry</option>
+                </select>
+              </div>
+              <div>
+                <label className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-1 block">Exposure</label>
+                <select
+                  className="w-full px-2.5 py-1.5 border border-border rounded-sm text-[12px] bg-surface-2 text-text outline-none focus:border-border-mid transition-colors"
+                  value={d.exp ?? ''}
+                  onChange={e => {
+                    const v = e.target.value
+                    updateSeg(sel, { exp: v === '' ? undefined : v as SegRow['exp'] })
+                  }}
+                >
+                  <option value="">— not set —</option>
+                  <option value="low">Low</option>
+                  <option value="med">Moderate</option>
+                  <option value="high">High</option>
+                  <option value="extreme">Extreme</option>
+                </select>
+              </div>
+              <div>
+                <label className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-1 block">Pass / col</label>
+                <input
+                  className="w-full px-2.5 py-1.5 border border-border rounded-sm text-[12px] bg-surface-2 text-text outline-none focus:border-border-mid transition-colors placeholder:text-text-dim"
+                  value={d.pass ?? ''}
+                  onChange={e => updateSeg(sel, { pass: e.target.value || undefined })}
+                  placeholder="e.g. Glen Pass · 11,978 ft"
+                />
+              </div>
+              <div className="flex items-end pb-1.5">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={d.hard ?? false}
+                    onChange={e => updateSeg(sel, { hard: e.target.checked || undefined })}
+                  />
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${d.hard ? 'bg-amber-dim border-amber-border' : 'bg-surface border-border'}`}>
+                    {d.hard && (
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-amber">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="font-mono text-[11px] text-text">Tough day</span>
+                </label>
+              </div>
             </div>
+
             <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2">Waypoints</div>
-            <WaypointRow time="6:30 AM"  name="Leave camp"    loc={d.from}       icon="tent"     />
-            {d.pass && <WaypointRow time="10:30 AM" name="Pass / col" loc={d.pass} icon="mountain" />}
-            <WaypointRow time="1:00 PM"  name="Lunch + water" loc="Lake outflow" icon="water"    />
-            <WaypointRow time="5:30 PM"  name="Make camp"     loc={d.to}         icon="tent"     last />
+            <WaypointRow time="6:30 AM"  name="Leave camp"    loc={namePart1 ?? d.name}              icon="tent"     />
+            {d.pass && <WaypointRow time="10:30 AM" name="Pass / col" loc={d.pass}                   icon="mountain" />}
+            <WaypointRow time="1:00 PM"  name="Lunch + water" loc="Lake outflow"                     icon="water"    />
+            <WaypointRow time="5:30 PM"  name="Make camp"     loc={namePart2?.trim() ?? d.name}      icon="tent"     last />
           </div>
 
-          {/* Helper banner */}
-          <div className="flex items-center gap-2.5 px-4 py-3 bg-amber-dim border border-amber-border rounded-lg text-[11px] text-text-mid">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-amber shrink-0">
-              <path d="M17 18a4 4 0 0 0 0-8 6 6 0 0 0-11.7-1.5A4.5 4.5 0 0 0 6 18z" />
-            </svg>
-            <span>
-              {longDays.map((x, i) => (
-                <span key={x.n}>{i > 0 ? ' and ' : ''}Day {x.n}</span>
-              ))}{' '}push{longDays.length === 1 ? 'es' : ''} past 20 mi — confirm caloric load in{' '}
-              <JumpChip to="food" onJump={onJump}>Food</JumpChip>
-            </span>
-          </div>
+          {/* Long-day banner */}
+          {longDays.length > 0 && (
+            <div className="flex items-center gap-2.5 px-4 py-3 bg-amber-dim border border-amber-border rounded-lg text-[11px] text-text-mid">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-amber shrink-0">
+                <path d="M17 18a4 4 0 0 0 0-8 6 6 0 0 0-11.7-1.5A4.5 4.5 0 0 0 6 18z" />
+              </svg>
+              <span>
+                {longDays.map((x, i) => (
+                  <span key={x.n}>{i > 0 ? ' and ' : ''}Day {x.n}</span>
+                ))}{' '}push{longDays.length === 1 ? 'es' : ''} past 20 mi — confirm caloric load in{' '}
+                <JumpChip to="food" onJump={onJump}>Food</JumpChip>
+              </span>
+            </div>
+          )}
         </div>
 
         {/* ── Right rail ── */}
         <aside className="flex flex-col gap-3.5">
 
-          {/* Stage checklist */}
           <div className="bg-surface border border-border rounded-lg p-3.5">
             <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">This stage</div>
             {checklist.map(c => <CheckItem key={c.text} text={c.text} done={c.done} />)}
@@ -253,7 +301,6 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
             <div className="font-mono text-[9px] text-text-dim text-center mt-1.5">{doneCount} of {checklist.length}</div>
           </div>
 
-          {/* Forecast */}
           <div className="bg-surface border border-border rounded-lg p-3.5">
             <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">Forecast — Aug 15</div>
             <div className="flex items-center gap-3">

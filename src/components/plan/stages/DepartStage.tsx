@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { ProgressBar } from '../ProgressBar'
 import { IconBell, IconCheck, IconDownload, IconPlus, IconFile, IconCircle } from '../../icons'
-import type { StageBodyProps, ReminderTone, ContactTone, PlanDayEntry } from '../types'
+import type { StageBodyProps, ReminderTone, ContactTone } from '../types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -91,9 +91,9 @@ const CONTACT_AVATAR_CLS: Record<ContactTone, string> = {
 
 // ─── OnePagerPreview ──────────────────────────────────────────────────────────
 
-function OnePagerPreview({ days, contacts }: { days: PlanDayEntry[] | null; contacts: Contact[] }) {
+function OnePagerPreview({ days, contacts }: { days: { n: number; name: string; mi: number; hard?: boolean }[] | null; contacts: Contact[] }) {
   const dayRows = days
-    ? days.map(d => `D${d.n} ${d.from} → ${d.to} · ${d.mi} mi${d.hard ? ' ⚠' : ''}`)
+    ? days.map(d => `D${d.n} ${d.name} · ${d.mi} mi${d.hard ? ' ⚠' : ''}`)
     : DEFAULT_DAY_ROWS
 
   const emergencyContacts = contacts.filter(c => c.tone === 'red' || c.tone === 'amber')
@@ -182,7 +182,7 @@ export function DepartStage({ plan, onChange }: StageBodyProps) {
     onChangeRef.current?.({ depart: { reminders, contacts, mapLayers, checklist } })
   }, [reminders, contacts, mapLayers, checklist])
 
-  const days = plan?.days?.days ?? null
+  const days = plan?.route?.segments ?? null
 
   function toggleReminder(i: number) {
     setReminders(prev => prev.map((r, idx) => idx !== i ? r : { ...r, set: !r.set }))

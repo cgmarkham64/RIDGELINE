@@ -7,6 +7,10 @@ export type SegRow = {
   gain: number
   notes: string
   path?: [number, number][]
+  water?: 'reliable' | 'caches' | 'dry'
+  exp?: 'low' | 'med' | 'high' | 'extreme'
+  hard?: boolean
+  pass?: string
 }
 
 export type CheckRow = { text: string; done: boolean }

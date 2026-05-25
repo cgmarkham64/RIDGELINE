@@ -28,21 +28,15 @@ export type ZoneStatus = 'available' | 'limited' | 'sold_out'
 // ─── Per-stage plan data — used to seed state from an existing plan ───────────
 
 export interface PlanRouteData {
-  segments: { n: number; name: string; mi: number; gain: number; notes: string; path?: [number, number][] }[]
+  segments: {
+    n: number; name: string; mi: number; gain: number; notes: string; path?: [number, number][]
+    water?: 'reliable' | 'caches' | 'dry'
+    exp?: 'low' | 'med' | 'high' | 'extreme'
+    hard?: boolean
+    pass?: string
+  }[]
   sourceFiles: { name: string; meta: string }[]
   checklist: { text: string; done: boolean }[]
-}
-
-export interface PlanDayEntry {
-  n: number
-  from: string
-  to: string
-  mi: number
-  gain: number
-  water: string
-  exp: 'low' | 'med' | 'high' | 'extreme'
-  hard?: boolean
-  pass?: string
 }
 
 export interface PlanPermitEntry {
@@ -103,8 +97,7 @@ export interface PlanDepartData {
 
 export interface PlanData {
   route?: PlanRouteData
-  days?: { days: PlanDayEntry[] }
-  permits?: { permits: PlanPermitEntry[]; permitFree: boolean }
+  permits?:{ permits: PlanPermitEntry[]; permitFree: boolean }
   food?: {
     meals: PlanMealEntry[]
     mealsLocked: boolean
