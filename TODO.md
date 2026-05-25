@@ -149,35 +149,34 @@ Full gear inventory system:
 
 Files that export more than one React component and need to be split to comply with the one-component-per-file rule.
 
-### Pages
+### Backend
 
-- ~~**`src/pages/LoginPage.tsx`**~~, ~~**`src/pages/RegisterPage.tsx`**~~ — `KeycloakRedirect` and `LocalLoginForm`/`LocalRegisterForm` are unexported locals; not a rule violation. The two `KeycloakRedirect` copies call different Keycloak methods (`login` vs `register`) so a shared version would need an action prop — not worth it at ~110 lines each.
-- ✅ **`src/pages/HomePage.tsx`** — extracted `EmptyState` to `src/components/trip/TripEmptyState.tsx`.
-- ✅ **`src/pages/PhotosPage.tsx`**, **`src/pages/GearPage.tsx`**, **`src/pages/MapPage.tsx`** — extracted to `src/components/ui/ComingSoon.tsx`.
+**Duplicated patterns (highest value to fix)**
 
-### Layout
+- **Ownership guard repeated 16+ times** — `if (plan.ownerSub !== req.user.sub) return res.status(403).json(...)` appears independently in `plans.ts`, `loadouts.ts`, `gearItems.ts`, and `trips.ts`. Extract to a `requireOwner(doc, req)` helper in `server/src/utils/auth.ts` (or a shared middleware).
+- **Try/catch/500 boilerplate repeated ~20 times** — Every route handler wraps identically: `try { … } catch (e) { console.error(e); res.status(500).json({ error: 'Server error' }) }`. Replace with an `asyncRoute(fn)` wrapper or Express error-handling middleware so handlers can just `throw`.
+- **ObjectId validation duplicated** — `validId` (or equivalent inline check) appears in `plans.ts`, `trips.ts`, `journalDays.ts`. Extract once to `server/src/utils/objectId.ts`.
+- **User-response object constructed 4+ times** — `{ id: sub, email, name, avatarUrl: profile?.avatarUrl ?? null }` built identically in `auth.ts` (lines 18, 43, 58) and `localAuth.ts`. Extract to a `formatUserResponse(sub, profile)` helper.
+- **JWT creation duplicated** — `jwt.sign` called with near-identical payloads in two places in `localAuth.ts` (register + login). Extract to a `signToken(user)` helper.
 
-- ~~**`src/components/layout/AuthLayout.tsx`**~~ — `MountainsSvg` and `RiverSvg` are unexported locals; not a violation.
-- ~~**`src/components/layout/IconRail.tsx`**~~ — `NavLink` is an unexported local; not a violation.
-- ✅ **`src/components/layout/NotificationBell.tsx`** — extracted `NotificationItem` (+ `messageFor`, `relativeTime` helpers) to `NotificationItem.tsx`.
+**Business logic living in route files**
 
-### Journal
+- **`trips.ts`** — `normalizeShared`, `canRead`, `populateTripUsers` are utility/service functions, not routing. Move to `server/src/services/tripService.ts`.
+- **`journalDays.ts`** — `getTripForRead` / `getTripForWrite` duplicate trip-access logic already expressed in `trips.ts` `canRead`. Unify and move to `tripService.ts`.
+- **`journalScan.ts`** — Claude API call, image validation, and system prompt are inlined in the route. Move to `server/src/services/scanService.ts`; keep system prompt in a constants file.
 
-- ✅ **`src/components/journal/JournalSection.tsx`** — extracted `TagInput` and `CompanionTagInput` to their own files; `CondCell`, `entryToDefaults`, `fileToBase64` remain as unexported locals (too small/coupled to move).
+**Near-identical files**
 
-### Map
+- **`loadouts.ts` and `gearItems.ts`** — Both are owner-scoped GET/POST/PUT/DELETE with no meaningful differences. Consider a `makeOwnerCrudRouter(Model)` factory, or at minimum share the ownership/error helpers so they don't drift independently.
 
-- ✅ **`src/components/map/MapTab.tsx`** — extracted `MapControlsBar.tsx`, `MapArea.tsx` (with map-only overlays as unexported locals), `WaypointAddDialog.tsx`, `WaypointEditDialog.tsx`. `MapTab.tsx` is now state + handlers only.
+**Missing error handling**
 
-### Trip
+- `loadouts.ts` and `gearItems.ts` lack try/catch around DB calls.
+- `notifications.ts` DELETE handler (line ~83) is missing try/catch while all other handlers in that file have it.
 
-- ~~**`src/components/trip/TripDetail.tsx`**~~ — `TabRow` and `TabComingSoon` are unexported locals; 94 lines, not a violation.
-- ✅ **`src/components/trip/TripRightPanel.tsx`** — `RpSection`/`ComingSoon` are unexported locals (fine), `WaypointList` extracted to `WaypointList.tsx` (76 lines, own state).
-- ~~**`src/components/map/WaypointChip.tsx`**~~ — `ChipMenuItem` is an unexported local; 107 lines, not a violation. (Note: was filed under trip/ but lives in map/.)
+**Data model inconsistency**
 
-### Plan / RouteMapCard
-
-- ~~**`src/components/plan/stages/RouteMapCard.tsx`**~~ ✅ — Extracted `FitBounds`, `InvalidateSize`, `DrawInteractionLayer` → `routeMapCard.helpers.tsx`; `DrawConfirmTray` (+ local `ElevSparkline`) → `DrawConfirmTray.tsx`; draw endpoint icons → `leafletIcons.ts`.
+- `trips.ts` treats `sharedWith` entries as `{ sub, role }` objects; `journalDays.ts` still treats them as plain strings. Align `journalDays.ts` access checks to match the Trip model.
 
 ---
 
