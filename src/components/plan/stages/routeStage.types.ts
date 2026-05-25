@@ -13,7 +13,7 @@ export type SegRow = {
   pass?: string
 }
 
-export type CheckRow = { text: string; done: boolean }
+export type CheckRow = { text: string; done: boolean; readonly?: boolean }
 
 export type RoutePreview = {
   path: [number, number][]
@@ -38,6 +38,10 @@ export type DrawState =
       segN: number
       notes: string
       showMore: boolean
+      water?: 'reliable' | 'caches' | 'dry'
+      exp?: 'low' | 'med' | 'high' | 'extreme'
+      hard?: boolean
+      pass?: string
       editingSeg?: SegRow
     }
 

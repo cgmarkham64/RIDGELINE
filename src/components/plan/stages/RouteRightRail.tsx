@@ -39,7 +39,7 @@ export function RouteRightRail({
             key={c.text}
             text={c.text}
             done={c.done}
-            onToggle={canEdit ? () => onToggleCheck(i) : undefined}
+            onToggle={canEdit && !c.readonly ? () => onToggleCheck(i) : undefined}
           />
         ))}
         <div className="h-px bg-border my-3" />

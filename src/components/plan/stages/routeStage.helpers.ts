@@ -3,14 +3,15 @@ import type { DetectedWaterSource } from '../../../lib/waterSources'
 import type { Waypoint } from '../../../types'
 
 export const DEFAULT_CHECKLIST: CheckRow[] = [
-  { text: 'Route picked',             done: false },
-  { text: 'Entry trailhead set',      done: false },
-  { text: 'Exit trailhead set',       done: false },
-  { text: 'Distance confirmed',       done: false },
-  { text: 'Elevation gain confirmed', done: false },
-  { text: 'Segments reviewed',        done: false },
-  { text: 'Partners added',           done: false },
-  { text: 'Partners reviewed',        done: false },
+  { text: 'Route picked',                  done: false },
+  { text: 'Entry trailhead set',           done: false },
+  { text: 'Exit trailhead set',            done: false },
+  { text: 'Distance confirmed',            done: false },
+  { text: 'Elevation gain confirmed',      done: false },
+  { text: 'Segments reviewed',             done: false },
+  { text: 'Exposure & water annotated',    done: false, readonly: true },
+  { text: 'Partners added',                done: false },
+  { text: 'Partners reviewed',             done: false },
 ]
 
 const AMBER = '#f0a030'

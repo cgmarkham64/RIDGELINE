@@ -31,9 +31,18 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   useEffect(() => { onChangeRef.current   = onChange   }, [onChange])
   useEffect(() => { onProgressRef.current = onProgress }, [onProgress])
 
+  const effectiveChecklist = useMemo(() =>
+    checklist.map(c =>
+      c.text === 'Exposure & water annotated'
+        ? { ...c, done: segments.length > 0 && segments.every(s => !!s.exp && !!s.water) }
+        : c
+    ),
+    [checklist, segments],
+  )
+
   useEffect(() => {
-    onProgressRef.current?.(checklist.filter(c => c.done).length, checklist.length)
-  }, [checklist])
+    onProgressRef.current?.(effectiveChecklist.filter(c => c.done).length, effectiveChecklist.length)
+  }, [effectiveChecklist])
 
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
@@ -74,7 +83,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
   const totalMiles = segments.reduce((s, x) => s + x.mi, 0)
   const totalGain  = segments.reduce((s, x) => s + x.gain, 0)
-  const doneCount  = checklist.filter(c => c.done).length
+  const doneCount  = effectiveChecklist.filter(c => c.done).length
 
   const plannedLatLngs    = toLatLngs(trip?.gpxPlanned?.coordinates)
   const tracksWithLatLngs = (trip?.gpxTracks ?? []).map((entry, i) => ({
@@ -165,6 +174,8 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
         result: preview,
         error: preview ? null : 'Could not auto-calculate — enter values manually',
         name: prev.nameAuto ? suggestedName : prev.name,
+        hard: prev.hard !== undefined ? prev.hard
+          : preview ? (suggestHard(preview.mi, preview.gain) || undefined) : undefined,
       }
     })
   }, [])
@@ -179,7 +190,11 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
         loading: false, result: null, error: null,
         name: editingSeg.name, nameAuto: false, segN: editingSeg.n,
         notes: editingSeg.notes,
-        showMore: !!editingSeg.notes,
+        showMore: !!(editingSeg.notes || editingSeg.water || editingSeg.exp || editingSeg.pass),
+        water: editingSeg.water,
+        exp:   editingSeg.exp,
+        hard:  editingSeg.hard,
+        pass:  editingSeg.pass,
         editingSeg,
       })
       triggerFetch(start, end, editingSeg.name, false, trip?.gpxPlanned?.coordinates)
@@ -226,7 +241,11 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
         loading: true, result: null, error: null,
         name: defaultName, nameAuto: true, segN,
         notes: drawState.editingSeg?.notes ?? '',
-        showMore: !!drawState.editingSeg?.notes,
+        showMore: !!(drawState.editingSeg?.notes || drawState.editingSeg?.water || drawState.editingSeg?.exp || drawState.editingSeg?.pass),
+        water: drawState.editingSeg?.water,
+        exp:   drawState.editingSeg?.exp,
+        hard:  drawState.editingSeg?.hard,
+        pass:  drawState.editingSeg?.pass,
         editingSeg: drawState.editingSeg,
       })
       triggerFetch(start, end, defaultName, true, trip?.gpxPlanned?.coordinates, segN)
@@ -245,7 +264,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
   function handleConfirmSegment() {
     if (drawState.phase !== 'active') return
-    const { result, name, notes, editingSeg } = drawState
+    const { result, name, notes, editingSeg, water, exp, hard, pass } = drawState
     const mi   = result ? parseFloat(result.mi.toFixed(1)) : 0
     const gain = result?.gain ?? 0
     const newSeg: Omit<SegRow, 'n'> = {
@@ -254,10 +273,10 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
       gain,
       notes: notes.trim(),
       path:  result?.path,
-      water: editingSeg?.water,
-      exp:   editingSeg?.exp,
-      hard:  editingSeg ? editingSeg.hard : (suggestHard(mi, gain) || undefined),
-      pass:  editingSeg?.pass,
+      water,
+      exp,
+      hard:  hard ?? (suggestHard(mi, gain) || undefined),
+      pass,
     }
     if (editingSeg) {
       setSegments(prev => prev.map(s => s.n === editingSeg.n ? { ...newSeg, n: editingSeg.n } : s))
@@ -368,7 +387,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
         <RouteRightRail
           trip={trip}
           canEdit={canEdit ?? false}
-          checklist={checklist}
+          checklist={effectiveChecklist}
           doneCount={doneCount}
           onToggleCheck={toggleCheck}
           onInviteSent={handleInviteSent}
