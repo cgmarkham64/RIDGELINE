@@ -287,13 +287,13 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
         )}
 
         {showResultCount && (
-          <p className="px-3.5 pt-1.5 pb-1 font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim">
+          <p className="px-3.5 pt-1.5 pb-1 font-mono text-[9px] tracking-widest uppercase text-text-dim">
             {filtered.length} of {sorted.length} trip{sorted.length !== 1 ? 's' : ''}
           </p>
         )}
 
         {!isLoading && !isError && sorted.length > 0 && filtered.length === 0 && (
-          <p className="px-3.5 pt-4 font-mono text-[9px] text-text-dim tracking-[0.1em] uppercase">
+          <p className="px-3.5 pt-4 font-mono text-[9px] text-text-dim tracking-widest uppercase">
             No trips match
           </p>
         )}

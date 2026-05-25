@@ -61,7 +61,7 @@ export function PlanOverview({ stages, totalDone, totalAll, onJump, plan, tripSt
                   {canGoBack && (
                     <button
                       onClick={() => setConfirmBack(true)}
-                      className="inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase px-3 py-1.5 rounded border border-border bg-transparent text-text-dim cursor-pointer hover:border-border-mid hover:text-text transition-colors"
+                      className="inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-widest uppercase px-3 py-1.5 rounded border border-border bg-transparent text-text-dim cursor-pointer hover:border-border-mid hover:text-text transition-colors"
                     >
                       <IconArrowLeft size={10} />
                       Planning
@@ -70,7 +70,7 @@ export function PlanOverview({ stages, totalDone, totalAll, onJump, plan, tripSt
                   {forward && onStatusChange && (
                     <button
                       onClick={() => onStatusChange(forward.next)}
-                      className="inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase px-3 py-1.5 rounded border cursor-pointer transition-colors"
+                      className="inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-widest uppercase px-3 py-1.5 rounded border cursor-pointer transition-colors"
                       style={{ background: 'var(--amber-dim)', borderColor: 'var(--amber-border)', color: 'var(--amber)' }}
                     >
                       {forward.label}
@@ -179,13 +179,13 @@ export function PlanOverview({ stages, totalDone, totalAll, onJump, plan, tripSt
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setConfirmBack(false)}
-                className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
+                className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-widest uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
               >
                 Cancel
               </button>
               <button
                 onClick={() => { onStatusChange?.('planning'); setConfirmBack(false) }}
-                className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase rounded border cursor-pointer transition-colors"
+                className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-widest uppercase rounded border cursor-pointer transition-colors"
                 style={{ background: 'var(--amber-dim)', borderColor: 'var(--amber-border)', color: 'var(--amber)' }}
               >
                 Back to planning

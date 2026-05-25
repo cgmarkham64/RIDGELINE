@@ -323,7 +323,7 @@ function SuggestionRow({ permit, onAccept, onReject, onViewMap }: {
         </button>
         <button
           onClick={onReject}
-          className="font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim hover:text-text transition-colors cursor-pointer bg-transparent border-none p-0"
+          className="font-mono text-[9px] tracking-widest uppercase text-text-dim hover:text-text transition-colors cursor-pointer bg-transparent border-none p-0"
         >
           Not needed
         </button>
@@ -455,7 +455,7 @@ function FreeformDialog({ onClose, onAdd }: {
           <div className="flex items-center gap-1.5 mr-2">
             {(['type', 'details'] as const).map((s, i) => (
               <span key={s} className="flex items-center gap-1.5">
-                <span className={`font-mono text-[9px] tracking-[0.1em] uppercase ${
+                <span className={`font-mono text-[9px] tracking-widest uppercase ${
                   step === s ? 'text-amber' : (step === 'details' && s === 'type') ? 'text-pine' : 'text-text-dim'
                 }`}>
                   {s === 'type' ? 'Type' : 'Details'}
@@ -482,7 +482,7 @@ function FreeformDialog({ onClose, onAdd }: {
                       selectedType === key ? TONE_CLS[t.tone] : 'bg-transparent border-border text-text-mid hover:border-border-mid'
                     }`}
                   >
-                    <span className="font-mono text-[9px] tracking-[0.1em] uppercase font-semibold">{t.label}</span>
+                    <span className="font-mono text-[9px] tracking-widest uppercase font-semibold">{t.label}</span>
                     <span className="text-[10px] text-text-dim leading-snug">{t.hint}</span>
                   </button>
                 ))}
@@ -504,7 +504,7 @@ function FreeformDialog({ onClose, onAdd }: {
                 <TypeChip type={selectedType} />
                 <button
                   onClick={() => setStep('type')}
-                  className="font-mono text-[9px] text-text-dim hover:text-text transition-colors uppercase tracking-[0.1em] bg-transparent border-none cursor-pointer p-0"
+                  className="font-mono text-[9px] text-text-dim hover:text-text transition-colors uppercase tracking-widest bg-transparent border-none cursor-pointer p-0"
                 >
                   Change
                 </button>
@@ -548,7 +548,7 @@ function FreeformDialog({ onClose, onAdd }: {
         <div className="flex items-center justify-between px-5 py-3.5 border-t border-border">
           <button
             onClick={onClose}
-            className="font-mono text-[10px] tracking-[0.1em] uppercase text-text-dim hover:text-text transition-colors bg-transparent border-none cursor-pointer p-0"
+            className="font-mono text-[10px] tracking-widest uppercase text-text-dim hover:text-text transition-colors bg-transparent border-none cursor-pointer p-0"
           >
             Cancel
           </button>
@@ -818,7 +818,7 @@ function PermitsMapView({ permits, suggestions, onAccept, onViewMap, onJump }: {
       <div className="bg-surface border border-border rounded-lg overflow-hidden">
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border bg-surface-2">
           <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: z.color }} />
-          <span className="font-mono text-[9px] text-text-dim uppercase tracking-[0.1em]">
+          <span className="font-mono text-[9px] text-text-dim uppercase tracking-widest">
             Zone {activeIdx + 1} of {MAP_ZONES.length}
           </span>
           <span className="font-heading text-[13px] font-bold text-text">{z.name}</span>

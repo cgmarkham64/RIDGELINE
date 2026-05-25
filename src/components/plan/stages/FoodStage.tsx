@@ -427,7 +427,7 @@ function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
                     {can.name}
                   </span>
                   {can.recommended && (
-                    <span className="font-mono text-[9px] tracking-[0.1em] uppercase text-pine bg-pine-dim border border-pine-border px-1.5 py-0.5 rounded">
+                    <span className="font-mono text-[9px] tracking-widest uppercase text-pine bg-pine-dim border border-pine-border px-1.5 py-0.5 rounded">
                       recommended
                     </span>
                   )}
@@ -437,7 +437,7 @@ function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
                   {can.note && <span className="text-amber"> · {can.note}</span>}
                 </div>
               </div>
-              <span className={`font-mono text-[9px] tracking-[0.1em] uppercase px-1.5 py-0.5 rounded border shrink-0 ${CAN_TYPE_CLS[can.type]}`}>
+              <span className={`font-mono text-[9px] tracking-widest uppercase px-1.5 py-0.5 rounded border shrink-0 ${CAN_TYPE_CLS[can.type]}`}>
                 {can.type}
               </span>
               {isSelected && <span className="text-amber shrink-0"><IconCheck size={12} /></span>}

@@ -13,7 +13,7 @@ export function MapTileToggle({
       type="button"
       onClick={onToggle}
       title={`Switch to ${current === 'topo' ? 'dark' : 'topo'} map`}
-      className="absolute top-3 right-3 z-1000 flex items-center gap-1.5 px-2 py-1.5 border border-border rounded-sm font-mono text-[9px] tracking-[0.1em] uppercase text-text-dim hover:text-text transition-colors cursor-pointer"
+      className="absolute top-3 right-3 z-1000 flex items-center gap-1.5 px-2 py-1.5 border border-border rounded-sm font-mono text-[9px] tracking-widest uppercase text-text-dim hover:text-text transition-colors cursor-pointer"
       style={{ background: 'rgba(15,13,11,0.82)' }}
     >
       <IconLayers />

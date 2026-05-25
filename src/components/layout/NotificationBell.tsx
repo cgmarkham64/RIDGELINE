@@ -50,7 +50,7 @@ export function NotificationBell() {
       >
         <IconBell size={17} />
         {badgeCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 min-w-[14px] h-[14px] rounded-full bg-red flex items-center justify-center font-mono text-[9px] font-bold text-white leading-none px-[3px]">
+          <span className="absolute top-1.5 right-1.5 min-w-3.5 h-3.5 rounded-full bg-red flex items-center justify-center font-mono text-[9px] font-bold text-white leading-none px-[3px]">
             {badgeCount > 9 ? '9+' : badgeCount}
           </span>
         )}

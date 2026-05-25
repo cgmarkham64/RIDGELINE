@@ -328,13 +328,13 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => { setConfirmComplete(false); jumpTo('journal') }}
-                className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
+                className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-widest uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
               >
                 Add entries
               </button>
               <button
                 onClick={() => { doUpdate({ id: planId, body: { status: 'complete' } }); setConfirmComplete(false) }}
-                className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-[0.1em] uppercase rounded border cursor-pointer transition-colors"
+                className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-widest uppercase rounded border cursor-pointer transition-colors"
                 style={{ background: 'var(--amber-dim)', borderColor: 'var(--amber-border)', color: 'var(--amber)' }}
               >
                 Complete anyway

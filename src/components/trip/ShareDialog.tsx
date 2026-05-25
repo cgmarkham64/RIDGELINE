@@ -128,7 +128,7 @@ export function ShareDialog({ trip, onClose }: Props) {
             onClick={onClose}
             className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-2 border border-border cursor-pointer text-text-dim hover:text-text transition-colors duration-100"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-[14px] h-[14px]" style={{ strokeWidth: 2 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5" style={{ strokeWidth: 2 }}>
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
