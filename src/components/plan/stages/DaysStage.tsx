@@ -66,7 +66,7 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
     { text: 'Segments added',    done: segs.length > 0 },
     { text: 'Daily mileage set', done: segs.length > 0 && segs.every(s => s.mi > 0) },
     { text: 'Water sources set', done: segs.length > 0 && segs.every(s => !!s.water) },
-    { text: 'Exposure flagged',  done: segs.length > 0 && segs.every(s => !!s.exp) },
+    { text: 'Exposure flagged',  done: segs.length > 0 && segs.every(s => !!s.exposure) },
     { text: 'Tough days reviewed', done: segs.length > 0 },
     { text: 'Bail-out points',   done: false },
   ], [segs])
@@ -174,14 +174,13 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
                   <div className="text-[12px] font-semibold text-text">{seg.name}</div>
                   <div className="font-mono text-[9px] text-text-dim mt-0.5">
                     water: {seg.water ? WATER_LABEL[seg.water] : '—'}
-                    {seg.pass ? ` · ${seg.pass}` : ''}
                   </div>
                 </div>
                 <span className="font-mono text-[11px] text-text">{seg.mi} mi</span>
                 <span className="font-mono text-[11px] text-text-mid">{seg.gain.toLocaleString()} ft</span>
-                {seg.exp
-                  ? <span className={`font-mono text-[9px] font-semibold text-center py-0.5 px-1.5 rounded border uppercase tracking-[0.08em] ${EXP_CLS[seg.exp]}`}>
-                      {EXP_LABEL[seg.exp]}
+                {seg.exposure
+                  ? <span className={`font-mono text-[9px] font-semibold text-center py-0.5 px-1.5 rounded border uppercase tracking-[0.08em] ${EXP_CLS[seg.exposure]}`}>
+                      {EXP_LABEL[seg.exposure]}
                     </span>
                   : <span className="font-mono text-[9px] text-text-dim text-center py-0.5 px-1.5">—</span>
                 }
@@ -226,10 +225,10 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
                 <label className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-1 block">Exposure</label>
                 <select
                   className="w-full px-2.5 py-1.5 border border-border rounded-sm text-[12px] bg-surface-2 text-text outline-none focus:border-border-mid transition-colors"
-                  value={d.exp ?? ''}
+                  value={d.exposure ?? ''}
                   onChange={e => {
                     const v = e.target.value
-                    updateSeg(sel, { exp: v === '' ? undefined : v as SegRow['exp'] })
+                    updateSeg(sel, { exposure: v === '' ? undefined : v as SegRow["exposure"] })
                   }}
                 >
                   <option value="">— not set —</option>
@@ -238,15 +237,6 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
                   <option value="high">High</option>
                   <option value="extreme">Extreme</option>
                 </select>
-              </div>
-              <div>
-                <label className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-1 block">Pass / col</label>
-                <input
-                  className="w-full px-2.5 py-1.5 border border-border rounded-sm text-[12px] bg-surface-2 text-text outline-none focus:border-border-mid transition-colors placeholder:text-text-dim"
-                  value={d.pass ?? ''}
-                  onChange={e => updateSeg(sel, { pass: e.target.value || undefined })}
-                  placeholder="e.g. Glen Pass · 11,978 ft"
-                />
               </div>
               <div className="flex items-end pb-1.5">
                 <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -270,8 +260,7 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
 
             <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2">Waypoints</div>
             <WaypointRow time="6:30 AM"  name="Leave camp"    loc={namePart1 ?? d.name}              icon="tent"     />
-            {d.pass && <WaypointRow time="10:30 AM" name="Pass / col" loc={d.pass}                   icon="mountain" />}
-            <WaypointRow time="1:00 PM"  name="Lunch + water" loc="Lake outflow"                     icon="water"    />
+<WaypointRow time="1:00 PM"  name="Lunch + water" loc="Lake outflow"                     icon="water"    />
             <WaypointRow time="5:30 PM"  name="Make camp"     loc={namePart2?.trim() ?? d.name}      icon="tent"     last />
           </div>
 

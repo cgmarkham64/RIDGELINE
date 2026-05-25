@@ -20,10 +20,10 @@ const EARTH_RADIUS_MI = 3958.8
 export const SEG_COLORS = [AMBER, '#4ade80', '#a78bfa', '#f472b6', '#60a5fa', '#34d399', '#fb923c', '#f87171']
 
 export const EXP_LABEL: Record<string, string> = {
-  low:     'Low Exp',
-  med:     'Mod Exp',
-  high:    'High Exp',
-  extreme: 'Extreme Exp',
+  low:     'Low Exposure',
+  med:     'Moderate Exposure',
+  high:    'High Exposure',
+  extreme: 'Extreme Exposure',
 }
 
 export const PARTNER_ITEMS = ['Partners added', 'Partners reviewed']

@@ -135,18 +135,18 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
               </span>
               <div className="min-w-0">
                 <span className="text-[12px] font-semibold text-text truncate block">{row.seg.name}</span>
-                {(row.seg.water || row.seg.exp || row.seg.hard) && (
+                {(row.seg.water || row.seg.exposure || row.seg.hard) && (
                   <div className="flex items-center gap-1 mt-0.5 flex-wrap">
                     {row.seg.water && (
                       <span className="font-mono text-[9px] text-sky-400/80 uppercase tracking-[0.06em]">{row.seg.water}</span>
                     )}
-                    {row.seg.exp && (
+                    {row.seg.exposure && (
                       <span className={`font-mono text-[9px] font-semibold px-1 rounded border uppercase tracking-[0.06em] ${
-                        row.seg.exp === 'low'     ? 'text-pine border-pine-border bg-pine-dim' :
-                        row.seg.exp === 'med'     ? 'text-sky border-sky-border bg-sky-dim' :
-                        row.seg.exp === 'high'    ? 'text-amber border-amber-border bg-amber-dim' :
+                        row.seg.exposure === 'low'     ? 'text-pine border-pine-border bg-pine-dim' :
+                        row.seg.exposure === 'med'     ? 'text-sky border-sky-border bg-sky-dim' :
+                        row.seg.exposure === 'high'    ? 'text-amber border-amber-border bg-amber-dim' :
                                                     'text-red border-red-border bg-red-dim'
-                      }`}>{EXP_LABEL[row.seg.exp]}</span>
+                      }`}>{EXP_LABEL[row.seg.exposure]}</span>
                     )}
                     {row.seg.hard && (
                       <span className="font-mono text-[9px] font-semibold px-1 rounded border uppercase tracking-[0.06em] text-amber border-amber-border bg-amber-dim">tough</span>

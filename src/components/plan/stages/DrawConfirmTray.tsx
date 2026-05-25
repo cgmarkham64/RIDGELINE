@@ -143,10 +143,10 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
                 <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block">Exposure</label>
                 <select
                   className="w-full px-2 py-1.5 bg-surface border border-border rounded-sm font-mono text-[11px] text-text outline-none focus:border-border-mid transition-[border-color]"
-                  value={drawState.exp ?? ''}
+                  value={drawState.exposure ?? ''}
                   onChange={e => {
                     const v = e.target.value
-                    set(setDrawState, 'exp', v === '' ? undefined : v as SegRow['exp'])
+                    set(setDrawState, 'exposure', v === '' ? undefined : v as SegRow["exposure"])
                   }}
                 >
                   <option value="">— not set —</option>
@@ -156,15 +156,6 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
                   <option value="extreme">Extreme</option>
                 </select>
               </div>
-            </div>
-            <div>
-              <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block">Pass / col</label>
-              <input
-                className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
-                value={drawState.pass ?? ''}
-                onChange={e => set(setDrawState, 'pass', e.target.value || undefined)}
-                placeholder="e.g. Glen Pass · 11,978 ft"
-              />
             </div>
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
@@ -184,9 +175,9 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
               {suggestedHard && !drawState.hard && (
                 <span className="font-mono text-[9px] text-text-dim">(suggested)</span>
               )}
-              {drawState.exp && (
-                <span className={`ml-auto font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded border uppercase tracking-[0.08em] ${EXP_CLS[drawState.exp]}`}>
-                  {EXP_LABEL[drawState.exp]}
+              {drawState.exposure && (
+                <span className={`ml-auto font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded border uppercase tracking-[0.08em] ${EXP_CLS[drawState.exposure]}`}>
+                  {EXP_LABEL[drawState.exposure]}
                 </span>
               )}
             </label>

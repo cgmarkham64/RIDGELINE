@@ -34,7 +34,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   const effectiveChecklist = useMemo(() =>
     checklist.map(c =>
       c.text === 'Exposure & water annotated'
-        ? { ...c, done: segments.length > 0 && segments.every(s => !!s.exp && !!s.water) }
+        ? { ...c, done: segments.length > 0 && segments.every(s => !!s.exposure && !!s.water) }
         : c
     ),
     [checklist, segments],
@@ -190,11 +190,10 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
         loading: false, result: null, error: null,
         name: editingSeg.name, nameAuto: false, segN: editingSeg.n,
         notes: editingSeg.notes,
-        showMore: !!(editingSeg.notes || editingSeg.water || editingSeg.exp || editingSeg.pass),
+        showMore: !!(editingSeg.notes || editingSeg.water || editingSeg.exposure),
         water: editingSeg.water,
-        exp:   editingSeg.exp,
+        exposure: editingSeg.exposure,
         hard:  editingSeg.hard,
-        pass:  editingSeg.pass,
         editingSeg,
       })
       triggerFetch(start, end, editingSeg.name, false, trip?.gpxPlanned?.coordinates)
@@ -241,11 +240,10 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
         loading: true, result: null, error: null,
         name: defaultName, nameAuto: true, segN,
         notes: drawState.editingSeg?.notes ?? '',
-        showMore: !!(drawState.editingSeg?.notes || drawState.editingSeg?.water || drawState.editingSeg?.exp || drawState.editingSeg?.pass),
+        showMore: !!(drawState.editingSeg?.notes || drawState.editingSeg?.water || drawState.editingSeg?.exposure),
         water: drawState.editingSeg?.water,
-        exp:   drawState.editingSeg?.exp,
+        exposure: drawState.editingSeg?.exposure,
         hard:  drawState.editingSeg?.hard,
-        pass:  drawState.editingSeg?.pass,
         editingSeg: drawState.editingSeg,
       })
       triggerFetch(start, end, defaultName, true, trip?.gpxPlanned?.coordinates, segN)
@@ -264,7 +262,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
   function handleConfirmSegment() {
     if (drawState.phase !== 'active') return
-    const { result, name, notes, editingSeg, water, exp, hard, pass } = drawState
+    const { result, name, notes, editingSeg, water, exposure, hard } = drawState
     const mi   = result ? parseFloat(result.mi.toFixed(1)) : 0
     const gain = result?.gain ?? 0
     const newSeg: Omit<SegRow, 'n'> = {
@@ -274,9 +272,8 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
       notes: notes.trim(),
       path:  result?.path,
       water,
-      exp,
+      exposure,
       hard:  hard ?? (suggestHard(mi, gain) || undefined),
-      pass,
     }
     if (editingSeg) {
       setSegments(prev => prev.map(s => s.n === editingSeg.n ? { ...newSeg, n: editingSeg.n } : s))

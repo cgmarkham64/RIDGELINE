@@ -8,9 +8,8 @@ export type SegRow = {
   notes: string
   path?: [number, number][]
   water?: 'reliable' | 'caches' | 'dry'
-  exp?: 'low' | 'med' | 'high' | 'extreme'
+  exposure?: 'low' | 'med' | 'high' | 'extreme'
   hard?: boolean
-  pass?: string
 }
 
 export type CheckRow = { text: string; done: boolean; readonly?: boolean }
@@ -39,9 +38,8 @@ export type DrawState =
       notes: string
       showMore: boolean
       water?: 'reliable' | 'caches' | 'dry'
-      exp?: 'low' | 'med' | 'high' | 'extreme'
+      exposure?: 'low' | 'med' | 'high' | 'extreme'
       hard?: boolean
-      pass?: string
       editingSeg?: SegRow
     }
 

@@ -31,9 +31,8 @@ export interface PlanRouteData {
   segments: {
     n: number; name: string; mi: number; gain: number; notes: string; path?: [number, number][]
     water?: 'reliable' | 'caches' | 'dry'
-    exp?: 'low' | 'med' | 'high' | 'extreme'
+    exposure?: 'low' | 'med' | 'high' | 'extreme'
     hard?: boolean
-    pass?: string
   }[]
   sourceFiles: { name: string; meta: string }[]
   checklist: { text: string; done: boolean }[]
