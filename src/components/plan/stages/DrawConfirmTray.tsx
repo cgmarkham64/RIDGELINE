@@ -157,6 +157,21 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
                 </select>
               </div>
             </div>
+            <div className="grid grid-cols-3 gap-2">
+              {(['wakeTime', 'onTrailTime', 'campByTime'] as const).map((field, i) => (
+                <div key={field}>
+                  <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block">
+                    {['Wake', 'On trail', 'Camp by'][i]}
+                  </label>
+                  <input
+                    className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
+                    value={drawState[field] ?? ''}
+                    onChange={e => set(setDrawState, field, e.target.value || undefined)}
+                    placeholder="05:30"
+                  />
+                </div>
+              ))}
+            </div>
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"

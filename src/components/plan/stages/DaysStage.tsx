@@ -238,6 +238,21 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
                   <option value="extreme">Extreme</option>
                 </select>
               </div>
+              <div className="col-span-2 grid grid-cols-3 gap-2">
+                {(['wakeTime', 'onTrailTime', 'campByTime'] as const).map((field, i) => (
+                  <div key={field}>
+                    <label className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-1 block">
+                      {['Wake', 'On trail', 'Camp by'][i]}
+                    </label>
+                    <input
+                      className="w-full px-2.5 py-1.5 border border-border rounded-sm text-[12px] bg-surface-2 text-text outline-none focus:border-border-mid transition-colors font-mono placeholder:text-text-dim"
+                      value={d[field] ?? ''}
+                      onChange={e => updateSeg(sel, { [field]: e.target.value || undefined })}
+                      placeholder="05:30"
+                    />
+                  </div>
+                ))}
+              </div>
               <div className="flex items-end pb-1.5">
                 <label className="flex items-center gap-2 cursor-pointer select-none">
                   <input

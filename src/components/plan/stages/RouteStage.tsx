@@ -191,9 +191,12 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
         name: editingSeg.name, nameAuto: false, segN: editingSeg.n,
         notes: editingSeg.notes,
         showMore: !!(editingSeg.notes || editingSeg.water || editingSeg.exposure),
-        water: editingSeg.water,
-        exposure: editingSeg.exposure,
-        hard:  editingSeg.hard,
+        water:        editingSeg.water,
+        exposure:     editingSeg.exposure,
+        hard:         editingSeg.hard,
+        wakeTime:     editingSeg.wakeTime,
+        onTrailTime:  editingSeg.onTrailTime,
+        campByTime:   editingSeg.campByTime,
         editingSeg,
       })
       triggerFetch(start, end, editingSeg.name, false, trip?.gpxPlanned?.coordinates)
@@ -241,9 +244,12 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
         name: defaultName, nameAuto: true, segN,
         notes: drawState.editingSeg?.notes ?? '',
         showMore: !!(drawState.editingSeg?.notes || drawState.editingSeg?.water || drawState.editingSeg?.exposure),
-        water: drawState.editingSeg?.water,
-        exposure: drawState.editingSeg?.exposure,
-        hard:  drawState.editingSeg?.hard,
+        water:        drawState.editingSeg?.water,
+        exposure:     drawState.editingSeg?.exposure,
+        hard:         drawState.editingSeg?.hard,
+        wakeTime:     drawState.editingSeg?.wakeTime,
+        onTrailTime:  drawState.editingSeg?.onTrailTime,
+        campByTime:   drawState.editingSeg?.campByTime,
         editingSeg: drawState.editingSeg,
       })
       triggerFetch(start, end, defaultName, true, trip?.gpxPlanned?.coordinates, segN)
@@ -262,7 +268,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
   function handleConfirmSegment() {
     if (drawState.phase !== 'active') return
-    const { result, name, notes, editingSeg, water, exposure, hard } = drawState
+    const { result, name, notes, editingSeg, water, exposure, hard, wakeTime, onTrailTime, campByTime } = drawState
     const mi   = result ? parseFloat(result.mi.toFixed(1)) : 0
     const gain = result?.gain ?? 0
     const newSeg: Omit<SegRow, 'n'> = {
@@ -274,6 +280,9 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
       water,
       exposure,
       hard:  hard ?? (suggestHard(mi, gain) || undefined),
+      wakeTime:    wakeTime    || undefined,
+      onTrailTime: onTrailTime || undefined,
+      campByTime:  campByTime  || undefined,
     }
     if (editingSeg) {
       setSegments(prev => prev.map(s => s.n === editingSeg.n ? { ...newSeg, n: editingSeg.n } : s))

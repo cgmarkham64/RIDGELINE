@@ -21,11 +21,11 @@ All seven stages render with internal state. The items below are UI stubs, disco
 
 Exposure, water source, tough-day flag, and named pass/col are properties of the terrain on a leg, not properties of a calendar day. They move from the retired Days stage into the Route segment dialog and table.
 
-- ⚠ Add `water?: 'reliable' | 'caches' | 'dry'`, `exp?: 'low' | 'med' | 'high' | 'extreme'`, `hard?: boolean`, and `pass?: string` to the segment shape in `PlanRouteData` (types.ts) and to `SegRow` in RouteStage.tsx. Remove the `days` slice from `PlanData` and retire `PlanDayEntry`.
-- ⚠ Expand the segment confirm tray (the panel that appears after placing start/end pins) with the new fields below the existing name + notes inputs: a water source selector, exposure rating selector, tough-day toggle, and optional pass/col text input. The existing `showMore` state in `DrawState` is already wired but unused — repurpose it to keep the tray compact by default with the logistics fields hidden behind a "More" toggle.
-- ⚠ Update the segments table row to surface the new fields: add water source, exposure badge, and tough pill as visible columns (or inline chips on the name/notes row to avoid a too-wide table).
-- ⚠ Add an "Exposure & water annotated" predicate to the right-rail checklist — done when every segment has both `exp` and `water` set.
-- ℹ Time targets (Wake / On-trail / Camp by) are **not** moving to Route. They belong to a day-level schedule and will live in the Depart one-pager once that stage is fleshed out.
+- ✅ Added `water`, `exposure`, `hard` to `SegRow` / `PlanRouteData`; retired `PlanDayEntry` and `days` slice. `pass` field added then removed in favour of existing `notes`.
+- ✅ DrawConfirmTray expanded with water selector, exposure selector, tough-day toggle, and time targets (Wake / On trail / Camp by) behind the "Day details" toggle.
+- ✅ Route table camp rows surface water, exposure badge, and tough pill as inline chips.
+- ✅ "Exposure & water annotated" computed predicate added to right-rail checklist.
+- ✅ Time targets (`wakeTime`, `onTrailTime`, `campByTime`) on `SegRow`; editable in DrawConfirmTray and DaysStage. Journal stage shows planned vs actual when segment times are set — `wakeActual`, `onTrailActual`, `campActual` stored on `JournalDay`.
 
 **Stage 2 — Weather** *(replaces Days; full stage to be built)*
 
@@ -160,6 +160,7 @@ Full gear inventory system:
   - Populate journal map tab with the Route map data.
 - **Route stage** — Exposure auto calculation based on canopy coverage vs. mileage without water vs. altitude vs. treacherousness of trail (are we on the side of a cliff?)
 - Give user ability to adjust their own Shenandoah hardness scale via user settings - not all users will be the same and we can probably leverage fitness data alongside this in the future to give a better idea of difficulty
+- User defaults for wake, camp-by and on-trail times
 
 ---
 

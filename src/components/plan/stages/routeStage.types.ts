@@ -10,6 +10,9 @@ export type SegRow = {
   water?: 'reliable' | 'caches' | 'dry'
   exposure?: 'low' | 'med' | 'high' | 'extreme'
   hard?: boolean
+  wakeTime?: string
+  onTrailTime?: string
+  campByTime?: string
 }
 
 export type CheckRow = { text: string; done: boolean; readonly?: boolean }
@@ -40,6 +43,9 @@ export type DrawState =
       water?: 'reliable' | 'caches' | 'dry'
       exposure?: 'low' | 'med' | 'high' | 'extreme'
       hard?: boolean
+      wakeTime?: string
+      onTrailTime?: string
+      campByTime?: string
       editingSeg?: SegRow
     }
 

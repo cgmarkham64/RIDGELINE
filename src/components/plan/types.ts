@@ -33,6 +33,9 @@ export interface PlanRouteData {
     water?: 'reliable' | 'caches' | 'dry'
     exposure?: 'low' | 'med' | 'high' | 'extreme'
     hard?: boolean
+    wakeTime?: string
+    onTrailTime?: string
+    campByTime?: string
   }[]
   sourceFiles: { name: string; meta: string }[]
   checklist: { text: string; done: boolean }[]

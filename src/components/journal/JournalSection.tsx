@@ -44,6 +44,9 @@ const schema = z.object({
   tempHighF: z.string().optional(),
   milesCovered: z.string().optional(),
   elevationGainFt: z.string().optional(),
+  wakeActual: z.string().optional(),
+  onTrailActual: z.string().optional(),
+  campActual: z.string().optional(),
   body: z.string().min(1, 'Write something before saving'),
 })
 
@@ -76,9 +79,14 @@ function entryToDefaults(entry: JournalDay | undefined) {
     tempHighF: entry?.tempHighF?.toString() ?? '',
     milesCovered: entry?.milesCovered?.toString() ?? '',
     elevationGainFt: entry?.elevationGainFt?.toString() ?? '',
+    wakeActual: entry?.wakeActual ?? '',
+    onTrailActual: entry?.onTrailActual ?? '',
+    campActual: entry?.campActual ?? '',
     body: entry?.body ?? '',
   }
 }
+
+type SegmentTimes = { n: number; wakeTime?: string; onTrailTime?: string; campByTime?: string }
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -172,6 +180,9 @@ export function JournalSection({ trip, readOnly }: Props) {
           tempHighF: data.tempHighF ? parseFloat(data.tempHighF) : undefined,
           milesCovered: data.milesCovered ? parseFloat(data.milesCovered) : undefined,
           elevationGainFt: data.elevationGainFt ? parseFloat(data.elevationGainFt) : undefined,
+          wakeActual:    data.wakeActual    || undefined,
+          onTrailActual: data.onTrailActual || undefined,
+          campActual:    data.campActual    || undefined,
           wildlife: wildlife.length ? wildlife : undefined,
           companions: companions.length ? companions : undefined,
         },
@@ -237,6 +248,14 @@ export function JournalSection({ trip, readOnly }: Props) {
   const start = new Date(trip.startDate)
   const sel = new Date(selectedDate)
   const dayNumber = Math.round((sel.getTime() - start.getTime()) / 86_400_000) + 1
+
+  const routeSegs = ((trip.planStages as { route?: { segments?: SegmentTimes[] } } | undefined)?.route?.segments ?? [])
+  const segTimes = routeSegs.find(s => s.n === dayNumber)
+  const plannedTimeRows = [
+    { label: 'Wake',     planned: segTimes?.wakeTime,    field: 'wakeActual'    as const },
+    { label: 'On trail', planned: segTimes?.onTrailTime, field: 'onTrailActual' as const },
+    { label: 'Camp by',  planned: segTimes?.campByTime,  field: 'campActual'    as const },
+  ].filter(r => r.planned)
 
   return (
     <section>
@@ -353,6 +372,28 @@ export function JournalSection({ trip, readOnly }: Props) {
               </>
             </CondCell>
           </div>
+
+          {plannedTimeRows.length > 0 && (
+            <>
+              <div className="flex items-center gap-3 mb-3">
+                <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim shrink-0">Times</span>
+                <hr className="flex-1 border-0 border-t border-border" />
+              </div>
+              <div className="grid grid-cols-3 gap-2 mb-5">
+                {plannedTimeRows.map(({ label, planned, field }) => (
+                  <div key={field} className="bg-surface-2 border border-border rounded-md px-2.75 py-2.25">
+                    <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-mid mb-1.25">{label}</div>
+                    <div className="font-mono text-[9px] text-text-dim mb-1">Plan: {planned}</div>
+                    <input
+                      {...register(field)}
+                      placeholder="Actual"
+                      className={condInputCls}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
           <div className="flex items-center gap-3 mb-4">
             <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim shrink-0">Field Notes</span>
