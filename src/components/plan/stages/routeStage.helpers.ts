@@ -19,6 +19,13 @@ const EARTH_RADIUS_MI = 3958.8
 
 export const SEG_COLORS = [AMBER, '#4ade80', '#a78bfa', '#f472b6', '#60a5fa', '#34d399', '#fb923c', '#f87171']
 
+export const EXP_LABEL: Record<string, string> = {
+  low:     'Low Exp',
+  med:     'Mod Exp',
+  high:    'High Exp',
+  extreme: 'Extreme Exp',
+}
+
 export const PARTNER_ITEMS = ['Partners added', 'Partners reviewed']
 export const GRID = '20px 1fr 60px 72px 72px 40px'
 export const ACTIVE_BG = 'var(--color-amber-dim)'

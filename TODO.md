@@ -29,7 +29,7 @@ Exposure, water source, tough-day flag, and named pass/col are properties of the
 
 **Stage 2 — Weather** *(replaces Days; full stage to be built)*
 
-- Rename all Day stage related things with appropriate names   related to Weather
+- Rename all Day stage related things with appropriate names related to Weather
 - **Data model**: Add `PlanWeatherData` slice to `PlanData` replacing `days?`. Minimum shape: `{ historicalReviewed: boolean; forecastChecked: boolean; sunriseReviewed: boolean; departureRisk: 'low' | 'moderate' | 'high' | null; notes: string }`. Wire `onChange` and `onProgress` from the start — don't repeat the Days mistake of leaving them unwired.
 - **Location + date banner**: Derive region, date range, and trip length from `trip.location` + `trip.startDate` / `endDate`. If dates are unset, show an amber prompt linking to `TripSetupDialog` — nothing else in the stage can compute without them.
 - **Historical climate card**: Monthly averages for the trip location and calendar month — avg high/low, precipitation probability, snow likelihood. API: Open-Meteo historical climate (`climate-api.open-meteo.com`) — free, no key, accepts lat/lng + month. Forward-geocode `trip.location` via Nominatim (already used in RouteStage for reverse geocode) to obtain coordinates. Cache the result in `PlanWeatherData` so it survives page reloads without re-fetching.
@@ -158,6 +158,8 @@ Full gear inventory system:
   - Grow into AI driven suggestions based on the initial with things like treelines, possible water spots based on topography, proximity to trail, and map info (i.e. known creeks), and flatness (again driven by map topography and proximity to trail)
   - Place waypoints on map for possible water sources.
   - Populate journal map tab with the Route map data.
+- **Route stage** — Exposure auto calculation based on canopy coverage vs. mileage without water vs. altitude vs. treacherousness of trail (are we on the side of a cliff?)
+- Give user ability to adjust their own Shenandoah hardness scale via user settings - not all users will be the same and we can probably leverage fitness data alongside this in the future to give a better idea of difficulty
 
 ---
 

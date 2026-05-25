@@ -4,7 +4,7 @@ import { MoonLoader } from '../../ui/MoonLoader'
 import { WaypointIcon } from '../../map/WaypointIcon'
 import { WAYPOINT_COLOR } from '../../map/constants'
 import { IconPlus, IconCheck, IconTent, IconPencil, IconTrash, IconTriangleRight, IconSparkle } from '../../icons'
-import { GRID, ACTIVE_BG } from './routeStage.helpers'
+import { GRID, ACTIVE_BG, EXP_LABEL } from './routeStage.helpers'
 import type { MergedRow, SegRow } from './routeStage.types'
 import type { StageBodyProps } from '../types'
 
@@ -146,7 +146,7 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
                         row.seg.exp === 'med'     ? 'text-sky border-sky-border bg-sky-dim' :
                         row.seg.exp === 'high'    ? 'text-amber border-amber-border bg-amber-dim' :
                                                     'text-red border-red-border bg-red-dim'
-                      }`}>{row.seg.exp}</span>
+                      }`}>{EXP_LABEL[row.seg.exp]}</span>
                     )}
                     {row.seg.hard && (
                       <span className="font-mono text-[9px] font-semibold px-1 rounded border uppercase tracking-[0.06em] text-amber border-amber-border bg-amber-dim">tough</span>

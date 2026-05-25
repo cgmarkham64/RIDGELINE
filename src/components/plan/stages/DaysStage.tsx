@@ -6,6 +6,7 @@ import { CheckItem } from '../CheckItem'
 import { IconTent, IconMountain, IconWater, IconSun } from '../../icons'
 import type { StageBodyProps } from '../types'
 import type { SegRow } from './routeStage.types'
+import { EXP_LABEL } from './routeStage.helpers'
 
 type Exposure = 'low' | 'med' | 'high' | 'extreme'
 
@@ -180,7 +181,7 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
                 <span className="font-mono text-[11px] text-text-mid">{seg.gain.toLocaleString()} ft</span>
                 {seg.exp
                   ? <span className={`font-mono text-[9px] font-semibold text-center py-0.5 px-1.5 rounded border uppercase tracking-[0.08em] ${EXP_CLS[seg.exp]}`}>
-                      {seg.exp}
+                      {EXP_LABEL[seg.exp]}
                     </span>
                   : <span className="font-mono text-[9px] text-text-dim text-center py-0.5 px-1.5">—</span>
                 }

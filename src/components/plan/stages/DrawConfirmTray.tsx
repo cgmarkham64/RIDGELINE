@@ -1,5 +1,6 @@
 import type { DrawState, SegRow } from './routeStage.types'
 import { shenandoahScore } from '../../../lib/trailDifficulty'
+import { EXP_LABEL } from './routeStage.helpers'
 
 const EXP_CLS: Record<string, string> = {
   low:     'text-pine border-pine-border bg-pine-dim',
@@ -185,7 +186,7 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
               )}
               {drawState.exp && (
                 <span className={`ml-auto font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded border uppercase tracking-[0.08em] ${EXP_CLS[drawState.exp]}`}>
-                  {drawState.exp}
+                  {EXP_LABEL[drawState.exp]}
                 </span>
               )}
             </label>
