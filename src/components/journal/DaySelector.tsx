@@ -29,7 +29,7 @@ function buildDays(startDate: string, endDate: string): DayMeta[] {
   let dayNum = 1
   while (current <= end) {
     days.push({ dayNumber: dayNum, date: localDateStr(current) })
-    current = new Date(current.getTime() + 86_400_000)
+    current = new Date(current.getTime() + MS_PER_DAY)
     dayNum++
   }
   return days
@@ -82,7 +82,7 @@ function buildMonthGroups(days: DayMeta[]): MonthGroup[] {
         } else {
           cells.push(null)
         }
-        current = new Date(current.getTime() + 86_400_000)
+        current = new Date(current.getTime() + MS_PER_DAY)
       }
       weeks.push(cells)
     }
@@ -108,6 +108,7 @@ interface Props {
   onSelect: (date: string) => void
 }
 
+const MS_PER_DAY = 86_400_000
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 export function DaySelector({ startDate, endDate, selectedDate, entries, onSelect }: Props) {

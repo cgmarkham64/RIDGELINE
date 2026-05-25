@@ -11,11 +11,14 @@ export const DEFAULT_CHECKLIST: CheckRow[] = [
   { text: 'Partners reviewed',        done: false },
 ]
 
-export const SEG_COLORS = ['#f0a030', '#4ade80', '#a78bfa', '#f472b6', '#60a5fa', '#34d399', '#fb923c', '#f87171']
+const AMBER = '#f0a030'
+const EARTH_RADIUS_MI = 3958.8
+
+export const SEG_COLORS = [AMBER, '#4ade80', '#a78bfa', '#f472b6', '#60a5fa', '#34d399', '#fb923c', '#f87171']
 
 export const PARTNER_ITEMS = ['Partners added', 'Partners reviewed']
 export const GRID = '20px 1fr 60px 72px 72px 40px'
-export const ACTIVE_BG = 'rgba(240,160,48,0.08)'
+export const ACTIVE_BG = 'var(--color-amber-dim)'
 
 export function toLatLngs(coords: [number, number, number][] | undefined): [number, number][] {
   return coords?.map(([lon, lat]) => [lat, lon]) ?? []
@@ -29,7 +32,7 @@ export function haversinePathMiles(path: [number, number][]): number {
     const dLat = ((lat2 - lat1) * Math.PI) / 180
     const dLon = ((lon2 - lon1) * Math.PI) / 180
     const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2
-    d += 3958.8 * 2 * Math.asin(Math.sqrt(a))
+    d += EARTH_RADIUS_MI * 2 * Math.asin(Math.sqrt(a))
   }
   return d
 }

@@ -4,6 +4,8 @@ const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
 const MAX_SNAP_DIST_M  = 400
 const MAX_VERT_DROP_M  = 40   // ~130 ft — sources below this are effectively off a cliff
 const CLUSTER_MI       = 0.35  // within 0.35 miles, only the most reliable source shows
+const EARTH_RADIUS_M   = 6_371_000
+const METRES_PER_MILE  = 1_609.344
 
 export type OsmWaterClass = 'spring' | 'stream' | 'river' | 'lake' | 'drinking_water'
 
@@ -23,16 +25,15 @@ export interface DetectedWaterSource {
 // ─── Geometry ─────────────────────────────────────────────────────────────────
 
 function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000
   const dφ = (lat2 - lat1) * Math.PI / 180
   const dλ = (lon2 - lon1) * Math.PI / 180
   const a = Math.sin(dφ / 2) ** 2 +
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dλ / 2) ** 2
-  return R * 2 * Math.asin(Math.sqrt(a))
+  return EARTH_RADIUS_M * 2 * Math.asin(Math.sqrt(a))
 }
 
 function haversineMi(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  return haversineM(lat1, lon1, lat2, lon2) / 1609.344
+  return haversineM(lat1, lon1, lat2, lon2) / METRES_PER_MILE
 }
 
 // Projects point P onto segment AB; returns t ∈ [0,1] and nearest point.
