@@ -145,14 +145,6 @@ Full gear inventory system:
 
 ---
 
-## Code Cleanup
-
-Files that export more than one React component and need to be split to comply with the one-component-per-file rule. See also the broader clean code issues below.
-
-### Backend
-
----
-
 ## Ideas / Research
 
 - Investigate OnX Backcountry integration options for personal app projects — import tracks, waypoints, or gear lists.
