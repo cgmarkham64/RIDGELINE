@@ -177,7 +177,7 @@ Files that export more than one React component and need to be split to comply w
 
 ### Plan / RouteMapCard
 
-- **`src/components/plan/stages/RouteMapCard.tsx`** — exports `RouteMapCard`, `FitBounds`, `InvalidateSize`, `DrawInteractionLayer`, `ElevSparkline`, `DrawConfirmTray`. `FitBounds`, `InvalidateSize`, and `DrawInteractionLayer` are Leaflet helpers — move to `routeMapCard.helpers.tsx`. `ElevSparkline` and `DrawConfirmTray` can each become their own file in `stages/`.
+- ~~**`src/components/plan/stages/RouteMapCard.tsx`**~~ ✅ — Extracted `FitBounds`, `InvalidateSize`, `DrawInteractionLayer` → `routeMapCard.helpers.tsx`; `DrawConfirmTray` (+ local `ElevSparkline`) → `DrawConfirmTray.tsx`; draw endpoint icons → `leafletIcons.ts`.
 
 ---
 
