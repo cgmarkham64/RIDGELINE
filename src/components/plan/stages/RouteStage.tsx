@@ -1,19 +1,15 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import L from 'leaflet'
-import { ProgressBar } from '../ProgressBar'
-import { CheckItem } from '../CheckItem'
-import { ElevationProfile } from '../../trip/ElevationProfile'
 import { resolveStartEnd } from '../../map/constants'
 import { fetchDetectedWaterSources, type DetectedWaterSource } from '../../../lib/waterSources'
-import { IconFile, IconDownload } from '../../icons'
 import {
-  toLatLngs, gpxCoordsToMiles, downloadGpx, snapToRouteMi,
+  toLatLngs, gpxCoordsToMiles, buildMergedRows,
   DEFAULT_CHECKLIST, PARTNER_ITEMS, fetchRoutePreview, reverseGeocode,
 } from './routeStage.helpers'
-import type { SegRow, CheckRow, DrawState, WaterEntry, MergedRow } from './routeStage.types'
+import type { SegRow, CheckRow, DrawState } from './routeStage.types'
 import { RouteMapCard, type RouteMapCardHandle } from './RouteMapCard'
 import { RouteTable, type RouteTableHandle } from './RouteTable'
-import { PartnersCard } from './PartnersCard'
+import { RouteRightRail } from './RouteRightRail'
 import type { StageBodyProps } from '../types'
 
 export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }: StageBodyProps) {
@@ -68,83 +64,10 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
   // ── Merged route + water rows ────────────────────────────────────────────────
 
-  const mergedRows = useMemo((): MergedRow[] => {
-    const routeCoords = trip?.gpxPlanned?.coordinates
-
-    const waterEntries: WaterEntry[] = visibleWater.map((d: DetectedWaterSource) => ({
-      id: d.id, label: d.label, waypointType: d.waypointType,
-      distFromStartMi: d.distFromStartMi, snapDistM: d.snapDistM, isDetected: true,
-      lat: d.lat, lon: d.lon,
-    }))
-    if (routeCoords && routeCoords.length >= 2) {
-      for (const wp of (trip?.waypoints ?? [])) {
-        if (!['lots-of-water', 'some-water', 'no-water'].includes(wp.type)) continue
-        waterEntries.push({
-          id: wp.id, label: wp.label || wp.type,
-          waypointType: wp.type as WaterEntry['waypointType'],
-          distFromStartMi: snapToRouteMi(wp.lat, wp.lon, routeCoords),
-          isDetected: false, lat: wp.lat, lon: wp.lon,
-        })
-      }
-    }
-    waterEntries.sort((a, b) => a.distFromStartMi - b.distFromStartMi)
-
-    if (segments.length === 0 && waterEntries.length === 0) return []
-
-    let cumul = 0
-    const campDists: number[] = []
-    for (const seg of segments) { cumul += seg.mi; campDists.push(cumul) }
-
-    const rows: MergedRow[] = []
-
-    if (segments.length > 0) {
-      const firstWater = waterEntries.find(w => w.waypointType !== 'no-water')
-      const thPos = segments[0]?.path?.[0] ?? null
-      rows.push({
-        kind: 'start',
-        toNextCampMi: campDists[0] ?? null,
-        toNextWaterMi: firstWater?.distFromStartMi ?? null,
-        lat: thPos ? thPos[0] : null,
-        lon: thPos ? thPos[1] : null,
-      })
-    }
-
-    for (let i = 0; i < segments.length; i++) {
-      const dist     = campDists[i]
-      const isFinish = i === segments.length - 1
-      const nextDist = campDists[i + 1] ?? null
-      const nextWater = waterEntries.find(w => w.distFromStartMi > dist && w.waypointType !== 'no-water')
-      const dryLeg   = !isFinish && !waterEntries.some(
-        w => w.distFromStartMi > dist && nextDist !== null && w.distFromStartMi < nextDist && w.waypointType !== 'no-water'
-      )
-      rows.push({
-        kind: 'camp', seg: segments[i], segIdx: i,
-        distFromStartMi: dist, isFinish,
-        toNextCampMi: nextDist !== null ? nextDist - dist : null,
-        toNextWaterMi: nextWater ? nextWater.distFromStartMi - dist : null,
-        dryLeg,
-      })
-    }
-
-    for (let i = 0; i < waterEntries.length; i++) {
-      const next = waterEntries[i + 1]
-      rows.push({
-        kind: 'water', entry: waterEntries[i],
-        toNextWaterMi: next ? next.distFromStartMi - waterEntries[i].distFromStartMi : null,
-      })
-    }
-
-    rows.sort((a, b) => {
-      const da = a.kind === 'start' ? -Infinity : a.kind === 'camp' ? a.distFromStartMi : a.entry.distFromStartMi
-      const db = b.kind === 'start' ? -Infinity : b.kind === 'camp' ? b.distFromStartMi : b.entry.distFromStartMi
-      if (da !== db) return da - db
-      if (a.kind === 'water' && b.kind !== 'water') return 1
-      if (b.kind === 'water' && a.kind !== 'water') return -1
-      return 0
-    })
-
-    return rows
-  }, [segments, visibleWater, trip?.waypoints, trip?.gpxPlanned?.coordinates])
+  const mergedRows = useMemo(
+    () => buildMergedRows(segments, visibleWater, trip?.waypoints, trip?.gpxPlanned?.coordinates),
+    [segments, visibleWater, trip?.waypoints, trip?.gpxPlanned?.coordinates],
+  )
 
   // ── Derived values ───────────────────────────────────────────────────────────
 
@@ -435,76 +358,16 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
         </div>
 
         {/* ── Right rail ── */}
-        <aside className="flex flex-col gap-3.5">
-
-          {/* Stage checklist */}
-          <div className="bg-surface border border-border rounded-lg p-3.5">
-            <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">This stage</div>
-            {checklist.map((c, i) => (
-              <CheckItem
-                key={c.text}
-                text={c.text}
-                done={c.done}
-                onToggle={canEdit ? () => toggleCheck(i) : undefined}
-              />
-            ))}
-            <div className="h-px bg-border my-3" />
-            <ProgressBar
-              value={checklist.length > 0 ? (doneCount / checklist.length) * 100 : 0}
-              tone={doneCount === checklist.length && checklist.length > 0 ? 'pine' : 'amber'}
-            />
-            <div className="font-mono text-[9px] text-text-dim text-center mt-1.5">
-              {doneCount} of {checklist.length}
-            </div>
-          </div>
-
-          {/* Partners */}
-          <PartnersCard
-            trip={trip}
-            canEdit={canEdit ?? false}
-            onInviteSent={handleInviteSent}
-            onNoPartners={confirmNoPartners}
-          />
-
-          {/* Elevation profile */}
-          {(trip?.gpxPlanned || (trip?.gpxTracks ?? []).length > 0) && (
-            <div className="bg-surface border border-border rounded-lg p-4.5">
-              <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-3">
-                Elevation Profile
-              </div>
-              <ElevationProfile
-                planned={trip?.gpxPlanned}
-                gpxTracks={trip?.gpxTracks}
-              />
-            </div>
-          )}
-
-          {/* Source files */}
-          <div className="bg-surface border border-border rounded-lg p-3.5">
-            <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">Source files</div>
-            {sourceFiles.length === 0 ? (
-              <p className="font-mono text-[9px] text-text-dim leading-relaxed">
-                No files yet — import a planned route .gpx above.
-              </p>
-            ) : sourceFiles.map((f, i) => (
-              <div key={f.name} className={`flex items-center gap-2 py-1.5 ${i < sourceFiles.length - 1 ? 'border-b border-border' : ''}`}>
-                <span className="text-text-mid shrink-0"><IconFile size={11} /></span>
-                <div className="min-w-0 flex-1">
-                  <div className="font-mono text-[12px] text-text truncate">{f.name}</div>
-                  <div className="font-mono text-[10px] text-text-dim mt-0.5">{f.meta}</div>
-                </div>
-                <button
-                  onClick={() => downloadGpx(f.coords, f.name)}
-                  title="Download .gpx"
-                  className="p-1 rounded text-text-dim hover:text-amber transition-colors cursor-pointer bg-transparent border-none shrink-0"
-                >
-                  <IconDownload size={11} />
-                </button>
-              </div>
-            ))}
-          </div>
-
-        </aside>
+        <RouteRightRail
+          trip={trip}
+          canEdit={canEdit ?? false}
+          checklist={checklist}
+          doneCount={doneCount}
+          onToggleCheck={toggleCheck}
+          onInviteSent={handleInviteSent}
+          onNoPartners={confirmNoPartners}
+          sourceFiles={sourceFiles}
+        />
       </div>
     </div>
   )

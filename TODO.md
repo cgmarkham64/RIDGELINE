@@ -160,8 +160,8 @@ Files that export more than one React component and need to be split to comply w
 **Oversized files (>400 lines)**
 
 - ~~**`src/components/plan/stages/PermitsStage.tsx`** (~1,100 lines) — Bundles permit detection, permit cards, zone map, and free-form dialog. Split into focused files the same way MapTab and RouteMapCard were.~~ ✅
-- **`src/components/trip/GpxMapSection.tsx`** (~483 lines) — GPX upload logic, map rendering, and waypoint management in one file.
-- **`src/components/plan/stages/RouteStage.tsx`** (~510 lines) — Still above the 400-line guideline after earlier refactors; worth a second pass.
+- ~~**`src/components/trip/GpxMapSection.tsx`** (~483 lines) — GPX upload logic, map rendering, and waypoint management in one file.~~ ✅
+- ~~**`src/components/plan/stages/RouteStage.tsx`** (~510 lines) — Still above the 400-line guideline after earlier refactors; worth a second pass.~~ ✅
 
 **Type safety — unchecked `as` assertions** ✅
 
