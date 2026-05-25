@@ -166,9 +166,10 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
 
     // ── Derived draw state ──────────────────────────────────────────────────────
 
-    const isDrawing   = drawState.phase !== 'idle'
-    const startPlaced = drawState.phase === 'placing-end' || drawState.phase === 'active'
-    const endPlaced   = drawState.phase === 'active'
+    const isDrawing    = drawState.phase !== 'idle'
+    const isPlacingPin = drawState.phase === 'placing-start' || drawState.phase === 'placing-end'
+    const startPlaced  = drawState.phase === 'placing-end' || drawState.phase === 'active'
+    const endPlaced    = drawState.phase === 'active'
 
     const mapProps = bounds
       ? { bounds: bounds as LatLngBoundsExpression, boundsOptions: { padding: [20, 20] as [number, number] } }
@@ -279,7 +280,7 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
                   icon={activeRowId === src.id
                     ? makeWaypointIcon(src.waypointType, true, 28)
                     : makeDetectedWaterIcon(src.waypointType, 24)}
-                  eventHandlers={{ click: () => mapRef.current?.panTo([src.lat, src.lon]) }}
+                  eventHandlers={{ click: () => isPlacingPin ? onMapClick(src.lat, src.lon) : mapRef.current?.panTo([src.lat, src.lon]) }}
                 >
                   <Tooltip direction="top" offset={[0, -10]} opacity={0.95}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>
@@ -306,7 +307,9 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
                         const { lat, lng } = (e.target as L.Marker).getLatLng()
                         onEndpointDrag(i, 'end', lat, lng)
                       },
-                      click: () => onCampClick(`camp-${s.n}`),
+                      click: () => isPlacingPin
+                        ? onMapClick(s.path![s.path!.length - 1][0], s.path![s.path!.length - 1][1])
+                        : onCampClick(`camp-${s.n}`),
                     }}
                   >
                     <Tooltip direction="top" offset={[0, -12]} opacity={0.95}>
@@ -330,6 +333,9 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
                         const { lat, lng } = (e.target as L.Marker).getLatLng()
                         onEndpointDrag(0, 'start', lat, lng)
                       },
+                      click: () => isPlacingPin
+                        ? onMapClick(segments[0].path![0][0], segments[0].path![0][1])
+                        : undefined,
                     }}
                   />
                 ) : null}
@@ -346,6 +352,7 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
                           const { lat, lng } = (e.target as L.Marker).getLatLng()
                           onEndpointDrag(segments.length - 1, 'end', lat, lng)
                         },
+                        click: () => isPlacingPin ? onMapClick(lastPos[0], lastPos[1]) : undefined,
                       }}
                     />
                   ) : null
