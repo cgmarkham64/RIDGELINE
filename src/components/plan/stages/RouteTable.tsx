@@ -249,13 +249,9 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
         </div>
       )}
 
-      {waterLoading && (
-        <div className="border-b border-border">
-          <MoonLoader label="Detecting water sources…" />
-        </div>
-      )}
-
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      {waterLoading
+        ? <MoonLoader label="Detecting water sources…" />
+        : <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={campIds} strategy={verticalListSortingStrategy}>
           {mergedRows.map((row, i) => {
             const isLast = i === mergedRows.length - 1
@@ -337,6 +333,7 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
           })}
         </SortableContext>
       </DndContext>
+      }
     </div>
   )
 })
