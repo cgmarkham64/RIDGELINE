@@ -158,6 +158,11 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2">
+              {drawState.sunTimesLoading && (
+                <div className="col-span-3">
+                  <span className="font-mono text-[9px] text-text-dim tracking-widest">Fetching sun times…</span>
+                </div>
+              )}
               {(['wakeTime', 'onTrailTime', 'campByTime'] as const).map((field, i) => (
                 <div key={field}>
                   <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block">

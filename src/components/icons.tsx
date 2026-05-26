@@ -226,6 +226,19 @@ export function IconTrash({ size = 11 }: { size?: number }) {
   )
 }
 
+export function IconGrip({ size = 12 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor">
+      <circle cx="5.5" cy="4"  r="1.1" />
+      <circle cx="5.5" cy="8"  r="1.1" />
+      <circle cx="5.5" cy="12" r="1.1" />
+      <circle cx="10.5" cy="4"  r="1.1" />
+      <circle cx="10.5" cy="8"  r="1.1" />
+      <circle cx="10.5" cy="12" r="1.1" />
+    </svg>
+  )
+}
+
 export function IconTriangleRight({ size = 12 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor">

@@ -27,7 +27,8 @@ export const EXP_LABEL: Record<string, string> = {
 }
 
 export const PARTNER_ITEMS = ['Partners added', 'Partners reviewed']
-export const GRID = '20px 1fr 60px 72px 72px 40px'
+export const GRID      = '20px 1fr 60px 72px 72px 40px'
+export const DRAG_GRID = '14px 20px 1fr 60px 72px 72px 40px'
 export const ACTIVE_BG = 'var(--color-amber-dim)'
 
 export function toLatLngs(coords: [number, number, number][] | undefined): [number, number][] {
@@ -161,6 +162,32 @@ export function snapToRouteMi(lat: number, lon: number, coords: [number, number,
     d += haversineMi(lat1, lon1, lat2, lon2)
   }
   return d
+}
+
+export function addMinutesToTime(hhmm: string, minutes: number): string {
+  const [h, m] = hhmm.split(':').map(Number)
+  const total = ((h * 60 + m + minutes) % 1440 + 1440) % 1440
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
+export async function fetchSunTimes(
+  lat: number,
+  lng: number,
+  date: string,
+): Promise<{ sunrise: string; sunset: string } | null> {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&daily=sunrise,sunset&timezone=auto&start_date=${date}&end_date=${date}`
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const data = await res.json()
+    const sunrise = (data.daily?.sunrise?.[0] as string | undefined)
+    const sunset  = (data.daily?.sunset?.[0]  as string | undefined)
+    if (!sunrise || !sunset) return null
+    // Returned as "2024-07-15T05:23" — extract HH:MM
+    return { sunrise: sunrise.slice(11, 16), sunset: sunset.slice(11, 16) }
+  } catch {
+    return null
+  }
 }
 
 export async function reverseGeocode(lat: number, lng: number): Promise<string> {

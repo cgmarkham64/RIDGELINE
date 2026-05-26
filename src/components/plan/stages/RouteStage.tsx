@@ -5,6 +5,7 @@ import { fetchDetectedWaterSources, type DetectedWaterSource } from '../../../li
 import {
   toLatLngs, gpxCoordsToMiles, buildMergedRows,
   DEFAULT_CHECKLIST, PARTNER_ITEMS, fetchRoutePreview, reverseGeocode,
+  fetchSunTimes, addMinutesToTime,
 } from './routeStage.helpers'
 import type { SegRow, CheckRow, DrawState } from './routeStage.types'
 import { RouteMapCard, type RouteMapCardHandle } from './RouteMapCard'
@@ -21,9 +22,10 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   const [activeRowId,   setActiveRowId]   = useState<string | null>(null)
   const [repositioning, setRepositioning] = useState(new Set<number>())
 
-  const mapCardRef  = useRef<RouteMapCardHandle>(null)
-  const tableRef    = useRef<RouteTableHandle>(null)
-  const fetchSeqRef = useRef(0)
+  const mapCardRef      = useRef<RouteMapCardHandle>(null)
+  const tableRef        = useRef<RouteTableHandle>(null)
+  const fetchSeqRef     = useRef(0)
+  const sunFetchSeqRef  = useRef(0)
 
   const isMounted     = useRef(false)
   const onChangeRef   = useRef(onChange)
@@ -135,6 +137,35 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     setChecklist(prev => prev.map(c => PARTNER_ITEMS.includes(c.text) ? { ...c, done: false } : c))
   }
 
+  // ── Sun times ────────────────────────────────────────────────────────────────
+
+  const triggerSunFetch = useCallback(async (end: [number, number], segN: number) => {
+    const seq = ++sunFetchSeqRef.current
+    try {
+      // slice(0,10) normalises both "2025-05-25" and "2025-05-25T00:00:00.000Z"
+      const base = (trip?.startDate ?? new Date().toISOString()).slice(0, 10)
+      const d = new Date(base + 'T00:00:00')
+      d.setDate(d.getDate() + segN - 1)
+      const date = d.toISOString().slice(0, 10)
+      const result = await fetchSunTimes(end[0], end[1], date)
+      if (sunFetchSeqRef.current !== seq) return
+      setDrawState(prev => {
+        if (prev.phase !== 'active') return prev
+        if (!result) return { ...prev, sunTimesLoading: false }
+        return {
+          ...prev,
+          sunTimesLoading: false,
+          wakeTime:    prev.wakeTime    ?? result.sunrise,
+          onTrailTime: prev.onTrailTime ?? addMinutesToTime(result.sunrise, 60),
+          campByTime:  prev.campByTime  ?? addMinutesToTime(result.sunset, -60),
+        }
+      })
+    } catch {
+      if (sunFetchSeqRef.current !== seq) return
+      setDrawState(prev => prev.phase === 'active' ? { ...prev, sunTimesLoading: false } : prev)
+    }
+  }, [trip])
+
   // ── Draw mode ────────────────────────────────────────────────────────────────
 
   const triggerFetch = useCallback(async (
@@ -185,12 +216,14 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     if (editingSeg?.path && editingSeg.path.length >= 2) {
       const start = editingSeg.path[0]
       const end   = editingSeg.path[editingSeg.path.length - 1]
+      const hasTimes = !!(editingSeg.wakeTime || editingSeg.onTrailTime || editingSeg.campByTime)
       setDrawState({
         phase: 'active', start, end,
         loading: false, result: null, error: null,
         name: editingSeg.name, nameAuto: false, segN: editingSeg.n,
         notes: editingSeg.notes,
-        showMore: !!(editingSeg.notes || editingSeg.water || editingSeg.exposure),
+        showMore: !!(editingSeg.notes || editingSeg.water || editingSeg.exposure) || !hasTimes,
+        sunTimesLoading: !hasTimes,
         water:        editingSeg.water,
         exposure:     editingSeg.exposure,
         hard:         editingSeg.hard,
@@ -200,6 +233,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
         editingSeg,
       })
       triggerFetch(start, end, editingSeg.name, false, trip?.gpxPlanned?.coordinates)
+      if (!hasTimes) triggerSunFetch(end, editingSeg.n)
     } else {
       const prevPath = segments[segments.length - 1]?.path
       const snapPoint = prevPath?.length ? prevPath[prevPath.length - 1] : null
@@ -214,6 +248,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   function cancelDraw() {
     setDrawState({ phase: 'idle' })
     fetchSeqRef.current++
+    sunFetchSeqRef.current++
   }
 
   function resetStartPin() {
@@ -243,16 +278,18 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
         loading: true, result: null, error: null,
         name: defaultName, nameAuto: true, segN,
         notes: drawState.editingSeg?.notes ?? '',
-        showMore: !!(drawState.editingSeg?.notes || drawState.editingSeg?.water || drawState.editingSeg?.exposure),
+        showMore: true,
+        sunTimesLoading: true,
         water:        drawState.editingSeg?.water,
         exposure:     drawState.editingSeg?.exposure,
         hard:         drawState.editingSeg?.hard,
-        wakeTime:     drawState.editingSeg?.wakeTime,
-        onTrailTime:  drawState.editingSeg?.onTrailTime,
-        campByTime:   drawState.editingSeg?.campByTime,
+        wakeTime:     undefined,
+        onTrailTime:  undefined,
+        campByTime:   undefined,
         editingSeg: drawState.editingSeg,
       })
       triggerFetch(start, end, defaultName, true, trip?.gpxPlanned?.coordinates, segN)
+      triggerSunFetch(end, segN)
     }
   }
 
@@ -295,6 +332,18 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
   function deleteSegment(n: number) {
     setSegments(prev => prev.filter(s => s.n !== n).map((s, i) => ({ ...s, n: i + 1 })))
+  }
+
+  function reorderSegments(fromN: number, toN: number) {
+    setSegments(prev => {
+      const fromIdx = prev.findIndex(s => s.n === fromN)
+      const toIdx   = prev.findIndex(s => s.n === toN)
+      if (fromIdx === -1 || toIdx === -1) return prev
+      const next = [...prev]
+      const [moved] = next.splice(fromIdx, 1)
+      next.splice(toIdx, 0, moved)
+      return next.map((s, i) => ({ ...s, n: i + 1 }))
+    })
   }
 
   async function handleEndpointDrag(segIdx: number, which: 'start' | 'end', lat: number, lng: number) {
@@ -386,6 +435,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
             onFlyTo={flyToRow}
             onEnterDraw={enterDraw}
             onDeleteSegment={deleteSegment}
+            onReorderSegments={reorderSegments}
           />
         </div>
 

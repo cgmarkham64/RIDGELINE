@@ -46,6 +46,7 @@ export type DrawState =
       wakeTime?: string
       onTrailTime?: string
       campByTime?: string
+      sunTimesLoading?: boolean
       editingSeg?: SegRow
     }
 
