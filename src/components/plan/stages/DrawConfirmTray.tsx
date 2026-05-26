@@ -164,22 +164,22 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
                     {['Wake', 'On trail', 'Camp by'][i]}
                   </label>
                   <input
-                    className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
+                    type="time"
+                    className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-sm font-mono text-[11px] text-text outline-none focus:border-border-mid transition-[border-color] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:[filter:invert(1)_sepia(1)_saturate(4)_hue-rotate(5deg)_brightness(0.85)] [&::-webkit-calendar-picker-indicator]:opacity-50 hover:[&::-webkit-calendar-picker-indicator]:opacity-90"
                     value={drawState[field] ?? ''}
                     onChange={e => set(setDrawState, field, e.target.value || undefined)}
-                    placeholder="HH:MM"
                   />
                 </div>
               ))}
             </div>
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                className="sr-only appearance-none"
-                checked={drawState.hard ?? false}
-                onChange={e => set(setDrawState, 'hard', e.target.checked || undefined)}
-              />
-              <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors shrink-0 ${drawState.hard ? 'bg-amber-dim border-amber-border' : 'bg-surface border-border'}`}>
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={drawState.hard ?? false}
+              onClick={() => set(setDrawState, 'hard', drawState.hard ? undefined : true)}
+              className="flex items-center gap-2 cursor-pointer select-none bg-transparent border-none p-0 w-full text-left"
+            >
+              <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${drawState.hard ? 'bg-amber-dim border-amber-border' : 'bg-surface border-border'}`}>
                 {drawState.hard && (
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="text-amber">
                     <polyline points="20 6 9 17 4 12" />
@@ -195,7 +195,7 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
                   {EXP_LABEL[drawState.exposure]}
                 </span>
               )}
-            </label>
+            </button>
           </div>
         )}
 

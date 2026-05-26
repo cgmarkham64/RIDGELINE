@@ -17,16 +17,6 @@ All seven stages render with internal state. The items below are UI stubs, disco
 **All stages**
 - ⚠ `Stage.done / Stage.total` are wired for Stage 1 (Route) — other stages still need their checklists connected to `onProgress` as they are built out.
 
-**Stage 1 — Route: segment metadata expansion**
-
-Exposure, water source, tough-day flag, and named pass/col are properties of the terrain on a leg, not properties of a calendar day. They move from the retired Days stage into the Route segment dialog and table.
-
-- ✅ Added `water`, `exposure`, `hard` to `SegRow` / `PlanRouteData`; retired `PlanDayEntry` and `days` slice. `pass` field added then removed in favour of existing `notes`.
-- ✅ DrawConfirmTray expanded with water selector, exposure selector, tough-day toggle, and time targets (Wake / On trail / Camp by) behind the "Day details" toggle.
-- ✅ Route table camp rows surface water, exposure badge, and tough pill as inline chips.
-- ✅ "Exposure & water annotated" computed predicate added to right-rail checklist.
-- ✅ Time targets (`wakeTime`, `onTrailTime`, `campByTime`) on `SegRow`; editable in DrawConfirmTray and DaysStage. Journal stage shows planned vs actual when segment times are set — `wakeActual`, `onTrailActual`, `campActual` stored on `JournalDay`.
-
 **Stage 2 — Weather** *(replaces Days; full stage to be built)*
 
 - Rename all Day stage related things with appropriate names related to Weather
@@ -160,6 +150,7 @@ Full gear inventory system:
   - Populate journal map tab with the Route map data.
 - **Route stage** — Exposure auto calculation based on canopy coverage vs. mileage without water vs. altitude vs. treacherousness of trail (are we on the side of a cliff?)
 - Give user ability to adjust their own Shenandoah hardness scale via user settings - not all users will be the same and we can probably leverage fitness data alongside this in the future to give a better idea of difficulty
+- When user is entering wake, on-trail, and camp-by times on a segment in the Route stage, give feedback if their schedule is IMPOSSIBLE, TOUGH, ACHIEVABLE (the sweet spot), or EASY for the day. Tie into the TOUGH chips that already exist. Average hike speed is 2 mph. Factor in climbs slowing down and descents speeding up.
 - User defaults for wake, camp-by and on-trail times
 
 ---

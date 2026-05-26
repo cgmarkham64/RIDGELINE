@@ -245,23 +245,23 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
                       {['Wake', 'On trail', 'Camp by'][i]}
                     </label>
                     <input
-                      className="w-full px-2.5 py-1.5 border border-border rounded-sm text-[12px] bg-surface-2 text-text outline-none focus:border-border-mid transition-colors font-mono placeholder:text-text-dim"
+                      type="time"
+                      className="w-full px-2.5 py-1.5 border border-border rounded-sm text-[12px] bg-surface-2 text-text outline-none focus:border-border-mid transition-colors font-mono [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:[filter:invert(1)_sepia(1)_saturate(4)_hue-rotate(5deg)_brightness(0.85)] [&::-webkit-calendar-picker-indicator]:opacity-50 hover:[&::-webkit-calendar-picker-indicator]:opacity-90"
                       value={d[field] ?? ''}
                       onChange={e => updateSeg(sel, { [field]: e.target.value || undefined })}
-                      placeholder="HH:MM"
                     />
                   </div>
                 ))}
               </div>
               <div className="flex items-end pb-1.5">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    className="sr-only appearance-none"
-                    checked={d.hard ?? false}
-                    onChange={e => updateSeg(sel, { hard: e.target.checked || undefined })}
-                  />
-                  <span className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${d.hard ? 'bg-amber-dim border-amber-border' : 'bg-surface border-border'}`}>
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={d.hard ?? false}
+                  onClick={() => updateSeg(sel, { hard: d.hard ? undefined : true })}
+                  className="flex items-center gap-2 cursor-pointer select-none bg-transparent border-none p-0 text-left"
+                >
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${d.hard ? 'bg-amber-dim border-amber-border' : 'bg-surface border-border'}`}>
                     {d.hard && (
                       <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-amber">
                         <polyline points="20 6 9 17 4 12" />
@@ -269,7 +269,7 @@ export function DaysStage({ onJump, plan, onChange, onProgress }: StageBodyProps
                     )}
                   </span>
                   <span className="font-mono text-[11px] text-text">Tough day</span>
-                </label>
+                </button>
               </div>
             </div>
 
