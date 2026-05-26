@@ -406,7 +406,7 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
                 onDismiss={() => setContextMenu(null)}
               />
               <MapRefCapture mapRef={mapRef} />
-              {bounds && <FitBounds positions={allPoints} />}
+              {bounds && <FitBounds positions={allPoints} fitKey={`${segments.length}-${plannedLatLngs.length > 0 ? 1 : 0}-${tracksWithLatLngs.length}`} />}
               <InvalidateSize />
             </MapContainer>
           ) : (

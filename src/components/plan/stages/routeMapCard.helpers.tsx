@@ -13,12 +13,14 @@ function pointToSegDistPx(px: number, py: number, ax: number, ay: number, bx: nu
   return Math.hypot(px - (ax + t * dx), py - (ay + t * dy))
 }
 
-export function FitBounds({ positions }: { positions: [number, number][] }) {
+export function FitBounds({ positions, fitKey }: { positions: [number, number][]; fitKey: string }) {
   const map = useMap()
   useEffect(() => {
     if (positions.length > 1)
       map.fitBounds(positions as LatLngBoundsExpression, { padding: [20, 20] })
-  }, [map, positions])
+  // fitKey is the real trigger; positions is read at effect time but intentionally not a dep
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, fitKey])
   return null
 }
 
