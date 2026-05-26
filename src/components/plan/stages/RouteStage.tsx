@@ -303,9 +303,9 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     triggerFetch(start, end, drawState.name, drawState.nameAuto, trip?.gpxPlanned?.coordinates, drawState.segN)
   }
 
-  function handleConfirmSegment() {
+  async function handleConfirmSegment() {
     if (drawState.phase !== 'active') return
-    const { result, name, notes, editingSeg, water, exposure, hard, wakeTime, onTrailTime, campByTime } = drawState
+    const { result, name, notes, editingSeg, water, exposure, hard, wakeTime, onTrailTime, campByTime, start: newStart, end: newEnd } = drawState
     const mi   = result ? parseFloat(result.mi.toFixed(1)) : 0
     const gain = result?.gain ?? 0
     const newSeg: Omit<SegRow, 'n'> = {
@@ -323,11 +323,50 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     }
     if (editingSeg) {
       setSegments(prev => prev.map(s => s.n === editingSeg.n ? { ...newSeg, n: editingSeg.n } : s))
+      setDrawState({ phase: 'idle' })
+
+      // Re-fetch adjacent segments if either endpoint moved
+      const segIdx = segments.findIndex(s => s.n === editingSeg.n)
+      const oldEnd   = editingSeg.path?.[editingSeg.path.length - 1]
+      const oldStart = editingSeg.path?.[0]
+      const toReconnect: { si: number; start: [number, number]; end: [number, number] }[] = []
+
+      if (oldEnd && (oldEnd[0] !== newEnd[0] || oldEnd[1] !== newEnd[1])) {
+        const next = segments[segIdx + 1]
+        if (next?.path?.length)
+          toReconnect.push({ si: segIdx + 1, start: newEnd, end: next.path[next.path.length - 1] })
+      }
+      if (oldStart && (oldStart[0] !== newStart[0] || oldStart[1] !== newStart[1])) {
+        const prev = segments[segIdx - 1]
+        if (prev?.path?.length)
+          toReconnect.push({ si: segIdx - 1, start: prev.path[0], end: newStart })
+      }
+
+      if (toReconnect.length > 0) {
+        setRepositioning(new Set(toReconnect.map(u => u.si)))
+        const reconnected = await Promise.all(
+          toReconnect.map(async ({ si, start, end }) => ({
+            si,
+            preview: await fetchRoutePreview(start, end, trip?.gpxPlanned?.coordinates).catch(() => null),
+          }))
+        )
+        setRepositioning(new Set())
+        setSegments(prev => {
+          let next = [...prev]
+          for (const { si, preview } of reconnected) {
+            if (!preview) continue
+            next = next.map((s, i) =>
+              i === si ? { ...s, mi: parseFloat(preview.mi.toFixed(1)), gain: preview.gain, path: preview.path } : s
+            )
+          }
+          return next
+        })
+      }
     } else {
       const n = (segments[segments.length - 1]?.n ?? 0) + 1
       setSegments(prev => [...prev, { ...newSeg, n }])
+      setDrawState({ phase: 'idle' })
     }
-    setDrawState({ phase: 'idle' })
   }
 
   function deleteSegment(n: number) {
