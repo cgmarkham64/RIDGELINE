@@ -5,7 +5,7 @@ import { fetchDetectedWaterSources, type DetectedWaterSource } from '../../../li
 import {
   toLatLngs, gpxCoordsToMiles, buildMergedRows,
   DEFAULT_CHECKLIST, PARTNER_ITEMS, fetchRoutePreview, reverseGeocode,
-  fetchSunTimes, addMinutesToTime,
+  fetchSunTimes, addMinutesToTime, splitSegmentAt,
 } from './routeStage.helpers'
 import type { SegRow, CheckRow, DrawState } from './routeStage.types'
 import { RouteMapCard, type RouteMapCardHandle } from './RouteMapCard'
@@ -334,6 +334,18 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     setSegments(prev => prev.filter(s => s.n !== n).map((s, i) => ({ ...s, n: i + 1 })))
   }
 
+  function splitSegment(segN: number, edgeIdx: number, splitPoint: [number, number]) {
+    setSegments(prev => {
+      const segIdx = prev.findIndex(s => s.n === segN)
+      if (segIdx === -1) return prev
+      const parts = splitSegmentAt(prev[segIdx], edgeIdx, splitPoint)
+      if (!parts) return prev
+      const next = [...prev]
+      next.splice(segIdx, 1, { ...parts.segA, n: 0 }, { ...parts.segB, n: 0 })
+      return next.map((s, i) => ({ ...s, n: i + 1 }))
+    })
+  }
+
   function reorderSegments(fromN: number, toN: number) {
     setSegments(prev => {
       const fromIdx = prev.findIndex(s => s.n === fromN)
@@ -419,6 +431,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
             }}
             uploadProps={{ canEdit: canEdit ?? false }}
             onCampClick={handleCampClick}
+            onSplitSegment={splitSegment}
           />
 
           <RouteTable

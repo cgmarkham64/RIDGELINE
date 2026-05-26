@@ -15,7 +15,7 @@ import type { SegRow, DrawState } from './routeStage.types'
 import type { DetectedWaterSource } from '../../../lib/waterSources'
 import type { StageBodyProps } from '../types'
 import type { GpxTrackEntry } from '../../../types'
-import { FitBounds, InvalidateSize, DrawInteractionLayer } from './routeMapCard.helpers'
+import { FitBounds, InvalidateSize, DrawInteractionLayer, ContextMenuLayer, type ContextMenuPayload } from './routeMapCard.helpers'
 import { DrawConfirmTray } from './DrawConfirmTray'
 
 // ─── Public handle type ───────────────────────────────────────────────────────
@@ -62,12 +62,13 @@ type RouteMapCardProps = {
   drawProps: DrawProps
   uploadProps: UploadProps
   onCampClick: (rowId: string) => void
+  onSplitSegment: (segN: number, edgeIdx: number, splitPoint: [number, number]) => void
 }
 
 // ─── RouteMapCard ─────────────────────────────────────────────────────────────
 
 export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
-  function RouteMapCard({ mapData, drawProps, uploadProps, onCampClick }, ref) {
+  function RouteMapCard({ mapData, drawProps, uploadProps, onCampClick, onSplitSegment }, ref) {
     const { segments, detectedWater, activeRowId, trip, plannedLatLngs, tracksWithLatLngs, allPoints, bounds, startEnd, totalMiles, totalGain, repositioning } = mapData
     const { drawState, setDrawState, onCancelDraw, onConfirmSegment, onMapClick, onPinDrag, onEndpointDrag, onResetStartPin } = drawProps
     const { canEdit } = uploadProps
@@ -77,6 +78,7 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
     const [uploadLabel, setUploadLabel] = useState<string | null>(null)
     const [uploadError, setUploadError] = useState<string | null>(null)
     const [isDragging,  setIsDragging]  = useState(false)
+    const [contextMenu, setContextMenu] = useState<ContextMenuPayload | null>(null)
     const mapRef       = useRef<L.Map | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -396,6 +398,13 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
               )}
 
               <DrawInteractionLayer drawState={drawState} onMapClick={onMapClick} />
+              <ContextMenuLayer
+                segments={segments}
+                isDrawing={drawState.phase !== 'idle'}
+                canEdit={canEdit}
+                onContextMenu={setContextMenu}
+                onDismiss={() => setContextMenu(null)}
+              />
               <MapRefCapture mapRef={mapRef} />
               {bounds && <FitBounds positions={allPoints} />}
               <InvalidateSize />
@@ -418,6 +427,22 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
           )}
 
           <ZoomControls mapRef={mapRef} allPoints={allPoints} />
+          {contextMenu && (
+            <div
+              className="absolute z-[1000] bg-surface border border-border rounded-lg shadow-2xl py-1 min-w-[160px]"
+              style={{ left: contextMenu.x + 6, top: contextMenu.y + 6 }}
+            >
+              <button
+                className="w-full text-left px-3 py-2 font-mono text-[11px] text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none"
+                onClick={() => {
+                  onSplitSegment(contextMenu.segN, contextMenu.edgeIdx, contextMenu.splitPoint)
+                  setContextMenu(null)
+                }}
+              >
+                Split segment here
+              </button>
+            </div>
+          )}
         </div>
         <AttributionStrip tileLayer={tileLayer} />
 

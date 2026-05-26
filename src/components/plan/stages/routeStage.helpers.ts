@@ -164,6 +164,34 @@ export function snapToRouteMi(lat: number, lon: number, coords: [number, number,
   return d
 }
 
+export function splitSegmentAt(
+  seg: SegRow,
+  edgeIdx: number,
+  splitPoint: [number, number],
+): { segA: Omit<SegRow, 'n'>; segB: Omit<SegRow, 'n'> } | null {
+  if (!seg.path || edgeIdx < 0 || edgeIdx >= seg.path.length - 1) return null
+  const pathA = [...seg.path.slice(0, edgeIdx + 1), splitPoint]
+  const pathB = [splitPoint, ...seg.path.slice(edgeIdx + 1)]
+  if (pathA.length < 2 || pathB.length < 2) return null
+  const miA    = haversinePathMiles(pathA)
+  const miB    = haversinePathMiles(pathB)
+  const ratio  = (miA + miB) > 0 ? miA / (miA + miB) : 0.5
+  return {
+    segA: {
+      name: seg.name, mi: parseFloat(miA.toFixed(1)),
+      gain: Math.round(seg.gain * ratio), notes: seg.notes,
+      path: pathA, water: seg.water, exposure: seg.exposure, hard: seg.hard,
+      wakeTime: seg.wakeTime, onTrailTime: seg.onTrailTime, campByTime: seg.campByTime,
+    },
+    segB: {
+      name: seg.name + ' (cont.)', mi: parseFloat(miB.toFixed(1)),
+      gain: Math.round(seg.gain * (1 - ratio)), notes: '',
+      path: pathB, water: seg.water, exposure: seg.exposure, hard: undefined,
+      wakeTime: undefined, onTrailTime: undefined, campByTime: undefined,
+    },
+  }
+}
+
 export function addMinutesToTime(hhmm: string, minutes: number): string {
   const [h, m] = hhmm.split(':').map(Number)
   const total = ((h * 60 + m + minutes) % 1440 + 1440) % 1440
