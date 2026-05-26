@@ -13,7 +13,7 @@ import {
   IconPlus, IconCheck, IconTent, IconPencil, IconTrash,
   IconTriangleRight, IconSparkle, IconGrip,
 } from '../../icons'
-import { GRID, DRAG_GRID, ACTIVE_BG, EXP_LABEL } from './routeStage.helpers'
+import { GRID, DRAG_GRID, ACTIVE_BG, EXP_LABEL, SEG_COLORS } from './routeStage.helpers'
 import type { MergedRow, SegRow } from './routeStage.types'
 import type { StageBodyProps } from '../types'
 
@@ -59,6 +59,7 @@ function SortableCampRow({
   const rowId = `camp-${row.seg.n}`
   const campPos = row.seg.path?.[row.seg.path.length - 1] ?? null
   const border = isLast ? '' : 'border-b border-border'
+  const segColor = SEG_COLORS[row.segIdx % SEG_COLORS.length]
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: String(row.seg.n),
@@ -77,6 +78,7 @@ function SortableCampRow({
         boxShadow: isDragging ? '0 4px 16px rgba(0,0,0,0.4)' : undefined,
         zIndex: isDragging ? 10 : undefined,
         position: isDragging ? 'relative' : undefined,
+        borderLeft: `3px solid ${segColor}`,
       }}
       onClick={() => onFlyTo(campPos?.[0] ?? null, campPos?.[1] ?? null, rowId)}
     >
@@ -179,6 +181,16 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
   const gridTemplate = isDraggable ? DRAG_GRID : GRID
   const campIds = segments.map(s => String(s.n))
 
+  // Cumulative distances for mapping water entries to their enclosing segment color
+  const campDists = segments.reduce<number[]>((acc, s) => {
+    acc.push((acc[acc.length - 1] ?? 0) + s.mi)
+    return acc
+  }, [])
+  function waterSegColor(distFromStartMi: number): string {
+    const idx = campDists.findIndex(d => distFromStartMi < d)
+    return SEG_COLORS[(idx === -1 ? campDists.length - 1 : idx) % SEG_COLORS.length]
+  }
+
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: { distance: 6 },
   }))
@@ -253,7 +265,7 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
               <div key="trailhead"
                 ref={el => { if (el) rowRefs.current.set('trailhead', el); else rowRefs.current.delete('trailhead') }}
                 className={`grid items-center px-4 py-2 gap-3 ${border} cursor-pointer transition-colors`}
-                style={{ gridTemplateColumns: gridTemplate, background: activeRowId === 'trailhead' ? ACTIVE_BG : 'var(--surface-2)' }}
+                style={{ gridTemplateColumns: gridTemplate, borderLeft: '3px solid transparent', background: activeRowId === 'trailhead' ? ACTIVE_BG : 'var(--surface-2)' }}
                 onClick={() => onFlyTo(row.lat, row.lon, 'trailhead')}
               >
                 {isDraggable && <span />}
@@ -298,7 +310,7 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
               <div key={row.entry.id}
                 ref={el => { if (el) rowRefs.current.set(row.entry.id, el); else rowRefs.current.delete(row.entry.id) }}
                 className={`grid items-center px-4 py-2.5 gap-3 ${border} cursor-pointer transition-colors`}
-                style={{ gridTemplateColumns: gridTemplate, background: activeRowId === row.entry.id ? ACTIVE_BG : undefined }}
+                style={{ gridTemplateColumns: gridTemplate, borderLeft: `3px solid ${waterSegColor(row.entry.distFromStartMi)}`, background: activeRowId === row.entry.id ? ACTIVE_BG : undefined }}
                 onClick={() => onFlyTo(row.entry.lat, row.entry.lon, row.entry.id)}
               >
                 {isDraggable && <span />}
