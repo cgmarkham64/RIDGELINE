@@ -85,7 +85,7 @@ function TimePrefRow({ label, pref, onChange }: {
       <select
         value={pref.mode}
         onChange={e => onChange({ mode: e.target.value as TimePreference['mode'], staticTime: undefined, anchor: 'sunrise', offsetMinutes: 0 })}
-        className={selectCls + ' w-[88px]'}
+        className={selectCls + ' w-[100px]'}
       >
         <option value="relative">Relative</option>
         <option value="static">Fixed time</option>
@@ -114,7 +114,7 @@ function TimePrefRow({ label, pref, onChange }: {
           type="time"
           value={pref.staticTime ?? '06:00'}
           onChange={e => onChange({ staticTime: e.target.value })}
-          className={inputCls + ' w-[90px]'}
+          className={inputCls + ' w-[108px]'}
         />
       )}
     </div>
