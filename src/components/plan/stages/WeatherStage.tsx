@@ -2,8 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import type { StageBodyProps, PlanWeatherData } from '../types'
 import { CheckItem } from '../CheckItem'
 import { ProgressBar } from '../ProgressBar'
-import { JumpChip } from '../JumpChip'
-import { IconAlertTriangle, IconCalendar, IconCheck } from '../../icons'
+import { IconAlertTriangle, IconCalendar, IconCheck, IconChevronLeft, IconChevronRight, IconSun } from '../../icons'
 import { nominatimGeocode } from '../../../lib/geocode'
 import { tripSunRows } from '../../../lib/sun'
 import {
@@ -12,6 +11,7 @@ import {
   avgElevationFt, inForecastWindow, forecastTargetDate, daysUntil,
 } from './weatherStage.helpers'
 import type { ClimateNormals } from './weatherStage.types'
+import { WmoConditionIcon } from './WmoConditionIcon'
 
 const ARCHIVE_URL  = 'https://archive-api.open-meteo.com/v1/archive'
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
@@ -70,9 +70,42 @@ const RISK_STYLE: Record<'low' | 'moderate' | 'high', { label: string; border: s
   high:     { label: 'Delay',   border: 'border-red-border',   bg: 'bg-red-dim',   text: 'text-red'   },
 }
 
+// ─── Forecast card tint ───────────────────────────────────────────────────────
+// Maps WMO weather code to a card background/border color.
+// Severity runs: clear (amber-warm) → cloudy/fog (gray) → precip (blue) → storm (red).
+
+function cardTint(code: number): { bg: string; border: string } {
+  if (code === 99) return { bg: 'rgba(127,29,29,0.28)',   border: 'rgba(185,28,28,0.65)'  } // t-storm + heavy hail
+  if (code === 96) return { bg: 'rgba(153,27,27,0.22)',   border: 'rgba(220,38,38,0.55)'  } // t-storm + hail
+  if (code === 95) return { bg: 'rgba(239,68,68,0.18)',   border: 'rgba(239,68,68,0.5)'   } // thunderstorm
+  if (code === 82) return { bg: 'rgba(37,99,235,0.22)',   border: 'rgba(59,130,246,0.55)' } // heavy showers
+  if (code === 86) return { bg: 'rgba(147,197,253,0.22)', border: 'rgba(147,197,253,0.5)' } // heavy snow showers
+  if (code === 75) return { bg: 'rgba(147,197,253,0.2)',  border: 'rgba(147,197,253,0.48)'} // heavy snow
+  if (code === 65) return { bg: 'rgba(37,99,235,0.2)',    border: 'rgba(59,130,246,0.5)'  } // heavy rain
+  if (code === 81) return { bg: 'rgba(59,130,246,0.16)',  border: 'rgba(96,165,250,0.45)' } // showers
+  if (code === 85) return { bg: 'rgba(186,230,253,0.15)', border: 'rgba(147,197,253,0.35)'} // snow showers
+  if (code === 73) return { bg: 'rgba(186,230,253,0.16)', border: 'rgba(147,197,253,0.38)'} // snow
+  if (code === 63) return { bg: 'rgba(59,130,246,0.15)',  border: 'rgba(96,165,250,0.4)'  } // rain
+  if (code === 80) return { bg: 'rgba(96,165,250,0.12)',  border: 'rgba(147,197,253,0.35)'} // rain showers
+  if (code === 71) return { bg: 'rgba(186,230,253,0.1)',  border: 'rgba(186,230,253,0.28)'} // light snow
+  if (code === 77) return { bg: 'rgba(186,230,253,0.1)',  border: 'rgba(186,230,253,0.28)'} // snow grains
+  if (code === 61) return { bg: 'rgba(96,165,250,0.1)',   border: 'rgba(147,197,253,0.3)' } // light rain
+  if (code === 55) return { bg: 'rgba(96,165,250,0.09)',  border: 'rgba(147,197,253,0.28)'} // heavy drizzle
+  if (code === 53) return { bg: 'rgba(147,197,253,0.07)', border: 'rgba(186,230,253,0.24)'} // drizzle
+  if (code === 51) return { bg: 'rgba(186,230,253,0.05)', border: 'rgba(186,230,253,0.18)'} // light drizzle
+  if (code === 48) return { bg: 'rgba(100,116,139,0.13)', border: 'rgba(100,116,139,0.3)' } // icy fog
+  if (code === 45) return { bg: 'rgba(100,116,139,0.1)',  border: 'rgba(100,116,139,0.25)'} // fog
+  if (code === 3)  return { bg: 'rgba(71,85,105,0.1)',    border: 'rgba(100,116,139,0.22)'} // overcast
+  if (code === 2)  return { bg: 'rgba(251,191,36,0.07)',  border: 'rgba(148,163,184,0.22)'} // partly cloudy
+  if (code === 1)  return { bg: 'rgba(251,191,36,0.11)',  border: 'rgba(251,191,36,0.3)'  } // mainly clear
+  return             { bg: 'rgba(251,191,36,0.15)',  border: 'rgba(251,191,36,0.4)'  }       // clear
+}
+
+const DAYS_PER_PAGE = 7
+
 // ─── WeatherStage ─────────────────────────────────────────────────────────────
 
-export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit = true, onEditTrip }: StageBodyProps) {
+export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true, onEditTrip }: StageBodyProps) {
   const tripLoc  = trip?.location ?? ''
   // Normalize to YYYY-MM-DD — API dates may arrive as full ISO strings
   const startDate = trip?.startDate?.slice(0, 10) ?? ''
@@ -97,6 +130,8 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
   const [geoError,      setGeoError]      = useState(false)
   const [climateError,  setClimateError]  = useState(false)
   const [forecastError, setForecastError] = useState(false)
+  // null = auto-follow tripWeekPage; number = user has explicitly navigated
+  const [weekPage, setWeekPage] = useState<number | null>(null)
 
   const onChangeRef   = useRef(onChange)
   const onProgressRef = useRef(onProgress)
@@ -186,10 +221,26 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
     return calcDepartureRisk(wd.cachedForecast.days, startDate, endDate, trip ? avgElevationFt(trip) : null)
   }, [wd.cachedForecast, hasDates, startDate, endDate, trip])
 
-  const sunRows = useMemo(() => {
-    if (!coordsLat || !coordsLng || !hasDates) return []
-    return tripSunRows(coordsLat, coordsLng, startDate, endDate)
-  }, [coordsLat, coordsLng, hasDates, startDate, endDate])
+  // Sun times for every forecast day — used in card hover face and nav bar.
+  // Keyed by YYYY-MM-DD for O(1) lookup per card.
+  const forecastSunMap = useMemo(() => {
+    const fc = wd.cachedForecast
+    if (!coordsLat || !coordsLng || !fc || fc.days.length === 0) {
+      return new Map<string, { sunrise: Date; sunset: Date; daylightHours: number }>()
+    }
+    const map = new Map<string, { sunrise: Date; sunset: Date; daylightHours: number }>()
+    tripSunRows(coordsLat, coordsLng, fc.days[0].date, fc.days[fc.days.length - 1].date)
+      .forEach(r => map.set(r.date.toISOString().slice(0, 10), r))
+    return map
+  }, [coordsLat, coordsLng, wd.cachedForecast])
+
+  // Auto-advance to the week containing the trip start date when forecast loads.
+  // Derived via useMemo (not useEffect) to avoid setState-in-effect rule.
+  const tripWeekPage = useMemo(() => {
+    if (!wd.cachedForecast || !startDate) return 0
+    const idx = wd.cachedForecast.days.findIndex(d => d.date >= startDate)
+    return idx >= 0 ? Math.floor(idx / DAYS_PER_PAGE) : 0
+  }, [wd.cachedForecast, startDate])
 
   function toggle(field: 'historicalReviewed' | 'forecastChecked' | 'sunriseReviewed' | 'gearAdjusted') {
     if (!canEdit) return
@@ -230,9 +281,14 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
     )
   }
 
-  const climate   = wd.cachedClimate
-  const forecast  = wd.cachedForecast
-  const doneCount = checklist.filter(c => c.done).length
+  const climate     = wd.cachedClimate
+  const forecast    = wd.cachedForecast
+  const currentPage = weekPage ?? tripWeekPage
+  const totalPages  = forecast ? Math.ceil(forecast.days.length / DAYS_PER_PAGE) : 0
+  const pagedays    = forecast ? forecast.days.slice(currentPage * DAYS_PER_PAGE, (currentPage + 1) * DAYS_PER_PAGE) : []
+  const midDay      = pagedays[Math.floor(pagedays.length / 2)]
+  const midDaySun   = midDay ? forecastSunMap.get(midDay.date) : undefined
+  const doneCount   = checklist.filter(c => c.done).length
   const inWindow  = inForecastWindow(startDate)
   const daysAway  = daysUntil(startDate)
   const risk      = wd.departureRisk
@@ -254,7 +310,7 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
                 {new Date(startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 {' – '}
                 {new Date(endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                {' · '}{sunRows.length} day{sunRows.length !== 1 ? 's' : ''}
+                {hasDates && ` · ${Math.round((new Date(endDate + 'T00:00:00').getTime() - new Date(startDate + 'T00:00:00').getTime()) / 86400000) + 1} days`}
                 {coordsLat != null ? ` · ${coordsLat.toFixed(2)}°, ${coordsLng!.toFixed(2)}°` : ''}
               </div>
             </div>
@@ -294,40 +350,11 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
             )}
           </div>
 
-          {/* Sunrise / sunset table */}
-          {sunRows.length > 0 && coordsLng != null && (
-            <div className="bg-surface border border-border rounded-lg overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-                <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Sunrise · Sunset · Daylight</span>
-                <div className="flex items-center gap-3">
-                  <span className="font-mono text-[9px] text-text-dim">
-                    feeds <JumpChip to="depart" onJump={onJump}>Depart</JumpChip> schedule
-                  </span>
-                  {canEdit && (
-                    <button type="button" onClick={() => toggle('sunriseReviewed')}
-                      className={`flex items-center gap-1.5 px-2 py-0.5 font-mono text-[9px] rounded border cursor-pointer transition-colors ${wd.sunriseReviewed ? 'bg-pine-dim border-pine-border text-pine' : 'bg-surface-2 border-border text-text-dim hover:border-border-mid'}`}>
-                      Noted
-                    </button>
-                  )}
-                </div>
-              </div>
-              {sunRows.map((row, i) => (
-                <div key={i} className={`grid grid-cols-[90px_1fr_1fr_70px] gap-3 px-4 py-2 items-center ${i < sunRows.length - 1 ? 'border-b border-border' : ''}`}>
-                  <span className="font-mono text-[9px] text-amber font-bold">
-                    {row.date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })}
-                  </span>
-                  <span className="font-mono text-[11px] text-text">{fmtSolarTime(row.sunrise, coordsLng)}</span>
-                  <span className="font-mono text-[11px] text-text">{fmtSolarTime(row.sunset, coordsLng)}</span>
-                  <span className="font-mono text-[11px] text-text-dim">{row.daylightHours.toFixed(1)} h</span>
-                </div>
-              ))}
-            </div>
-          )}
 
           {/* Live forecast / placeholder */}
           <div className="bg-surface border border-border rounded-lg overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-              <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">10-Day Forecast</span>
+              <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Forecast</span>
               {inWindow && canEdit && (
                 <button type="button" onClick={() => toggle('forecastChecked')}
                   className={`flex items-center gap-1.5 px-2.5 py-1 font-mono text-[9px] rounded border cursor-pointer transition-colors ${wd.forecastChecked ? 'bg-pine-dim border-pine-border text-pine' : 'bg-surface-2 border-border text-text-dim hover:border-border-mid'}`}>
@@ -335,6 +362,22 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
                 </button>
               )}
             </div>
+            {inWindow && midDaySun && coordsLng != null && (
+              <div className="flex items-center gap-3 px-4 py-2 border-b border-border">
+                <IconSun size={12} />
+                <div className="flex items-center gap-4 flex-1">
+                  <span className="font-mono text-[9px] text-text-dim">↑ {fmtSolarTime(midDaySun.sunrise, coordsLng)}</span>
+                  <span className="font-mono text-[9px] text-text-dim">↓ {fmtSolarTime(midDaySun.sunset, coordsLng)}</span>
+                  <span className="font-mono text-[9px] text-text-dim">{midDaySun.daylightHours.toFixed(1)} hrs daylight</span>
+                </div>
+                {canEdit && (
+                  <button type="button" onClick={() => toggle('sunriseReviewed')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 font-mono text-[9px] rounded border cursor-pointer transition-colors ${wd.sunriseReviewed ? 'bg-pine-dim border-pine-border text-pine' : 'bg-surface-2 border-border text-text-dim hover:border-border-mid'}`}>
+                    {wd.sunriseReviewed && <IconCheck size={9} />} Noted
+                  </button>
+                )}
+              </div>
+            )}
             {!inWindow && (
               <div className="px-4 py-6 text-center">
                 <div className="font-heading text-[15px] font-bold text-text mb-1">Not in forecast range yet.</div>
@@ -347,31 +390,100 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
             {inWindow && forecastLoading && <div className="font-mono text-[11px] text-text-dim py-6 text-center">Loading forecast…</div>}
             {inWindow && forecastError   && <div className="font-mono text-[11px] text-red py-6 text-center">Failed to load forecast.</div>}
             {inWindow && forecast && forecast.days.length > 0 && (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border">
-                      {['Date', 'High', 'Low', 'Precip', 'Condition', 'Wind'].map(h => (
-                        <th key={h} className="px-3 py-1.5 font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim text-left font-normal whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {forecast.days.map((d, i) => (
-                      <tr key={d.date} className={i < forecast.days.length - 1 ? 'border-b border-border' : ''}>
-                        <td className="px-3 py-1.5 font-mono text-[10px] text-amber font-semibold whitespace-nowrap">{fmtShortDate(d.date)}</td>
-                        <td className="px-3 py-1.5 font-mono text-[11px] text-text">{d.highF}°</td>
-                        <td className="px-3 py-1.5 font-mono text-[11px] text-text-mid">{d.lowF}°</td>
-                        <td className="px-3 py-1.5 font-mono text-[11px]">
-                          <span className={d.precipPct > 40 ? 'text-sky font-semibold' : 'text-text-mid'}>{d.precipPct}%</span>
-                        </td>
-                        <td className="px-3 py-1.5 text-[11px] text-text-mid whitespace-nowrap">{d.conditionLabel}</td>
-                        <td className="px-3 py-1.5 font-mono text-[11px] text-text-mid whitespace-nowrap">{d.windMph} mph {d.windDir}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                {/* Week pagination controls */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                    <button
+                      type="button"
+                      onClick={() => setWeekPage(Math.max(0, currentPage - 1))}
+                      disabled={currentPage === 0}
+                      className="p-1 rounded text-text-dim hover:text-text disabled:opacity-25 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    >
+                      <IconChevronLeft size={13} />
+                    </button>
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-mono text-[9px] text-text-dim">
+                        {pagedays[0] && fmtShortDate(pagedays[0].date)}
+                        {' – '}
+                        {pagedays[pagedays.length - 1] && fmtShortDate(pagedays[pagedays.length - 1].date)}
+                      </span>
+                      <div className="flex gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setWeekPage(i)}
+                            className="rounded-full transition-colors cursor-pointer"
+                            style={{
+                              width: 6, height: 6,
+                              background: i === currentPage ? 'var(--amber)' : 'var(--border-mid)',
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setWeekPage(Math.min(totalPages - 1, currentPage + 1))}
+                      disabled={currentPage === totalPages - 1}
+                      className="p-1 rounded text-text-dim hover:text-text disabled:opacity-25 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                    >
+                      <IconChevronRight size={13} />
+                    </button>
+                  </div>
+                )}
+                <div className="grid grid-cols-7 gap-2 p-3">
+                  {pagedays.map((d) => {
+                    const { bg, border } = cardTint(d.conditionCode)
+                    const inTrip = d.date >= startDate && d.date <= endDate
+                    const dateObj = new Date(d.date + 'T00:00:00')
+                    return (
+                      <div key={d.date}
+                        className="relative rounded-lg overflow-hidden flex flex-col gap-2 p-2.5"
+                        style={{
+                          background: bg,
+                          border: `1px solid ${inTrip ? 'rgba(245,158,11,0.55)' : border}`,
+                          minHeight: '112px',
+                          boxShadow: inTrip ? 'inset 0 2px 0 rgba(245,158,11,0.45)' : undefined,
+                        }}>
+
+                        {/* Background icon — decorative */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none"
+                          aria-hidden="true" style={{ opacity: 0.13 }}>
+                          <WmoConditionIcon code={d.conditionCode} size={54} />
+                        </div>
+
+                        {/* Date */}
+                        <div className="relative z-10">
+                          <div className="font-mono text-[9px] tracking-[0.08em] uppercase leading-none mb-0.5"
+                            style={{ color: inTrip ? 'var(--amber)' : 'var(--text-dim)' }}>
+                            {dateObj.toLocaleDateString('en-US', { weekday: 'short' })}
+                          </div>
+                          <div className="font-mono text-[9px] text-text-mid leading-none">
+                            {dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </div>
+                        </div>
+
+                        {/* High / low */}
+                        <div className="relative z-10 flex-1 flex items-center gap-1.5">
+                          <span className="font-heading text-[16px] font-extrabold text-text leading-none">{d.highF}°</span>
+                          <span className="font-mono text-[10px] text-text-dim leading-none">{d.lowF}°</span>
+                        </div>
+
+                        {/* Precip + wind */}
+                        <div className="relative z-10 space-y-0.5">
+                          <div className="font-mono text-[9px] leading-none"
+                            style={{ color: d.precipPct >= 40 ? 'var(--sky)' : 'var(--text-dim)', fontWeight: d.precipPct >= 40 ? 600 : undefined }}>
+                            {d.precipPct}%
+                          </div>
+                          <div className="font-mono text-[9px] text-text-dim leading-none">{d.windMph}mph {d.windDir}</div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
             )}
           </div>
 

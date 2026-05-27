@@ -151,6 +151,9 @@ Full gear inventory system:
 - **Route stage** — Exposure auto calculation based on canopy coverage vs. mileage without water vs. altitude vs. treacherousness of trail (are we on the side of a cliff?)
 - Give user ability to adjust their own Shenandoah hardness scale via user settings - not all users will be the same and we can probably leverage fitness data alongside this in the future to give a better idea of difficulty
 - When user is entering wake, on-trail, and camp-by times on a segment in the Route stage, give feedback if their schedule is IMPOSSIBLE, TOUGH, ACHIEVABLE (the sweet spot), or EASY for the day. Tie into the TOUGH chips that already exist. Average hike speed is 2 mph. Factor in climbs slowing down and descents speeding up.
+- User certifications and associations tracker - possibly link to things like NOLS, CAIC, Sierra Club, etc.
+- Upscale all text application wide focusing especially on the smallest text which is borderline unreadable. Pay attention to UX on this, not just aesthetics. If you need to change fonts its fine, I quite like the one we have now but totally accept changing it if it's not conducive to a good UX. Font sizes across the application could maybe use a more consistent approach; would it make sense to introduce static variables for sizing consistency? I'm thinking like H1, H2, and H3 conceptually, but also for subheadings and body fonts? Maybe icon sizes too? 
+- The src/components/plan/stages folder has gotten rather unruly. Clean it up based on which stage the file is used in by putting them in relevant directories. The /src/components/plan directory files might make sense in a 'commons' folder under the same parent directory.
 
 ---
 
