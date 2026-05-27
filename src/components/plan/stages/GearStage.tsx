@@ -194,7 +194,7 @@ export function GearStage({ onJump, plan, onChange }: StageBodyProps) {
                 </div>
                 <div className="text-[12px] text-text-mid leading-relaxed">
                   Pre-filled from your{' '}
-                  <JumpChip to="days" onJump={onJump}>8-day plan</JumpChip>.
+                  <JumpChip to="weather" onJump={onJump}>8-day plan</JumpChip>.
                   {' '}Tweak now — we'll re-balance weights once{' '}
                   <JumpChip to="permits" onJump={onJump}>Permits</JumpChip>{' '}confirms.
                 </div>

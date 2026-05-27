@@ -1,6 +1,6 @@
 import type { Trip } from '../../types'
 
-export type StageId = 'route' | 'days' | 'permits' | 'food' | 'gear' | 'depart' | 'journal'
+export type StageId = 'route' | 'weather' | 'permits' | 'food' | 'gear' | 'depart' | 'journal'
 
 export interface Stage {
   id: StageId
@@ -95,10 +95,36 @@ export interface PlanDepartData {
   checklist: { text: string; done: boolean; pending?: boolean }[]
 }
 
+// ─── Weather stage persistence types ─────────────────────────────────────────
+
+export interface WeatherForecastDay {
+  date: string
+  highF: number
+  lowF: number
+  precipPct: number
+  conditionCode: number
+  conditionLabel: string
+  windMph: number
+  windDir: string
+}
+
+export interface PlanWeatherData {
+  historicalReviewed: boolean
+  forecastChecked: boolean
+  sunriseReviewed: boolean
+  gearAdjusted: boolean
+  departureRisk: 'low' | 'moderate' | 'high' | null
+  notes: string
+  cachedCoords?:   { lat: number; lng: number; fetchedAt: string; forLocation: string }
+  cachedClimate?:  { avgHighF: number; avgLowF: number; precipPct: number; snowLikely: boolean; fetchedAt: string; forLocation: string }
+  cachedForecast?: { days: WeatherForecastDay[]; fetchedAt: string; forLocation: string }
+}
+
 // ─── PlanData — top-level shape passed from PlanWizard to each stage ──────────
 
 export interface PlanData {
   route?: PlanRouteData
+  weather?: PlanWeatherData
   permits?:{ permits: PlanPermitEntry[]; permitFree: boolean }
   food?: {
     meals: PlanMealEntry[]
@@ -127,4 +153,5 @@ export interface StageBodyProps {
   tripStatus?: string
   trip?: Trip
   canEdit?: boolean
+  onEditTrip?: () => void
 }

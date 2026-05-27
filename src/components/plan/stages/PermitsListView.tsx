@@ -37,7 +37,7 @@ export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, o
             Suggestions pulled from{' '}
             <JumpChip to="route" onJump={onJump}>Route</JumpChip>
             {' · '}party of 4 from{' '}
-            <JumpChip to="days" onJump={onJump}>Days</JumpChip>
+            <JumpChip to="weather" onJump={onJump}>Weather</JumpChip>
             {' · '}
             {partyConfirmed ? (
               <span className="text-pine">confirmed <span className="inline-block">✓</span></span>

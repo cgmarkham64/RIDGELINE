@@ -111,7 +111,7 @@ function TargetsCard({ targets, onTargetChange, days, onJump }: {
       </div>
       <div className="font-mono text-[9px] text-text-mid mt-2.5">
         Pulled from{' '}
-        <JumpChip to="days" onJump={onJump}>{days} days</JumpChip>
+        <JumpChip to="weather" onJump={onJump}>{days} days</JumpChip>
         {' · '}adjusted for tough days (D4, D8)
       </div>
     </div>

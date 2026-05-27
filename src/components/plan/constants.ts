@@ -3,7 +3,7 @@ import type { Stage, StageId } from './types'
 // Static metadata — use for label/length lookups only, never mutate.
 export const STAGES: Stage[] = [
   { id: 'route',   n: '01', label: 'Route & Partners', sub: 'Where',  done: 0, total: 8 },
-  { id: 'days',    n: '02', label: 'Days',    sub: 'Day-by-day',      done: 0, total: 8 },
+  { id: 'weather', n: '02', label: 'Weather',  sub: 'Forecast',        done: 0, total: 5 },
   { id: 'permits', n: '03', label: 'Permits', sub: 'Travel & Access', done: 0, total: 7 },
   { id: 'food',    n: '04', label: 'Food',    sub: 'Calories & H₂O',  done: 0, total: 6 },
   { id: 'gear',    n: '05', label: 'Gear',    sub: 'Loadout',         done: 0, total: 5, blocked: true },
@@ -18,7 +18,7 @@ export function createStages(): Stage[] {
 
 export const STAGE_TITLES: Record<StageId, string> = {
   route:   'Pick your route.',
-  days:    'Lay out the days.',
+  weather: 'Check the forecast.',
   permits: 'Permits & travel logistics.',
   food:    'Food and water.',
   gear:    'Pack the gear.',
@@ -28,7 +28,7 @@ export const STAGE_TITLES: Record<StageId, string> = {
 
 export const STAGE_SUBS: Record<StageId, string> = {
   route:   'Define entry, exit, and the line through. Mileage and gain auto-tally.',
-  days:    'Slot camps and daily mileage. Pulls directly from the route you chose.',
+  weather: 'Historical climate, sunrise/sunset, live forecast, and departure window.',
   permits: "Lock down access and how everyone gets to the trailhead. We'll surface critical dates.",
   food:    'Calorie targets and water. Resupply pulls dates from your day plan.',
   gear:    'Loadout. Bear-can sizing and weight depend on Permits and Food being settled first.',
@@ -38,7 +38,7 @@ export const STAGE_SUBS: Record<StageId, string> = {
 
 export const STAGE_DESCRIPTIONS: Record<StageId, string> = {
   route:   'Entry and exit trailheads, segments with mileage and elevation gain, trip partners, and GPS source files for the map and elevation profile.',
-  days:    'Day-by-day itinerary: camp locations, daily mileage, water sources, exposure ratings, and time targets for each day on trail.',
+  weather: 'Historical monthly climate normals, per-day sunrise and sunset, 10-day live forecast within 14 days of departure, and a synthesised go/caution/delay window.',
   permits: 'Every permit, pass, and access requirement — lottery windows, reservation dates, party sizes, and zone assignments.',
   food:    'Calorie targets and meal planning for each day, resupply logistics, water source confirmation, and bear canister selection.',
   gear:    'Full loadout by category with item weights. Depends on Permits and Food being confirmed first for accurate bear-can sizing.',

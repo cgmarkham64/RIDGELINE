@@ -5,7 +5,7 @@ import { StageRail } from './StageRail'
 import { StageHeader } from './StageHeader'
 import { PlanOverview } from './PlanOverview'
 import { RouteStage } from './stages/RouteStage'
-import { DaysStage } from './stages/DaysStage'
+import { WeatherStage } from './stages/WeatherStage'
 import { PermitsStage } from './stages/PermitsStage'
 import { FoodStage } from './stages/FoodStage'
 import { GearStage } from './stages/GearStage'
@@ -24,7 +24,7 @@ const BASE_STAGES = createStages()
 
 const STAGE_COMPONENTS: Record<StageId, React.ComponentType<StageBodyProps>> = {
   route:   RouteStage,
-  days:    DaysStage,
+  weather: WeatherStage,
   permits: PermitsStage,
   food:    FoodStage,
   gear:    GearStage,
@@ -125,6 +125,11 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
       if (s.id === 'route') {
         const cl = plan.route?.checklist ?? []
         seeded = { ...s, done: cl.filter(c => c.done).length }
+      }
+      if (s.id === 'weather') {
+        const w = plan.weather
+        const checks = w ? [w.historicalReviewed, w.sunriseReviewed, w.forecastChecked, w.gearAdjusted, w.departureRisk !== null] : []
+        seeded = { ...s, done: checks.filter(Boolean).length }
       }
       const override = progressOverrides[i]
       return override ? { ...seeded, ...override } : seeded
@@ -312,6 +317,7 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
                 tripStatus={savedPlan.status}
                 trip={savedPlan}
                 canEdit={canEdit}
+                onEditTrip={() => setShowEditDetails(true)}
               />
             </div>
           </main>

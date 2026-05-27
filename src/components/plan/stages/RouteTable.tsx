@@ -207,7 +207,7 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
         {segments.length > 0 && (
           <span className="font-mono text-[9px] text-text-dim">
             {segments.length} seg{segments.length !== 1 ? 's' : ''} · auto-pulls into{' '}
-            <JumpChip to="days" onJump={onJump}>Days</JumpChip>
+            <JumpChip to="weather" onJump={onJump}>Weather</JumpChip>
           </span>
         )}
         {waterError && <span className="font-mono text-[9px] text-red" title={waterError}>· water error</span>}
