@@ -73,14 +73,19 @@ const RISK_STYLE: Record<'low' | 'moderate' | 'high', { label: string; border: s
 // ─── WeatherStage ─────────────────────────────────────────────────────────────
 
 export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit = true, onEditTrip }: StageBodyProps) {
-  const tripLoc = trip?.location ?? ''
+  const tripLoc  = trip?.location ?? ''
+  // Normalize to YYYY-MM-DD — API dates may arrive as full ISO strings
+  const startDate = trip?.startDate?.slice(0, 10) ?? ''
+  const endDate   = trip?.endDate?.slice(0, 10) ?? ''
+  const hasDates  = !!(startDate && endDate)
+  const tripMonth = hasDates ? new Date(startDate + 'T00:00:00').getMonth() + 1 : null
 
   const [wd, setWd] = useState<PlanWeatherData>(() => {
     const base = plan?.weather ?? INITIAL_WEATHER
     // Pre-compute departure risk if cached forecast exists but risk wasn't stored
-    if (base.cachedForecast && base.departureRisk === null && trip?.startDate && trip?.endDate) {
+    if (base.cachedForecast && base.departureRisk === null && startDate && endDate) {
       const { overall } = calcDepartureRisk(
-        base.cachedForecast.days, trip.startDate, trip.endDate, avgElevationFt(trip),
+        base.cachedForecast.days, startDate, endDate, trip ? avgElevationFt(trip) : null,
       )
       return { ...base, departureRisk: overall }
     }
@@ -101,9 +106,6 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
   useEffect(() => { onChangeRef.current   = onChange })
   useEffect(() => { onProgressRef.current = onProgress })
   useEffect(() => { wdRef.current = wd }, [wd])
-
-  const hasDates  = !!(trip?.startDate && trip?.endDate)
-  const tripMonth = hasDates ? new Date(trip!.startDate + 'T00:00:00').getMonth() + 1 : null
   const coordsLat = wd.cachedCoords?.lat
   const coordsLng = wd.cachedCoords?.lng
 
@@ -140,13 +142,11 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
 
   // ── Live forecast — only within 14-day window ─────────────────────────────
   useEffect(() => {
-    if (!coordsLat || !coordsLng || !tripLoc || !trip?.startDate || !trip?.endDate) return
-    if (!inForecastWindow(trip.startDate)) return
+    if (!coordsLat || !coordsLng || !tripLoc || !hasDates) return
+    if (!inForecastWindow(startDate)) return
     if (isForecastCacheValid(wdRef.current.cachedForecast, tripLoc)) return
-    const startDate = trip.startDate
-    const endDate   = trip.endDate
-    const elevFt    = avgElevationFt(trip)
-    let cancelled   = false
+    const elevFt  = trip ? avgElevationFt(trip) : null
+    let cancelled = false
     fetchForecast(coordsLat, coordsLng)
       .then(days => {
         if (cancelled) return
@@ -160,7 +160,7 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
       })
       .catch(() => { if (!cancelled) setForecastError(true) })
     return () => { cancelled = true }
-  }, [coordsLat, coordsLng, tripLoc, trip?.startDate, trip?.endDate, trip])
+  }, [coordsLat, coordsLng, tripLoc, hasDates, startDate, endDate, trip])
 
   // ── Persist changes ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -182,14 +182,14 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
 
   // Factors list for display — recomputed from cached forecast + current trip dates
   const computedRisk = useMemo(() => {
-    if (!wd.cachedForecast || !trip?.startDate || !trip?.endDate) return null
-    return calcDepartureRisk(wd.cachedForecast.days, trip.startDate, trip.endDate, avgElevationFt(trip))
-  }, [wd.cachedForecast, trip])
+    if (!wd.cachedForecast || !hasDates) return null
+    return calcDepartureRisk(wd.cachedForecast.days, startDate, endDate, trip ? avgElevationFt(trip) : null)
+  }, [wd.cachedForecast, hasDates, startDate, endDate, trip])
 
   const sunRows = useMemo(() => {
     if (!coordsLat || !coordsLng || !hasDates) return []
-    return tripSunRows(coordsLat, coordsLng, trip!.startDate, trip!.endDate)
-  }, [coordsLat, coordsLng, hasDates, trip])
+    return tripSunRows(coordsLat, coordsLng, startDate, endDate)
+  }, [coordsLat, coordsLng, hasDates, startDate, endDate])
 
   function toggle(field: 'historicalReviewed' | 'forecastChecked' | 'sunriseReviewed' | 'gearAdjusted') {
     if (!canEdit) return
@@ -199,7 +199,7 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
   // Derived loading indicators — no separate loading state needed
   const geoLoading      = !!tripLoc && (!wd.cachedCoords  || wd.cachedCoords.forLocation  !== tripLoc) && !geoError
   const climateLoading  = !!coordsLat && !!tripMonth && (!wd.cachedClimate  || wd.cachedClimate.forLocation  !== tripLoc) && !climateError
-  const forecastLoading = !!coordsLat && inForecastWindow(trip?.startDate ?? '') && (!wd.cachedForecast || wd.cachedForecast.forLocation !== tripLoc) && !forecastError
+  const forecastLoading = !!coordsLat && inForecastWindow(startDate) && (!wd.cachedForecast || wd.cachedForecast.forLocation !== tripLoc) && !forecastError
 
   // ── Missing dates gate ────────────────────────────────────────────────────
   if (!hasDates) {
@@ -233,8 +233,8 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
   const climate   = wd.cachedClimate
   const forecast  = wd.cachedForecast
   const doneCount = checklist.filter(c => c.done).length
-  const inWindow  = inForecastWindow(trip!.startDate)
-  const daysAway  = daysUntil(trip!.startDate)
+  const inWindow  = inForecastWindow(startDate)
+  const daysAway  = daysUntil(startDate)
   const risk      = wd.departureRisk
   const riskStyle = risk ? RISK_STYLE[risk] : null
 
@@ -251,9 +251,9 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
             <div className="flex-1 min-w-0">
               <div className="text-[13px] font-semibold text-text truncate">{trip!.location || '—'}</div>
               <div className="font-mono text-[9px] text-text-dim mt-0.5">
-                {new Date(trip!.startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                {new Date(startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 {' – '}
-                {new Date(trip!.endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                {new Date(endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 {' · '}{sunRows.length} day{sunRows.length !== 1 ? 's' : ''}
                 {coordsLat != null ? ` · ${coordsLat.toFixed(2)}°, ${coordsLng!.toFixed(2)}°` : ''}
               </div>
@@ -266,7 +266,7 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
           <div className="bg-surface border border-border rounded-lg p-[18px]">
             <div className="flex items-center justify-between mb-3">
               <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">
-                Typical {new Date(trip!.startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long' })} · 3-yr avg
+                Typical {new Date(startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long' })} · 3-yr avg
               </div>
               {canEdit && (
                 <button type="button" onClick={() => toggle('historicalReviewed')}
@@ -339,7 +339,7 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
               <div className="px-4 py-6 text-center">
                 <div className="font-heading text-[15px] font-bold text-text mb-1">Not in forecast range yet.</div>
                 <div className="font-mono text-[11px] text-text-mid">
-                  Check back <span className="text-amber font-semibold">{forecastTargetDate(trip!.startDate)}</span>
+                  Check back <span className="text-amber font-semibold">{forecastTargetDate(startDate)}</span>
                   {daysAway > 14 ? ` · ${daysAway - 14} days from now` : ''}
                 </div>
               </div>
@@ -426,7 +426,7 @@ export function WeatherStage({ onJump, plan, onChange, onProgress, trip, canEdit
             {checklist.map((c, idx) => {
               const gated = idx === 1 && !inWindow
               return (
-                <div key={c.text} title={gated ? `Forecast available ${forecastTargetDate(trip!.startDate)}` : undefined} className={gated ? 'opacity-40' : ''}>
+                <div key={c.text} title={gated ? `Forecast available ${forecastTargetDate(startDate)}` : undefined} className={gated ? 'opacity-40' : ''}>
                   <CheckItem text={c.text} done={c.done} />
                 </div>
               )
