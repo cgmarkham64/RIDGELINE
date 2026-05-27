@@ -10,6 +10,7 @@ Every trip in Ridgeline starts as a plan. The Plan Wizard IS how trips are creat
 
 ---
 
+
 ### Wizard Stage Gaps
 
 All seven stages render with internal state. The items below are UI stubs, disconnected wiring, or hardcoded values that need real data before the wizard is production-ready.
@@ -19,7 +20,6 @@ All seven stages render with internal state. The items below are UI stubs, disco
 
 **Stage 2 — Weather** *(replaces Days; full stage to be built)*
 
-- Rename all Day stage related things with appropriate names related to Weather
 - **Data model**: Add `PlanWeatherData` slice to `PlanData` replacing `days?`. Minimum shape: `{ historicalReviewed: boolean; forecastChecked: boolean; sunriseReviewed: boolean; departureRisk: 'low' | 'moderate' | 'high' | null; notes: string }`. Wire `onChange` and `onProgress` from the start — don't repeat the Days mistake of leaving them unwired.
 - **Location + date banner**: Derive region, date range, and trip length from `trip.location` + `trip.startDate` / `endDate`. If dates are unset, show an amber prompt linking to `TripSetupDialog` — nothing else in the stage can compute without them.
 - **Historical climate card**: Monthly averages for the trip location and calendar month — avg high/low, precipitation probability, snow likelihood. API: Open-Meteo historical climate (`climate-api.open-meteo.com`) — free, no key, accepts lat/lng + month. Forward-geocode `trip.location` via Nominatim (already used in RouteStage for reverse geocode) to obtain coordinates. Cache the result in `PlanWeatherData` so it survives page reloads without re-fetching.
@@ -151,7 +151,6 @@ Full gear inventory system:
 - **Route stage** — Exposure auto calculation based on canopy coverage vs. mileage without water vs. altitude vs. treacherousness of trail (are we on the side of a cliff?)
 - Give user ability to adjust their own Shenandoah hardness scale via user settings - not all users will be the same and we can probably leverage fitness data alongside this in the future to give a better idea of difficulty
 - When user is entering wake, on-trail, and camp-by times on a segment in the Route stage, give feedback if their schedule is IMPOSSIBLE, TOUGH, ACHIEVABLE (the sweet spot), or EASY for the day. Tie into the TOUGH chips that already exist. Average hike speed is 2 mph. Factor in climbs slowing down and descents speeding up.
-- User defaults for wake, camp-by and on-trail times
 
 ---
 
@@ -179,4 +178,5 @@ Full gear inventory system:
 - **Wizard Stage Gaps** — Segments CRUD (add/edit/delete via dialog), live checklist with `onProgress` wired to stage rail, real partners from `sharedWith`, inline partner invite panel, map placeholder pending Leaflet + GPX.
 - **Route stage map + GPX** — Replaced map placeholder with live Leaflet map (CARTO dark tiles, dashed planned-route polyline, start/end markers). GPX import via button and drag-and-drop onto the map card; replace and remove supported. `ElevationProfile` card wired below the map. Source files section derives from `trip.gpxPlanned` / `gpxTracks` with computed distance; per-file download button reconstructs and saves a valid `.gpx` from stored coordinates.
 - **Backend cleanup — route helpers** — `server/src/utils/routeHelpers.ts` introduces `HttpError`, `asyncRoute`, `requireOwner`, and `formatUserResponse`. Every route handler now wrapped in `asyncRoute` (fixes previously unprotected handlers in `loadouts.ts`, `gearItems.ts`, `journalDays.ts`, `journalScan.ts`, notifications GET/DELETE/patch). Ownership guards replaced with `requireOwner` throughout. `signToken` extracted locally in `localAuth.ts`. `journalDays.ts` `sharedWith` access check fixed to handle both string and `{sub,role}` entries.
+- **User time defaults** — `TimePreference` / `UserPreferences` types; `preferences` field on `UserProfile` with lazy migration in `GET /me`; `PUT /me/preferences` with manual validation; `resolveTimePreference` helper; Route stage `triggerSunFetch` reads from auth store instead of hardcoded offsets; Account dialog "Default times" section with relative (anchor + signed offset) and fixed (HH:MM) modes.
 - **Backend cleanup — service extraction + dedup** — `server/src/services/tripService.ts` centralises trip access logic (`normalizeShared`, `canRead`, `populateTripUsers`, `fetchTripForRead/Write`); `scanService.ts` moves the Claude API call, size validation, and JSON parse out of the route. `utils/objectId.ts` exports `validObjectId`; `utils/crudFactory.ts` exports `makeOwnerCrudRouter` — `loadouts.ts` and `gearItems.ts` each collapse to 3 lines. Backend Code Cleanup section fully resolved.
