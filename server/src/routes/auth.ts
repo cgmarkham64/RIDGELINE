@@ -1,20 +1,66 @@
 import { Router } from 'express'
-import { UserProfile } from '../models/UserProfile'
+import { UserProfile, DEFAULT_PREFERENCES } from '../models/UserProfile'
+import type { UserPreferences } from '../models/UserProfile'
 import { asyncRoute, HttpError, formatUserResponse } from '../utils/routeHelpers'
 
 const router = Router()
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 
+function validateTimePref(pref: unknown, field: string): void {
+  if (!pref || typeof pref !== 'object') throw new HttpError(400, `${field}: must be an object`)
+  const p = pref as Record<string, unknown>
+  const allowed = new Set(['mode', 'anchor', 'offsetMinutes', 'staticTime'])
+  for (const k of Object.keys(p)) {
+    if (!allowed.has(k)) throw new HttpError(400, `${field}: unknown key '${k}'`)
+  }
+  if (p.mode !== 'relative' && p.mode !== 'static') {
+    throw new HttpError(400, `${field}.mode: must be 'relative' or 'static'`)
+  }
+  if (p.mode === 'relative') {
+    if (p.anchor !== 'sunrise' && p.anchor !== 'sunset') {
+      throw new HttpError(400, `${field}.anchor: must be 'sunrise' or 'sunset' for relative mode`)
+    }
+    if (typeof p.offsetMinutes !== 'number' || !Number.isInteger(p.offsetMinutes)) {
+      throw new HttpError(400, `${field}.offsetMinutes: must be an integer`)
+    }
+  }
+  if (p.mode === 'static') {
+    if (typeof p.staticTime !== 'string' || !/^\d{2}:\d{2}$/.test(p.staticTime)) {
+      throw new HttpError(400, `${field}.staticTime: must be HH:MM`)
+    }
+  }
+}
+
+function validatePreferences(prefs: unknown): asserts prefs is UserPreferences {
+  if (!prefs || typeof prefs !== 'object') throw new HttpError(400, 'preferences must be an object')
+  const p = prefs as Record<string, unknown>
+  const allowed = new Set(['wakeTime', 'onTrailTime', 'campByTime'])
+  for (const k of Object.keys(p)) {
+    if (!allowed.has(k)) throw new HttpError(400, `preferences: unknown key '${k}'`)
+  }
+  validateTimePref(p.wakeTime, 'wakeTime')
+  validateTimePref(p.onTrailTime, 'onTrailTime')
+  validateTimePref(p.campByTime, 'campByTime')
+}
+
 // GET /me — syncs name + email from the token into UserProfile on every call,
-// then returns the profile (which adds avatarUrl stored app-side).
+// then returns the profile (which adds avatarUrl + preferences stored app-side).
 router.get('/me', asyncRoute(async (req, res) => {
   const { sub, name, email } = req.user
-  const profile = await UserProfile.findOneAndUpdate(
+  let profile = await UserProfile.findOneAndUpdate(
     { sub },
     { $set: { name, email } },
     { upsert: true, new: true }
   )
+  // Lazy migration: backfill preferences for existing accounts that predate this field
+  if (!profile.preferences) {
+    profile = (await UserProfile.findOneAndUpdate(
+      { sub },
+      { $set: { preferences: DEFAULT_PREFERENCES } },
+      { new: true }
+    ))!
+  }
   res.json({ user: formatUserResponse(sub, email, name, profile) })
 }))
 
@@ -44,6 +90,18 @@ router.delete('/me/avatar', asyncRoute(async (req, res) => {
     { upsert: true }
   )
   res.json({ user: formatUserResponse(sub, email, name) })
+}))
+
+router.put('/me/preferences', asyncRoute(async (req, res) => {
+  const { preferences } = req.body
+  validatePreferences(preferences)
+  const { sub, name, email } = req.user
+  const profile = await UserProfile.findOneAndUpdate(
+    { sub },
+    { $set: { preferences } },
+    { upsert: true, new: true }
+  )
+  res.json({ user: formatUserResponse(sub, email, name, profile) })
 }))
 
 export default router

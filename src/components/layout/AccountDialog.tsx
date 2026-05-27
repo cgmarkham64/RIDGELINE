@@ -1,8 +1,10 @@
 import React, { useRef, useState } from 'react'
 import { useAuthStore } from '../../store/auth'
-import { uploadAvatar, removeAvatar } from '../../lib/auth'
+import { uploadAvatar, removeAvatar, updatePreferences } from '../../lib/auth'
 import { initials } from '../../lib/utils'
 import { IconX } from '../icons'
+import type { TimePreference, UserPreferences } from '../../types/auth'
+import { DEFAULT_USER_PREFERENCES } from '../../types/auth'
 
 interface Props {
   onClose: () => void
@@ -38,23 +40,95 @@ function apiError(err: unknown, fallback: string): string {
   return fallback
 }
 
+function TimePrefRow({ label, pref, onChange }: {
+  label: string
+  pref: TimePreference
+  onChange: (patch: Partial<TimePreference>) => void
+}) {
+  const selectCls = 'bg-surface-2 border border-border rounded-sm px-2 py-1.5 text-text font-mono text-[11px] outline-none focus:border-amber cursor-pointer'
+  const inputCls  = 'bg-surface-2 border border-border rounded-sm px-2 py-1.5 text-text font-mono text-[11px] outline-none focus:border-amber w-16 text-center'
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="font-mono text-[11px] text-text-mid w-20 shrink-0">{label}</span>
+      <select
+        value={pref.mode}
+        onChange={e => onChange({ mode: e.target.value as TimePreference['mode'], staticTime: undefined, anchor: 'sunrise', offsetMinutes: 0 })}
+        className={selectCls}
+      >
+        <option value="relative">Relative</option>
+        <option value="static">Fixed time</option>
+      </select>
+      {pref.mode === 'relative' ? (
+        <>
+          <select
+            value={pref.anchor ?? 'sunrise'}
+            onChange={e => onChange({ anchor: e.target.value as 'sunrise' | 'sunset' })}
+            className={selectCls}
+          >
+            <option value="sunrise">Sunrise</option>
+            <option value="sunset">Sunset</option>
+          </select>
+          <input
+            type="number"
+            value={pref.offsetMinutes ?? 0}
+            onChange={e => onChange({ offsetMinutes: parseInt(e.target.value, 10) || 0 })}
+            className={inputCls}
+          />
+          <span className="font-mono text-[10px] text-text-dim">min</span>
+        </>
+      ) : (
+        <input
+          type="time"
+          value={pref.staticTime ?? '06:00'}
+          onChange={e => onChange({ staticTime: e.target.value })}
+          className={inputCls + ' w-24'}
+        />
+      )}
+    </div>
+  )
+}
 
 export function AccountDialog({ onClose }: Props) {
   const { user, updateUser } = useAuthStore()
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Avatar
   const [avatarSaving, setAvatarSaving] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
 
+  const [timePrefs, setTimePrefs] = useState<UserPreferences>(
+    () => user?.preferences ?? DEFAULT_USER_PREFERENCES
+  )
+  const [prefsSaving, setPrefsSaving] = useState(false)
+  const [prefsError, setPrefsError] = useState<string | null>(null)
+  const [prefsSaved, setPrefsSaved] = useState(false)
 
   if (!user) return null
+
+  function patchTimePref(key: keyof UserPreferences, patch: Partial<TimePreference>) {
+    setTimePrefs(prev => ({ ...prev, [key]: { ...prev[key], ...patch } }))
+    setPrefsSaved(false)
+  }
+
+  async function handleSavePreferences() {
+    setPrefsSaving(true)
+    setPrefsError(null)
+    try {
+      const updated = await updatePreferences(timePrefs)
+      updateUser({ preferences: updated.preferences })
+      setPrefsSaved(true)
+      setTimeout(() => setPrefsSaved(false), 2500)
+    } catch (err: unknown) {
+      setPrefsError(apiError(err, 'Save failed. Please try again.'))
+    } finally {
+      setPrefsSaving(false)
+    }
+  }
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validate before any async work
     if (!file.type.startsWith('image/')) {
       setAvatarError('File must be an image (JPEG, PNG, WEBP, etc.)')
       if (fileRef.current) fileRef.current.value = ''
@@ -185,6 +259,42 @@ export function AccountDialog({ onClose }: Props) {
             </div>
           </div>
 
+          {/* ── Default times ───────────────────────────────────────────────── */}
+          <div className="border-t border-border pt-4 flex flex-col gap-3">
+            <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Default times</label>
+            <div className="flex flex-col gap-2.5">
+              <TimePrefRow
+                label="Wake"
+                pref={timePrefs.wakeTime}
+                onChange={patch => patchTimePref('wakeTime', patch)}
+              />
+              <TimePrefRow
+                label="On trail"
+                pref={timePrefs.onTrailTime}
+                onChange={patch => patchTimePref('onTrailTime', patch)}
+              />
+              <TimePrefRow
+                label="Camp by"
+                pref={timePrefs.campByTime}
+                onChange={patch => patchTimePref('campByTime', patch)}
+              />
+            </div>
+            {prefsError && (
+              <p className="font-mono text-[10px] text-red m-0">{prefsError}</p>
+            )}
+            <button
+              onClick={handleSavePreferences}
+              disabled={prefsSaving}
+              className="self-start font-mono text-[11px] px-3 py-1.5 rounded-sm border transition-colors duration-80 cursor-pointer disabled:opacity-50 disabled:cursor-default"
+              style={{
+                background: prefsSaved ? 'var(--color-amber)' : 'var(--color-surface-2)',
+                borderColor: prefsSaved ? 'var(--color-amber)' : 'var(--color-border)',
+                color: prefsSaved ? 'var(--color-surface)' : 'var(--color-text-mid)',
+              }}
+            >
+              {prefsSaving ? 'Saving…' : prefsSaved ? 'Saved' : 'Save defaults'}
+            </button>
+          </div>
 
         </div>
       </div>

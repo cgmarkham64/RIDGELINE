@@ -192,6 +192,16 @@ export function splitSegmentAt(
   }
 }
 
+export function resolveTimePreference(
+  pref: { mode: string; anchor?: string; offsetMinutes?: number; staticTime?: string },
+  sunriseHHMM: string,
+  sunsetHHMM: string,
+): string {
+  if (pref.mode === 'static') return pref.staticTime ?? sunriseHHMM
+  const anchor = pref.anchor === 'sunset' ? sunsetHHMM : sunriseHHMM
+  return addMinutesToTime(anchor, pref.offsetMinutes ?? 0)
+}
+
 export function addMinutesToTime(hhmm: string, minutes: number): string {
   const [h, m] = hhmm.split(':').map(Number)
   const total = ((h * 60 + m + minutes) % 1440 + 1440) % 1440

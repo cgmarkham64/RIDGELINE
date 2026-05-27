@@ -5,8 +5,10 @@ import { fetchDetectedWaterSources, type DetectedWaterSource } from '../../../li
 import {
   toLatLngs, gpxCoordsToMiles, buildMergedRows,
   DEFAULT_CHECKLIST, PARTNER_ITEMS, fetchRoutePreview, reverseGeocode,
-  fetchSunTimes, addMinutesToTime, splitSegmentAt,
+  fetchSunTimes, splitSegmentAt, resolveTimePreference,
 } from './routeStage.helpers'
+import { useAuthStore } from '../../../store/auth'
+import { DEFAULT_USER_PREFERENCES } from '../../../types/auth'
 import type { SegRow, CheckRow, DrawState } from './routeStage.types'
 import { RouteMapCard, type RouteMapCardHandle } from './RouteMapCard'
 import { RouteTable, type RouteTableHandle } from './RouteTable'
@@ -155,9 +157,14 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
         return {
           ...prev,
           sunTimesLoading: false,
-          wakeTime:    prev.wakeTime    ?? result.sunrise,
-          onTrailTime: prev.onTrailTime ?? addMinutesToTime(result.sunrise, 60),
-          campByTime:  prev.campByTime  ?? addMinutesToTime(result.sunset, -60),
+          ...((): object => {
+            const prefs = useAuthStore.getState().user?.preferences ?? DEFAULT_USER_PREFERENCES
+            return {
+              wakeTime:    prev.wakeTime    ?? resolveTimePreference(prefs.wakeTime,    result.sunrise, result.sunset),
+              onTrailTime: prev.onTrailTime ?? resolveTimePreference(prefs.onTrailTime, result.sunrise, result.sunset),
+              campByTime:  prev.campByTime  ?? resolveTimePreference(prefs.campByTime,  result.sunrise, result.sunset),
+            }
+          })(),
         }
       })
     } catch {

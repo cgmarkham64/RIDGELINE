@@ -1,10 +1,32 @@
 import { Schema, model } from 'mongoose'
 
+export type SunAnchor = 'sunrise' | 'sunset'
+
+export interface TimePreference {
+  mode: 'relative' | 'static'
+  anchor?: SunAnchor
+  offsetMinutes?: number
+  staticTime?: string
+}
+
+export interface UserPreferences {
+  wakeTime: TimePreference
+  onTrailTime: TimePreference
+  campByTime: TimePreference
+}
+
+export const DEFAULT_PREFERENCES: UserPreferences = {
+  wakeTime:    { mode: 'relative', anchor: 'sunrise', offsetMinutes: 0 },
+  onTrailTime: { mode: 'relative', anchor: 'sunrise', offsetMinutes: 60 },
+  campByTime:  { mode: 'relative', anchor: 'sunset',  offsetMinutes: -60 },
+}
+
 interface IUserProfile {
   sub: string
   name: string
   email: string
   avatarUrl?: string
+  preferences?: UserPreferences
 }
 
 const UserProfileSchema = new Schema<IUserProfile>(
@@ -13,6 +35,7 @@ const UserProfileSchema = new Schema<IUserProfile>(
     name:     { type: String, required: true },
     email:    { type: String, required: true },
     avatarUrl: { type: String },
+    preferences: { type: Schema.Types.Mixed, default: () => ({ ...DEFAULT_PREFERENCES }) },
   },
   { timestamps: true }
 )

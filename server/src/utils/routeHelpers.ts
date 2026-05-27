@@ -1,12 +1,14 @@
 import { Request, Response, RequestHandler } from 'express'
+import type { UserPreferences } from '../models/UserProfile'
 
 export function formatUserResponse(
   sub: string,
   email: string,
   name: string,
-  profile?: { avatarUrl?: string | null } | null,
-): { id: string; email: string; name: string; avatarUrl: string | null } {
-  return { id: sub, email, name, avatarUrl: profile?.avatarUrl ?? null }
+  profile?: { avatarUrl?: string | null; preferences?: UserPreferences | null } | null,
+): { id: string; email: string; name: string; avatarUrl: string | null; preferences?: UserPreferences } {
+  const base = { id: sub, email, name, avatarUrl: profile?.avatarUrl ?? null }
+  return profile?.preferences ? { ...base, preferences: profile.preferences } : base
 }
 
 export class HttpError extends Error {
