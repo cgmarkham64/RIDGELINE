@@ -40,21 +40,52 @@ function apiError(err: unknown, fallback: string): string {
   return fallback
 }
 
+function InfoTooltip({ text, align = 'center' }: { text: string; align?: 'center' | 'right' }) {
+  const [open, setOpen] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pos = align === 'right' ? 'right-0' : 'left-1/2 -translate-x-1/2'
+
+  function show() {
+    if (timer.current) clearTimeout(timer.current)
+    setOpen(true)
+  }
+  function hide() {
+    timer.current = setTimeout(() => setOpen(false), 80)
+  }
+
+  return (
+    <div className="relative inline-flex items-center shrink-0">
+      <span
+        onMouseEnter={show} onMouseLeave={hide}
+        className="w-3.5 h-3.5 rounded-full border border-text-dim/50 flex items-center justify-center cursor-default text-text-dim hover:border-amber hover:text-amber transition-colors duration-80"
+      >
+        <span className="font-mono text-[8px] leading-none select-none">i</span>
+      </span>
+      <div
+        onMouseEnter={show} onMouseLeave={hide}
+        className={`absolute bottom-full mb-2 w-48 bg-surface-3 border border-border-mid rounded px-2.5 py-2 font-mono text-[10px] text-text-mid leading-relaxed z-50 whitespace-normal transition-opacity duration-200 ease-out ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'} ${pos}`}
+      >
+        {text}
+      </div>
+    </div>
+  )
+}
+
 function TimePrefRow({ label, pref, onChange }: {
   label: string
   pref: TimePreference
   onChange: (patch: Partial<TimePreference>) => void
 }) {
-  const selectCls = 'bg-surface-2 border border-border rounded-sm px-2 py-1.5 text-text font-mono text-[11px] outline-none focus:border-amber cursor-pointer'
-  const inputCls  = 'bg-surface-2 border border-border rounded-sm px-2 py-1.5 text-text font-mono text-[11px] outline-none focus:border-amber w-16 text-center'
+  const selectCls = 'bg-surface-2 border border-border rounded-sm px-2 py-1.5 text-text font-mono text-[11px] outline-none focus:border-amber cursor-pointer shrink-0'
+  const inputCls  = 'bg-surface-2 border border-border rounded-sm px-2 py-1.5 text-text font-mono text-[11px] outline-none focus:border-amber text-center shrink-0'
 
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <span className="font-mono text-[11px] text-text-mid w-20 shrink-0">{label}</span>
+    <div className="flex items-center gap-1.5">
+      <span className="font-mono text-[11px] text-text-mid w-[58px] shrink-0">{label}</span>
       <select
         value={pref.mode}
         onChange={e => onChange({ mode: e.target.value as TimePreference['mode'], staticTime: undefined, anchor: 'sunrise', offsetMinutes: 0 })}
-        className={selectCls}
+        className={selectCls + ' w-[88px]'}
       >
         <option value="relative">Relative</option>
         <option value="static">Fixed time</option>
@@ -64,7 +95,7 @@ function TimePrefRow({ label, pref, onChange }: {
           <select
             value={pref.anchor ?? 'sunrise'}
             onChange={e => onChange({ anchor: e.target.value as 'sunrise' | 'sunset' })}
-            className={selectCls}
+            className={selectCls + ' w-[74px]'}
           >
             <option value="sunrise">Sunrise</option>
             <option value="sunset">Sunset</option>
@@ -73,16 +104,17 @@ function TimePrefRow({ label, pref, onChange }: {
             type="number"
             value={pref.offsetMinutes ?? 0}
             onChange={e => onChange({ offsetMinutes: parseInt(e.target.value, 10) || 0 })}
-            className={inputCls}
+            className={inputCls + ' w-[56px]'}
           />
-          <span className="font-mono text-[10px] text-text-dim">min</span>
+          <span className="font-mono text-[10px] text-text-dim shrink-0">min</span>
+          <InfoTooltip align="right" text="Negative = before the anchor. −60 means 60 min before sunrise/sunset." />
         </>
       ) : (
         <input
           type="time"
           value={pref.staticTime ?? '06:00'}
           onChange={e => onChange({ staticTime: e.target.value })}
-          className={inputCls + ' w-24'}
+          className={inputCls + ' w-[90px]'}
         />
       )}
     </div>
@@ -261,7 +293,10 @@ export function AccountDialog({ onClose }: Props) {
 
           {/* ── Default times ───────────────────────────────────────────────── */}
           <div className="border-t border-border pt-4 flex flex-col gap-3">
-            <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Default times</label>
+            <div className="flex items-center gap-1.5">
+              <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Default times</label>
+              <InfoTooltip text="Auto-fills new route segments. Relative anchors to local sunrise or sunset on each hiking day." />
+            </div>
             <div className="flex flex-col gap-2.5">
               <TimePrefRow
                 label="Wake"
