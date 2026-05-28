@@ -156,6 +156,7 @@ Full gear inventory system:
 - The src/components/plan/stages folder has gotten rather unruly. Clean it up based on which stage the file is used in by putting them in relevant directories. The /src/components/plan directory files might make sense in a 'commons' folder under the same parent directory.
 - Notifications via text/email when key dates are coming up, weather becomes available for checking, final steps need completion prior to trip
 - **Weather Stage** See if Gear check box (right side) makes sense or if it should be on the Gear stage (#5) as an item that links back to the weather checkboxes
+- **Weather Stage** Remove "Noted" checkbox - it's a little redundant with the "Checked" for forecast.
 
 ---
 
