@@ -316,7 +316,7 @@ export function ElevationProfile({
             style={{ ...svgMonoStyle, fontSize: 9 }}
           >
             {sys === 'metric'
-              ? `${ftToM(Math.round(eleFt)).toLocaleString()}m`
+              ? `${Math.round(ftToM(eleFt)).toLocaleString()}m`
               : `${Math.round(eleFt).toLocaleString()}'`}
           </text>
         ))}
@@ -377,9 +377,9 @@ export function ElevationProfile({
 
       <div className="grid grid-cols-4 gap-1">
         {[
-          { key: 'Gain', value: sys === 'metric' ? `+${ftToM(gain).toLocaleString()} m` : `+${gain.toLocaleString()} ft` },
-          { key: 'Loss', value: sys === 'metric' ? `-${ftToM(loss).toLocaleString()} m` : `-${loss.toLocaleString()} ft` },
-          { key: 'Max',  value: sys === 'metric' ? `${ftToM(Math.round(maxEle)).toLocaleString()} m` : `${Math.round(maxEle).toLocaleString()} ft` },
+          { key: 'Gain', value: sys === 'metric' ? `+${Math.round(ftToM(gain)).toLocaleString()} m` : `+${gain.toLocaleString()} ft` },
+          { key: 'Loss', value: sys === 'metric' ? `-${Math.round(ftToM(loss)).toLocaleString()} m` : `-${loss.toLocaleString()} ft` },
+          { key: 'Max',  value: sys === 'metric' ? `${Math.round(ftToM(maxEle)).toLocaleString()} m` : `${Math.round(maxEle).toLocaleString()} ft` },
           { key: 'Dist', value: sys === 'metric' ? `${milesToKm(totalDist).toFixed(1)} km` : `${totalDist.toFixed(1)} mi` },
         ].map(({ key, value }) => (
           <div key={key} className="bg-surface-2 rounded-sm px-1 py-1.25">

@@ -51,10 +51,14 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
   const [search, setSearch] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [ownership, setOwnership] = useState<Ownership>('all')
-  const [minMiles, setMinMiles] = useState('')
-  const [maxMiles, setMaxMiles] = useState('')
-  const [minElev, setMinElev] = useState('')
-  const [maxElev, setMaxElev] = useState('')
+  // Distance/elevation filters are tagged with the unit system they were entered under.
+  // When sys changes, derived values are empty so stale inputs don't silently reinterpret.
+  const [distElevFilters, setDistElevFilters] = useState({ sys, minMiles: '', maxMiles: '', minElev: '', maxElev: '' })
+  const filtersMatchSys = distElevFilters.sys === sys
+  const minMiles = filtersMatchSys ? distElevFilters.minMiles : ''
+  const maxMiles = filtersMatchSys ? distElevFilters.maxMiles : ''
+  const minElev  = filtersMatchSys ? distElevFilters.minElev  : ''
+  const maxElev  = filtersMatchSys ? distElevFilters.maxElev  : ''
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [statusFilter, setStatusFilter] = useState<TripStatus[]>([])
@@ -63,10 +67,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
 
   function clearFilters() {
     setOwnership('all')
-    setMinMiles('')
-    setMaxMiles('')
-    setMinElev('')
-    setMaxElev('')
+    setDistElevFilters({ sys, minMiles: '', maxMiles: '', minElev: '', maxElev: '' })
     setDateFrom('')
     setDateTo('')
     setStatusFilter([])
@@ -209,8 +210,8 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                 <div>
                   <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1">Dist ({distUnit(sys)})</div>
                   <div className="grid grid-cols-2 gap-1.5">
-                    <input type="number" min="0" value={minMiles} onChange={(e) => setMinMiles(e.target.value)} placeholder="Min" className={filterInputCls} />
-                    <input type="number" min="0" value={maxMiles} onChange={(e) => setMaxMiles(e.target.value)} placeholder="Max" className={filterInputCls} />
+                    <input type="number" min="0" value={minMiles} onChange={(e) => setDistElevFilters(f => ({ ...f, sys, minMiles: e.target.value }))} placeholder="Min" className={filterInputCls} />
+                    <input type="number" min="0" value={maxMiles} onChange={(e) => setDistElevFilters(f => ({ ...f, sys, maxMiles: e.target.value }))} placeholder="Max" className={filterInputCls} />
                   </div>
                 </div>
 
@@ -218,8 +219,8 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                 <div>
                   <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1">Elev gain ({elevUnit(sys)})</div>
                   <div className="grid grid-cols-2 gap-1.5">
-                    <input type="number" min="0" value={minElev} onChange={(e) => setMinElev(e.target.value)} placeholder="Min" className={filterInputCls} />
-                    <input type="number" min="0" value={maxElev} onChange={(e) => setMaxElev(e.target.value)} placeholder="Max" className={filterInputCls} />
+                    <input type="number" min="0" value={minElev} onChange={(e) => setDistElevFilters(f => ({ ...f, sys, minElev: e.target.value }))} placeholder="Min" className={filterInputCls} />
+                    <input type="number" min="0" value={maxElev} onChange={(e) => setDistElevFilters(f => ({ ...f, sys, maxElev: e.target.value }))} placeholder="Max" className={filterInputCls} />
                   </div>
                 </div>
 

@@ -62,7 +62,7 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
               {sys === 'metric' ? `${milesToKm(drawState.result.mi).toFixed(1)} km` : `${drawState.result.mi.toFixed(1)} mi`}
             </span>
             <span className="font-mono text-[10px] text-text-mid">
-              +{sys === 'metric' ? ftToM(drawState.result.gain).toLocaleString() + ' m' : drawState.result.gain.toLocaleString() + ' ft'} gain
+              +{sys === 'metric' ? Math.round(ftToM(drawState.result.gain)).toLocaleString() + ' m' : drawState.result.gain.toLocaleString() + ' ft'} gain
             </span>
             {drawState.result.sparkElevs.length > 1 && (
               <span className="font-mono text-[9px] text-text-dim">(drag pins to recalculate)</span>
