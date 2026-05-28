@@ -35,8 +35,8 @@ export interface SunTimes {
 export function getSunTimes(lat: number, lng: number, date: Date): SunTimes {
   const jd = julianDay(date)
 
-  const n      = Math.round(jd - 2_451_545 - 0.0009 - lng / 360)
-  const jStar  = 2_451_545 + 0.0009 + lng / 360 + n
+  const n      = Math.round(jd - 2_451_545 - 0.0009 + lng / 360)
+  const jStar  = 2_451_545 + 0.0009 - lng / 360 + n
 
   const M      = ((357.5291 + 0.98560028 * (jStar - 2_451_545)) % 360 + 360) % 360
   const C      = 1.9148 * sinD(M) + 0.02 * sinD(2 * M) + 0.0003 * sinD(3 * M)

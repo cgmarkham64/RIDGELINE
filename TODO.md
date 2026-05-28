@@ -138,9 +138,6 @@ Full gear inventory system:
 
 ## Ideas / Research
 
-- Investigate OnX Backcountry integration options for personal app projects — import tracks, waypoints, or gear lists.
-- Investigate Garmin API integration — Vo2 max as a metric to inform trip difficulty rating / user readiness.
-- Plan Wizard tables: ADD / EDIT / REMOVE buttons with row selection where appropriate. Pop open dialogs rather than editing inline — the table is a truncated view of what's in the dialog.
 - Selective retroactive stage unlock: allow users to unlock individual planning stages after `on-trail` for corrections (e.g., gear changes mid-trip). Discourage but don't block. Start with the all-or-nothing "Back to planning" escape hatch in Phase 5, then refine.
 - **Route stage — autopopulate segments from GPX**
   - When a planned GPX is uploaded, offer to split it into segments automatically using waypoints or named track segments from the file. User could review and accept/edit the suggested splits rather than entering each segment by hand.
@@ -149,14 +146,16 @@ Full gear inventory system:
   - Place waypoints on map for possible water sources.
   - Populate journal map tab with the Route map data.
 - **Route stage** — Exposure auto calculation based on canopy coverage vs. mileage without water vs. altitude vs. treacherousness of trail (are we on the side of a cliff?)
-- Give user ability to adjust their own Shenandoah hardness scale via user settings - not all users will be the same and we can probably leverage fitness data alongside this in the future to give a better idea of difficulty
-- When user is entering wake, on-trail, and camp-by times on a segment in the Route stage, give feedback if their schedule is IMPOSSIBLE, TOUGH, ACHIEVABLE (the sweet spot), or EASY for the day. Tie into the TOUGH chips that already exist. Average hike speed is 2 mph. Factor in climbs slowing down and descents speeding up.
-- User certifications and associations tracker - possibly link to things like NOLS, CAIC, Sierra Club, etc.
+- **User Preferences** — Give user ability to adjust their own Shenandoah hardness scale via user settings - not all users will be the same and we can probably leverage fitness data alongside this in the future to give a better idea of difficulty
+- **Route stage** — When user is entering wake, on-trail, and camp-by times on a segment in the Route stage, give feedback if their schedule is IMPOSSIBLE, TOUGH, ACHIEVABLE (the sweet spot), or EASY for the day. Tie into the TOUGH chips that already exist. Average hike speed is 2 mph. Factor in climbs slowing down and descents speeding up.
+- **User Profile** — Certifications and associations tracker - possibly link to things like NOLS, CAIC, Sierra Club, etc.
+- **User Profile** — Investigate OnX Backcountry integration options for personal app projects — import tracks, waypoints, or gear lists.
+- **User Profile** — Investigate Garmin API integration — Vo2 max as a metric to inform trip difficulty rating / user readiness.
+- **User Preferences** Badass mode for User settings. Button that overrides all weather warnings/tolerances with a warning message that it's doing so. Also let people know to tag the app on Instagram with whatever pictures they take if they enter full badass mode.
 - Upscale all text application wide focusing especially on the smallest text which is borderline unreadable. Pay attention to UX on this, not just aesthetics. If you need to change fonts its fine, I quite like the one we have now but totally accept changing it if it's not conducive to a good UX. Font sizes across the application could maybe use a more consistent approach; would it make sense to introduce static variables for sizing consistency? I'm thinking like H1, H2, and H3 conceptually, but also for subheadings and body fonts? Maybe icon sizes too? 
 - The src/components/plan/stages folder has gotten rather unruly. Clean it up based on which stage the file is used in by putting them in relevant directories. The /src/components/plan directory files might make sense in a 'commons' folder under the same parent directory.
 - Notifications via text/email when key dates are coming up, weather becomes available for checking, final steps need completion prior to trip
-- User setting addition for English vs. Metric units of measure. Temps should be able to be viewed in Farenheit or Celsius and distance in miles or kilometers.
-- Badass mode for User settings. Button that overrides all weather warnings/tolerances with a warning message that it's doing so. Also let people know to tag the app on Instagram with whatever pictures they take if they enter full badass mode.
+- **Weather Stage** See if Gear check box (right side) makes sense or if it should be on the Gear stage (#5) as an item that links back to the weather checkboxes
 
 ---
 
@@ -186,3 +185,4 @@ Full gear inventory system:
 - **Backend cleanup — route helpers** — `server/src/utils/routeHelpers.ts` introduces `HttpError`, `asyncRoute`, `requireOwner`, and `formatUserResponse`. Every route handler now wrapped in `asyncRoute` (fixes previously unprotected handlers in `loadouts.ts`, `gearItems.ts`, `journalDays.ts`, `journalScan.ts`, notifications GET/DELETE/patch). Ownership guards replaced with `requireOwner` throughout. `signToken` extracted locally in `localAuth.ts`. `journalDays.ts` `sharedWith` access check fixed to handle both string and `{sub,role}` entries.
 - **User time defaults** — `TimePreference` / `UserPreferences` types; `preferences` field on `UserProfile` with lazy migration in `GET /me`; `PUT /me/preferences` with manual validation; `resolveTimePreference` helper; Route stage `triggerSunFetch` reads from auth store instead of hardcoded offsets; Account dialog "Default times" section with relative (anchor + signed offset) and fixed (HH:MM) modes.
 - **Backend cleanup — service extraction + dedup** — `server/src/services/tripService.ts` centralises trip access logic (`normalizeShared`, `canRead`, `populateTripUsers`, `fetchTripForRead/Write`); `scanService.ts` moves the Claude API call, size validation, and JSON parse out of the route. `utils/objectId.ts` exports `validObjectId`; `utils/crudFactory.ts` exports `makeOwnerCrudRouter` — `loadouts.ts` and `gearItems.ts` each collapse to 3 lines. Backend Code Cleanup section fully resolved.
+- **User units settings** — User setting addition for English vs. Metric units of measure. Temps should be able to be viewed in Farenheit or Celsius and distance in miles or kilometers.
