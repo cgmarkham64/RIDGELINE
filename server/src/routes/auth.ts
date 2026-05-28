@@ -32,16 +32,36 @@ function validateTimePref(pref: unknown, field: string): void {
   }
 }
 
+function validateWeatherTolerances(t: unknown): void {
+  if (!t || typeof t !== 'object') throw new HttpError(400, 'weatherTolerances must be an object')
+  const w = t as Record<string, unknown>
+  const fields: Array<[string, number, number]> = [
+    ['tempCautionF',    -100, 200],
+    ['tempDelayF',      -100, 200],
+    ['precipCautionPct', 0,   100],
+    ['precipDelayPct',   0,   100],
+    ['windCautionMph',   0,   300],
+    ['windDelayMph',     0,   300],
+  ]
+  for (const [field, min, max] of fields) {
+    const v = w[field]
+    if (v !== null && (typeof v !== 'number' || v < min || v > max)) {
+      throw new HttpError(400, `weatherTolerances.${field}: must be a number between ${min} and ${max}, or null`)
+    }
+  }
+}
+
 function validatePreferences(prefs: unknown): asserts prefs is UserPreferences {
   if (!prefs || typeof prefs !== 'object') throw new HttpError(400, 'preferences must be an object')
   const p = prefs as Record<string, unknown>
-  const allowed = new Set(['wakeTime', 'onTrailTime', 'campByTime'])
+  const allowed = new Set(['wakeTime', 'onTrailTime', 'campByTime', 'weatherTolerances'])
   for (const k of Object.keys(p)) {
     if (!allowed.has(k)) throw new HttpError(400, `preferences: unknown key '${k}'`)
   }
   validateTimePref(p.wakeTime, 'wakeTime')
   validateTimePref(p.onTrailTime, 'onTrailTime')
   validateTimePref(p.campByTime, 'campByTime')
+  validateWeatherTolerances(p.weatherTolerances)
 }
 
 // GET /me — syncs name + email from the token into UserProfile on every call,
@@ -53,11 +73,19 @@ router.get('/me', asyncRoute(async (req, res) => {
     { $set: { name, email } },
     { upsert: true, new: true }
   )
-  // Lazy migration: backfill preferences for existing accounts that predate this field
+  // Lazy migration: backfill preferences for accounts that predate this field
   if (!profile.preferences) {
     profile = (await UserProfile.findOneAndUpdate(
       { sub },
       { $set: { preferences: DEFAULT_PREFERENCES } },
+      { new: true }
+    ))!
+  }
+  // Lazy migration: backfill weatherTolerances for accounts that predate it
+  if (profile.preferences && !profile.preferences.weatherTolerances) {
+    profile = (await UserProfile.findOneAndUpdate(
+      { sub },
+      { $set: { 'preferences.weatherTolerances': DEFAULT_PREFERENCES.weatherTolerances } },
       { new: true }
     ))!
   }

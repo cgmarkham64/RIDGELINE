@@ -3,7 +3,7 @@ import { useAuthStore } from '../../store/auth'
 import { uploadAvatar, removeAvatar, updatePreferences } from '../../lib/auth'
 import { initials } from '../../lib/utils'
 import { IconX } from '../icons'
-import type { TimePreference, UserPreferences } from '../../types/auth'
+import type { TimePreference, UserPreferences, WeatherTolerances } from '../../types/auth'
 import { DEFAULT_USER_PREFERENCES } from '../../types/auth'
 
 interface Props {
@@ -121,6 +121,22 @@ function TimePrefRow({ label, pref, onChange }: {
   )
 }
 
+const TOLERANCE_ROWS: Array<{
+  label: string
+  cautionKey: keyof WeatherTolerances
+  delayKey: keyof WeatherTolerances
+  defaultCaution: number
+  defaultDelay: number
+  unit: string
+  min: number
+  max: number
+  dir: '<' | '>'
+}> = [
+  { label: 'Temp',   cautionKey: 'tempCautionF',     delayKey: 'tempDelayF',     defaultCaution: 45, defaultDelay: 32, unit: '°F',  min: -60, max: 120, dir: '<' },
+  { label: 'Precip', cautionKey: 'precipCautionPct', delayKey: 'precipDelayPct', defaultCaution: 40, defaultDelay: 70, unit: '%',   min: 0,   max: 100, dir: '>' },
+  { label: 'Wind',   cautionKey: 'windCautionMph',   delayKey: 'windDelayMph',   defaultCaution: 30, defaultDelay: 45, unit: 'mph', min: 0,   max: 200, dir: '>' },
+]
+
 export function AccountDialog({ onClose }: Props) {
   const { user, updateUser } = useAuthStore()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -128,17 +144,24 @@ export function AccountDialog({ onClose }: Props) {
   const [avatarSaving, setAvatarSaving] = useState(false)
   const [avatarError, setAvatarError] = useState<string | null>(null)
 
-  const [timePrefs, setTimePrefs] = useState<UserPreferences>(
-    () => user?.preferences ?? DEFAULT_USER_PREFERENCES
-  )
+  const [prefs, setPrefs] = useState<UserPreferences>(() => ({
+    ...DEFAULT_USER_PREFERENCES,
+    ...user?.preferences,
+    weatherTolerances: user?.preferences?.weatherTolerances ?? DEFAULT_USER_PREFERENCES.weatherTolerances,
+  }))
   const [prefsSaving, setPrefsSaving] = useState(false)
   const [prefsError, setPrefsError] = useState<string | null>(null)
   const [prefsSaved, setPrefsSaved] = useState(false)
 
   if (!user) return null
 
-  function patchTimePref(key: keyof UserPreferences, patch: Partial<TimePreference>) {
-    setTimePrefs(prev => ({ ...prev, [key]: { ...prev[key], ...patch } }))
+  function patchTimePref(key: 'wakeTime' | 'onTrailTime' | 'campByTime', patch: Partial<TimePreference>) {
+    setPrefs(prev => ({ ...prev, [key]: { ...prev[key], ...patch } }))
+    setPrefsSaved(false)
+  }
+
+  function patchWeatherTolerance(patch: Partial<WeatherTolerances>) {
+    setPrefs(prev => ({ ...prev, weatherTolerances: { ...prev.weatherTolerances, ...patch } }))
     setPrefsSaved(false)
   }
 
@@ -146,7 +169,7 @@ export function AccountDialog({ onClose }: Props) {
     setPrefsSaving(true)
     setPrefsError(null)
     try {
-      const updated = await updatePreferences(timePrefs)
+      const updated = await updatePreferences(prefs)
       updateUser({ preferences: updated.preferences })
       setPrefsSaved(true)
       setTimeout(() => setPrefsSaved(false), 2500)
@@ -300,19 +323,81 @@ export function AccountDialog({ onClose }: Props) {
             <div className="flex flex-col gap-2.5">
               <TimePrefRow
                 label="Wake"
-                pref={timePrefs.wakeTime}
+                pref={prefs.wakeTime}
                 onChange={patch => patchTimePref('wakeTime', patch)}
               />
               <TimePrefRow
                 label="On trail"
-                pref={timePrefs.onTrailTime}
+                pref={prefs.onTrailTime}
                 onChange={patch => patchTimePref('onTrailTime', patch)}
               />
               <TimePrefRow
                 label="Camp by"
-                pref={timePrefs.campByTime}
+                pref={prefs.campByTime}
                 onChange={patch => patchTimePref('campByTime', patch)}
               />
+            </div>
+          </div>
+
+          {/* ── Weather tolerances ──────────────────────────────────────────── */}
+          <div className="border-t border-border pt-4 flex flex-col gap-3">
+            <div className="flex items-center gap-1.5">
+              <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Weather tolerances</label>
+              <InfoTooltip text="Sets your Go / Caution / Delay thresholds in the Weather stage. Temp triggers on forecast lows; precip and wind trigger above the set value." />
+            </div>
+            {/* 9-col grid: [label] [toggle] [dir] [input] [unit] [toggle] [dir] [input] [unit] */}
+            <div className="grid items-center gap-x-1.5 gap-y-2"
+              style={{ gridTemplateColumns: '44px 14px 10px 46px 18px 14px 10px 46px 18px' }}>
+              {/* column headers */}
+              <span /><span /><span />
+              <span className="font-mono text-[9px] text-amber/70 text-center">Caution</span>
+              <span /><span /><span />
+              <span className="font-mono text-[9px] text-red/60 text-center">Delay</span>
+              <span />
+              {/* data rows */}
+              {TOLERANCE_ROWS.map(row => {
+                const cautionVal = prefs.weatherTolerances[row.cautionKey]
+                const delayVal   = prefs.weatherTolerances[row.delayKey]
+                const cautionOn  = cautionVal !== null
+                const delayOn    = delayVal   !== null
+                const toggleCls  = (on: boolean) =>
+                  `w-3 h-3 rounded-[2px] border flex items-center justify-center shrink-0 cursor-pointer transition-colors ${
+                    on ? 'bg-amber border-amber' : 'bg-surface-2 border-border-mid hover:border-amber'
+                  }`
+                const inputCls = (on: boolean) =>
+                  `bg-surface-2 border border-border rounded-sm py-1.5 font-mono text-[11px] text-center w-full outline-none transition-opacity ${
+                    on ? 'text-text focus:border-amber' : 'text-text-dim opacity-40 cursor-not-allowed'
+                  }`
+                const dimCls = (on: boolean) => `font-mono text-[10px] text-text-dim text-right transition-opacity ${on ? '' : 'opacity-30'}`
+                const unitCls = (on: boolean) => `font-mono text-[9px] text-text-dim transition-opacity ${on ? '' : 'opacity-30'}`
+                return (
+                  <>
+                    <span key={row.label} className="font-mono text-[11px] text-text-mid">{row.label}</span>
+                    <button type="button" onClick={() => patchWeatherTolerance({ [row.cautionKey]: cautionOn ? null : row.defaultCaution })} className={toggleCls(cautionOn)}>
+                      {cautionOn && <span className="text-[6px] text-surface font-bold leading-none select-none">✓</span>}
+                    </button>
+                    <span className={dimCls(cautionOn)}>{row.dir}</span>
+                    <input type="number" disabled={!cautionOn}
+                      value={cautionVal ?? row.defaultCaution}
+                      min={row.min} max={row.max}
+                      onChange={e => patchWeatherTolerance({ [row.cautionKey]: Number(e.target.value) })}
+                      className={inputCls(cautionOn)}
+                    />
+                    <span className={unitCls(cautionOn)}>{row.unit}</span>
+                    <button type="button" onClick={() => patchWeatherTolerance({ [row.delayKey]: delayOn ? null : row.defaultDelay })} className={toggleCls(delayOn)}>
+                      {delayOn && <span className="text-[6px] text-surface font-bold leading-none select-none">✓</span>}
+                    </button>
+                    <span className={dimCls(delayOn)}>{row.dir}</span>
+                    <input type="number" disabled={!delayOn}
+                      value={delayVal ?? row.defaultDelay}
+                      min={row.min} max={row.max}
+                      onChange={e => patchWeatherTolerance({ [row.delayKey]: Number(e.target.value) })}
+                      className={inputCls(delayOn)}
+                    />
+                    <span className={unitCls(delayOn)}>{row.unit}</span>
+                  </>
+                )
+              })}
             </div>
             {prefsError && (
               <p className="font-mono text-[10px] text-red m-0">{prefsError}</p>
@@ -327,7 +412,7 @@ export function AccountDialog({ onClose }: Props) {
                 color: prefsSaved ? 'var(--color-surface)' : 'var(--color-text-mid)',
               }}
             >
-              {prefsSaving ? 'Saving…' : prefsSaved ? 'Saved' : 'Save defaults'}
+              {prefsSaving ? 'Saving…' : prefsSaved ? 'Saved' : 'Save preferences'}
             </button>
           </div>
 

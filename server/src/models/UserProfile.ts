@@ -9,16 +9,27 @@ export interface TimePreference {
   staticTime?: string
 }
 
+export interface WeatherTolerances {
+  tempCautionF: number | null
+  tempDelayF: number | null
+  precipCautionPct: number | null
+  precipDelayPct: number | null
+  windCautionMph: number | null
+  windDelayMph: number | null
+}
+
 export interface UserPreferences {
   wakeTime: TimePreference
   onTrailTime: TimePreference
   campByTime: TimePreference
+  weatherTolerances: WeatherTolerances
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
-  wakeTime:    { mode: 'relative', anchor: 'sunrise', offsetMinutes: 0 },
-  onTrailTime: { mode: 'relative', anchor: 'sunrise', offsetMinutes: 60 },
-  campByTime:  { mode: 'relative', anchor: 'sunset',  offsetMinutes: -60 },
+  wakeTime:           { mode: 'relative', anchor: 'sunrise', offsetMinutes: 0 },
+  onTrailTime:        { mode: 'relative', anchor: 'sunrise', offsetMinutes: 60 },
+  campByTime:         { mode: 'relative', anchor: 'sunset',  offsetMinutes: -60 },
+  weatherTolerances:  { tempCautionF: 45, tempDelayF: 32, precipCautionPct: 40, precipDelayPct: 70, windCautionMph: 30, windDelayMph: 45 },
 }
 
 interface IUserProfile {

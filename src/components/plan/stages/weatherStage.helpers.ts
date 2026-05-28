@@ -1,5 +1,7 @@
 import type { ClimateNormals, DepartureRiskFactor } from './weatherStage.types'
 import type { PlanWeatherData } from '../types'
+import { DEFAULT_WEATHER_TOLERANCES } from '../../../types/auth'
+import type { WeatherTolerances } from '../../../types/auth'
 
 // ─── Cache TTLs ───────────────────────────────────────────────────────────────
 
@@ -9,10 +11,8 @@ export const CACHE_TTL_FORECAST_MS =  4 * 60 * 60 * 1000  //  4 h
 
 // ─── Risk / correction thresholds ────────────────────────────────────────────
 
-export const PRECIP_RISK_PCT          = 40    // forecast precip% threshold
-export const WIND_RISK_MPH            = 30    // forecast wind threshold
-export const LAPSE_RATE_F_PER_1000FT  = 3.5  // standard env. lapse rate
-export const SAMPLE_COUNT             = 50   // points to sample from GPX for avg elevation
+export const LAPSE_RATE_F_PER_1000FT = 3.5  // standard env. lapse rate
+export const SAMPLE_COUNT            = 50   // points to sample from GPX for avg elevation
 
 // ─── Cache validity ───────────────────────────────────────────────────────────
 
@@ -174,6 +174,7 @@ export function calcDepartureRisk(
   startDate: string,
   endDate: string,
   avgElevFt: number | null,
+  tolerances: WeatherTolerances = DEFAULT_WEATHER_TOLERANCES,
 ): { overall: 'low' | 'moderate' | 'high'; factors: DepartureRiskFactor[] } {
   const inRange = forecastDays.filter(d => d.date >= startDate && d.date <= endDate)
   const factors: DepartureRiskFactor[] = []
@@ -181,15 +182,27 @@ export function calcDepartureRisk(
   for (const d of inRange) {
     const adjustedLowF = d.lowF - ((avgElevFt ?? 0) / 1000) * LAPSE_RATE_F_PER_1000FT
 
-    if (adjustedLowF <= 32) {
+    if (tolerances.tempDelayF !== null && adjustedLowF <= tolerances.tempDelayF) {
       factors.push({
         date:     d.date,
-        label:    `Freezing temps (${d.lowF}°F at elevation)`,
+        label:    `Freezing temps (low ${d.lowF}°F at elevation)`,
         severity: 'high',
+      })
+    } else if (tolerances.tempCautionF !== null && adjustedLowF <= tolerances.tempCautionF) {
+      factors.push({
+        date:     d.date,
+        label:    `Cold temps (low ${d.lowF}°F at elevation)`,
+        severity: 'moderate',
       })
     }
 
-    if (d.precipPct > PRECIP_RISK_PCT) {
+    if (tolerances.precipDelayPct !== null && d.precipPct > tolerances.precipDelayPct) {
+      factors.push({
+        date:     d.date,
+        label:    `Very high precip chance (${d.precipPct}%)`,
+        severity: 'high',
+      })
+    } else if (tolerances.precipCautionPct !== null && d.precipPct > tolerances.precipCautionPct) {
       factors.push({
         date:     d.date,
         label:    `High precip chance (${d.precipPct}%)`,
@@ -197,7 +210,13 @@ export function calcDepartureRisk(
       })
     }
 
-    if (d.windMph >= WIND_RISK_MPH) {
+    if (tolerances.windDelayMph !== null && d.windMph >= tolerances.windDelayMph) {
+      factors.push({
+        date:     d.date,
+        label:    `Dangerous winds (${d.windMph} mph)`,
+        severity: 'high',
+      })
+    } else if (tolerances.windCautionMph !== null && d.windMph >= tolerances.windCautionMph) {
       factors.push({
         date:     d.date,
         label:    `High winds (${d.windMph} mph)`,

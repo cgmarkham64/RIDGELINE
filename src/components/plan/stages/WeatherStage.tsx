@@ -12,6 +12,8 @@ import {
 } from './weatherStage.helpers'
 import type { ClimateNormals } from './weatherStage.types'
 import { WmoConditionIcon } from './WmoConditionIcon'
+import { useAuthStore } from '../../../store/auth'
+import { DEFAULT_WEATHER_TOLERANCES } from '../../../types/auth'
 
 const ARCHIVE_URL  = 'https://archive-api.open-meteo.com/v1/archive'
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
@@ -106,6 +108,9 @@ const DAYS_PER_PAGE = 7
 // ─── WeatherStage ─────────────────────────────────────────────────────────────
 
 export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true, onEditTrip }: StageBodyProps) {
+  const { user } = useAuthStore()
+  const tolerances = user?.preferences?.weatherTolerances ?? DEFAULT_WEATHER_TOLERANCES
+
   const tripLoc  = trip?.location ?? ''
   // Normalize to YYYY-MM-DD — API dates may arrive as full ISO strings
   const startDate = trip?.startDate?.slice(0, 10) ?? ''
@@ -118,7 +123,7 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
     // Pre-compute departure risk if cached forecast exists but risk wasn't stored
     if (base.cachedForecast && base.departureRisk === null && startDate && endDate) {
       const { overall } = calcDepartureRisk(
-        base.cachedForecast.days, startDate, endDate, trip ? avgElevationFt(trip) : null,
+        base.cachedForecast.days, startDate, endDate, trip ? avgElevationFt(trip) : null, tolerances,
       )
       return { ...base, departureRisk: overall }
     }
@@ -186,7 +191,7 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
       .then(days => {
         if (cancelled) return
         setForecastError(false)
-        const { overall } = calcDepartureRisk(days, startDate, endDate, elevFt)
+        const { overall } = calcDepartureRisk(days, startDate, endDate, elevFt, tolerances)
         setWd(prev => ({
           ...prev,
           cachedForecast: { days, fetchedAt: new Date().toISOString(), forLocation: tripLoc },
@@ -195,7 +200,7 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
       })
       .catch(() => { if (!cancelled) setForecastError(true) })
     return () => { cancelled = true }
-  }, [coordsLat, coordsLng, tripLoc, hasDates, startDate, endDate, trip])
+  }, [coordsLat, coordsLng, tripLoc, hasDates, startDate, endDate, trip, tolerances])
 
   // ── Persist changes ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -218,8 +223,8 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
   // Factors list for display — recomputed from cached forecast + current trip dates
   const computedRisk = useMemo(() => {
     if (!wd.cachedForecast || !hasDates) return null
-    return calcDepartureRisk(wd.cachedForecast.days, startDate, endDate, trip ? avgElevationFt(trip) : null)
-  }, [wd.cachedForecast, hasDates, startDate, endDate, trip])
+    return calcDepartureRisk(wd.cachedForecast.days, startDate, endDate, trip ? avgElevationFt(trip) : null, tolerances)
+  }, [wd.cachedForecast, hasDates, startDate, endDate, trip, tolerances])
 
   // Sun times for every forecast day — used in card hover face and nav bar.
   // Keyed by YYYY-MM-DD for O(1) lookup per card.
