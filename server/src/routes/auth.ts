@@ -54,7 +54,7 @@ function validateWeatherTolerances(t: unknown): void {
 function validatePreferences(prefs: unknown): asserts prefs is UserPreferences {
   if (!prefs || typeof prefs !== 'object') throw new HttpError(400, 'preferences must be an object')
   const p = prefs as Record<string, unknown>
-  const allowed = new Set(['wakeTime', 'onTrailTime', 'campByTime', 'weatherTolerances'])
+  const allowed = new Set(['wakeTime', 'onTrailTime', 'campByTime', 'weatherTolerances', 'unitSystem'])
   for (const k of Object.keys(p)) {
     if (!allowed.has(k)) throw new HttpError(400, `preferences: unknown key '${k}'`)
   }
@@ -62,6 +62,9 @@ function validatePreferences(prefs: unknown): asserts prefs is UserPreferences {
   validateTimePref(p.onTrailTime, 'onTrailTime')
   validateTimePref(p.campByTime, 'campByTime')
   validateWeatherTolerances(p.weatherTolerances)
+  if (p.unitSystem !== undefined && p.unitSystem !== 'imperial' && p.unitSystem !== 'metric') {
+    throw new HttpError(400, "unitSystem: must be 'imperial' or 'metric'")
+  }
 }
 
 // GET /me — syncs name + email from the token into UserProfile on every call,

@@ -1,6 +1,8 @@
 import type { DrawState, SegRow } from './routeStage.types'
 import { shenandoahScore } from '../../../lib/trailDifficulty'
 import { EXP_LABEL } from './routeStage.helpers'
+import { milesToKm, ftToM } from '../../../lib/units'
+import { useUnitSystem } from '../../../hooks/useUnitSystem'
 
 const EXP_CLS: Record<string, string> = {
   low:     'text-pine border-pine-border bg-pine-dim',
@@ -45,6 +47,7 @@ function set<K extends keyof Extract<DrawState, { phase: 'active' }>>(
 }
 
 export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }: DrawConfirmTrayProps) {
+  const sys = useUnitSystem()
   const score = drawState.result ? shenandoahScore(drawState.result.mi, drawState.result.gain) : null
   const suggestedHard = score !== null && score >= 350
 
@@ -56,10 +59,10 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
         ) : drawState.result ? (
           <>
             <span className="font-mono text-[11px] font-bold text-amber">
-              {drawState.result.mi.toFixed(1)} mi
+              {sys === 'metric' ? `${milesToKm(drawState.result.mi).toFixed(1)} km` : `${drawState.result.mi.toFixed(1)} mi`}
             </span>
             <span className="font-mono text-[10px] text-text-mid">
-              +{drawState.result.gain.toLocaleString()} ft gain
+              +{sys === 'metric' ? ftToM(drawState.result.gain).toLocaleString() + ' m' : drawState.result.gain.toLocaleString() + ' ft'} gain
             </span>
             {drawState.result.sparkElevs.length > 1 && (
               <span className="font-mono text-[9px] text-text-dim">(drag pins to recalculate)</span>

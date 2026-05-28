@@ -6,6 +6,8 @@ import type { Trip, JournalDay } from '../../types'
 import { useJournalDays, useSaveJournalDay } from '../../hooks/useJournalDays'
 import { api } from '../../lib/api'
 import { shareTrip } from '../../lib/users'
+import { fToC, cToF, milesToKm, kmToMiles, ftToM, mToFt } from '../../lib/units'
+import { useUnitSystem } from '../../hooks/useUnitSystem'
 import { HikerOverlay } from '../ui/HikerOverlay'
 import { MoonLoader } from '../ui/MoonLoader'
 import { DaySelector } from './DaySelector'
@@ -71,14 +73,18 @@ function CondCell({ label, children }: { label: string; children: React.ReactNod
   )
 }
 
-function entryToDefaults(entry: JournalDay | undefined) {
+function entryToDefaults(entry: JournalDay | undefined, sys: 'imperial' | 'metric') {
   return {
     title: entry?.title ?? '',
     weatherNotes: entry?.weatherNotes ?? '',
-    tempLowF: entry?.tempLowF?.toString() ?? '',
-    tempHighF: entry?.tempHighF?.toString() ?? '',
-    milesCovered: entry?.milesCovered?.toString() ?? '',
-    elevationGainFt: entry?.elevationGainFt?.toString() ?? '',
+    tempLowF: entry?.tempLowF != null
+      ? (sys === 'metric' ? fToC(entry.tempLowF) : entry.tempLowF).toString() : '',
+    tempHighF: entry?.tempHighF != null
+      ? (sys === 'metric' ? fToC(entry.tempHighF) : entry.tempHighF).toString() : '',
+    milesCovered: entry?.milesCovered != null
+      ? (sys === 'metric' ? milesToKm(entry.milesCovered).toFixed(2) : entry.milesCovered.toString()) : '',
+    elevationGainFt: entry?.elevationGainFt != null
+      ? (sys === 'metric' ? ftToM(entry.elevationGainFt) : entry.elevationGainFt).toString() : '',
     wakeActual: entry?.wakeActual ?? '',
     onTrailActual: entry?.onTrailActual ?? '',
     campActual: entry?.campActual ?? '',
@@ -102,6 +108,7 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 export function JournalSection({ trip, readOnly }: Props) {
+  const sys = useUnitSystem()
   const [selectedDate, setSelectedDate] = useState(trip.startDate.slice(0, 10))
   const { data: entries = [], isLoading } = useJournalDays(trip._id)
   const save = useSaveJournalDay(trip._id)
@@ -134,11 +141,11 @@ export function JournalSection({ trip, readOnly }: Props) {
     formState: { errors, isDirty },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: entryToDefaults(currentEntry),
+    defaultValues: entryToDefaults(currentEntry, sys),
   })
 
   useEffect(() => {
-    reset(entryToDefaults(currentEntry))
+    reset(entryToDefaults(currentEntry, sys))
     setWildlife(currentEntry?.wildlife ?? [])
     setCompanions(currentEntry?.companions ?? [])
     panelsDirtyRef.current = false
@@ -176,10 +183,10 @@ export function JournalSection({ trip, readOnly }: Props) {
           title: data.title || undefined,
           body: data.body,
           weatherNotes: data.weatherNotes || undefined,
-          tempLowF: data.tempLowF ? parseFloat(data.tempLowF) : undefined,
-          tempHighF: data.tempHighF ? parseFloat(data.tempHighF) : undefined,
-          milesCovered: data.milesCovered ? parseFloat(data.milesCovered) : undefined,
-          elevationGainFt: data.elevationGainFt ? parseFloat(data.elevationGainFt) : undefined,
+          tempLowF: data.tempLowF ? (sys === 'metric' ? cToF(parseFloat(data.tempLowF)) : parseFloat(data.tempLowF)) : undefined,
+          tempHighF: data.tempHighF ? (sys === 'metric' ? cToF(parseFloat(data.tempHighF)) : parseFloat(data.tempHighF)) : undefined,
+          milesCovered: data.milesCovered ? (sys === 'metric' ? kmToMiles(parseFloat(data.milesCovered)) : parseFloat(data.milesCovered)) : undefined,
+          elevationGainFt: data.elevationGainFt ? (sys === 'metric' ? mToFt(parseFloat(data.elevationGainFt)) : parseFloat(data.elevationGainFt)) : undefined,
           wakeActual:    data.wakeActual    || undefined,
           onTrailActual: data.onTrailActual || undefined,
           campActual:    data.campActual    || undefined,
@@ -224,12 +231,22 @@ export function JournalSection({ trip, readOnly }: Props) {
       })
 
       if (data.title) setValue('title', data.title, { shouldDirty: true })
-      if (data.milesCovered)
-        setValue('milesCovered', String(data.milesCovered), { shouldDirty: true })
-      if (data.elevationGainFt)
-        setValue('elevationGainFt', String(data.elevationGainFt), { shouldDirty: true })
-      if (data.tempLowF) setValue('tempLowF', String(data.tempLowF), { shouldDirty: true })
-      if (data.tempHighF) setValue('tempHighF', String(data.tempHighF), { shouldDirty: true })
+      if (data.milesCovered) {
+        const mi = parseFloat(String(data.milesCovered))
+        setValue('milesCovered', (sys === 'metric' ? milesToKm(mi).toFixed(2) : String(mi)), { shouldDirty: true })
+      }
+      if (data.elevationGainFt) {
+        const ft = parseFloat(String(data.elevationGainFt))
+        setValue('elevationGainFt', (sys === 'metric' ? ftToM(ft).toString() : String(ft)), { shouldDirty: true })
+      }
+      if (data.tempLowF) {
+        const f = parseFloat(String(data.tempLowF))
+        setValue('tempLowF', (sys === 'metric' ? fToC(f).toString() : String(f)), { shouldDirty: true })
+      }
+      if (data.tempHighF) {
+        const f = parseFloat(String(data.tempHighF))
+        setValue('tempHighF', (sys === 'metric' ? fToC(f).toString() : String(f)), { shouldDirty: true })
+      }
       if (data.weatherNotes) setValue('weatherNotes', data.weatherNotes, { shouldDirty: true })
       if (data.body) setValue('body', data.body, { shouldDirty: true })
 
@@ -317,7 +334,7 @@ export function JournalSection({ trip, readOnly }: Props) {
           )}
 
           <div className="grid grid-cols-5 gap-1.5 mb-5.5">
-            <CondCell label="Miles">
+            <CondCell label={sys === 'metric' ? 'Km' : 'Miles'}>
               <input
                 type="number"
                 step="0.1"
@@ -326,7 +343,7 @@ export function JournalSection({ trip, readOnly }: Props) {
                 className={condInputCls}
               />
             </CondCell>
-            <CondCell label="Elev. gain (ft)">
+            <CondCell label={sys === 'metric' ? 'Elev. gain (m)' : 'Elev. gain (ft)'}>
               <input
                 type="number"
                 step="1"
@@ -335,7 +352,7 @@ export function JournalSection({ trip, readOnly }: Props) {
                 className={condInputCls}
               />
             </CondCell>
-            <CondCell label="Temp Low (°F)">
+            <CondCell label={sys === 'metric' ? 'Temp Low (°C)' : 'Temp Low (°F)'}>
               <input
                 type="number"
                 step="1"
@@ -344,7 +361,7 @@ export function JournalSection({ trip, readOnly }: Props) {
                 className={condInputCls}
               />
             </CondCell>
-            <CondCell label="Temp High (°F)">
+            <CondCell label={sys === 'metric' ? 'Temp High (°C)' : 'Temp High (°F)'}>
               <input
                 type="number"
                 step="1"

@@ -30,6 +30,7 @@ export interface UserPreferences {
   onTrailTime: TimePreference
   campByTime: TimePreference
   weatherTolerances: WeatherTolerances
+  unitSystem: 'imperial' | 'metric'
 }
 
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {
@@ -37,6 +38,7 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   onTrailTime:        { mode: 'relative', anchor: 'sunrise', offsetMinutes: 60 },
   campByTime:         { mode: 'relative', anchor: 'sunset',  offsetMinutes: -60 },
   weatherTolerances:  { ...DEFAULT_WEATHER_TOLERANCES },
+  unitSystem:         'imperial',
 }
 
 export interface User {

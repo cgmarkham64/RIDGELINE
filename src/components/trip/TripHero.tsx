@@ -1,5 +1,7 @@
 import type { Trip } from '../../types'
 import { useAuthStore } from '../../store/auth'
+import { milesToKm, ftToM, distUnit, elevUnit } from '../../lib/units'
+import { useUnitSystem } from '../../hooks/useUnitSystem'
 
 interface Props {
   trip: Trip
@@ -24,6 +26,7 @@ function formatDateRange(start: string, end: string) {
 export function TripHero({ trip, days, onEdit, onDelete, onShare, onLeave }: Props) {
   const userId = useAuthStore((s) => s.user?.id)
   const isOwner = !!userId && trip.ownerSub === userId
+  const sys = useUnitSystem()
 
   return (
     <div className="h-[240px] relative overflow-hidden shrink-0">
@@ -120,10 +123,16 @@ export function TripHero({ trip, days, onEdit, onDelete, onShare, onLeave }: Pro
           <div className="flex gap-px rounded-md overflow-hidden">
             <StatBlock value={String(days)} label={days === 1 ? 'day' : 'days'} />
             {trip.distanceMiles != null && (
-              <StatBlock value={String(trip.distanceMiles)} label="miles" />
+              <StatBlock
+                value={sys === 'metric' ? milesToKm(trip.distanceMiles).toFixed(1) : String(trip.distanceMiles)}
+                label={distUnit(sys)}
+              />
             )}
             {trip.elevationGainFt != null && (
-              <StatBlock value={`+${trip.elevationGainFt.toLocaleString()}`} label="elev. gain" />
+              <StatBlock
+                value={`+${(sys === 'metric' ? ftToM(trip.elevationGainFt) : trip.elevationGainFt).toLocaleString()}`}
+                label={`elev. gain (${elevUnit(sys)})`}
+              />
             )}
           </div>
         </div>

@@ -16,6 +16,11 @@ import {
 import { GRID, DRAG_GRID, ACTIVE_BG, EXP_LABEL, SEG_COLORS } from './routeStage.helpers'
 import type { MergedRow, SegRow } from './routeStage.types'
 import type { StageBodyProps } from '../types'
+import { milesToKm, type UnitSystem } from '../../../lib/units'
+import { useUnitSystem } from '../../../hooks/useUnitSystem'
+
+const fmtMi = (mi: number, sys: UnitSystem) =>
+  sys === 'metric' ? `${milesToKm(mi).toFixed(1)} km` : `${mi.toFixed(1)} mi`
 
 export type RouteTableHandle = {
   scrollToRow(id: string): void
@@ -56,6 +61,7 @@ function SortableCampRow({
   row, isLast, activeRowId, repositioning, canEdit, isDraggable, isDrawing,
   gridTemplate, onFlyTo, onEnterDraw, onDeleteSegment, rowRef,
 }: CampRowProps) {
+  const sys = useUnitSystem()
   const rowId = `camp-${row.seg.n}`
   const campPos = row.seg.path?.[row.seg.path.length - 1] ?? null
   const border = isLast ? '' : 'border-b border-border'
@@ -118,12 +124,12 @@ function SortableCampRow({
         )}
       </div>
       <span className="font-mono text-[10px] text-text">
-        {repositioning.has(row.segIdx) ? '…' : `${row.distFromStartMi.toFixed(1)} mi`}
+        {repositioning.has(row.segIdx) ? '…' : fmtMi(row.distFromStartMi, sys)}
       </span>
       {row.isFinish
         ? <span className="font-mono text-[10px] text-text-dim">—</span>
         : <span className="font-mono text-[10px] text-text-mid">
-            {row.toNextCampMi !== null ? `${row.toNextCampMi.toFixed(1)} mi` : '—'}
+            {row.toNextCampMi !== null ? fmtMi(row.toNextCampMi, sys) : '—'}
           </span>
       }
       {row.isFinish
@@ -133,7 +139,7 @@ function SortableCampRow({
               style={{ color: row.dryLeg ? 'var(--amber)' : '#0ea5e9' }}
               title={row.dryLeg ? 'No water on this leg — nearest is further ahead' : undefined}
             >
-              {row.toNextWaterMi.toFixed(1)} mi{row.dryLeg ? ' ↑' : ''}
+              {fmtMi(row.toNextWaterMi, sys)}{row.dryLeg ? ' ↑' : ''}
             </span>
           : <span className="font-mono text-[10px] text-amber">None</span>
       }
@@ -169,6 +175,7 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
   },
   ref,
 ) {
+  const sys = useUnitSystem()
   const rowRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
   useImperativeHandle(ref, () => ({
@@ -267,14 +274,14 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
                 {isDraggable && <span />}
                 <span className="text-pine"><IconTriangleRight size={15} /></span>
                 <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Trailhead</span>
-                <span className="font-mono text-[10px] text-text-dim">0.0 mi</span>
+                <span className="font-mono text-[10px] text-text-dim">{fmtMi(0, sys)}</span>
                 <span className="font-mono text-[10px] text-text-mid">
-                  {row.toNextCampMi !== null ? `${row.toNextCampMi.toFixed(1)} mi` : '—'}
+                  {row.toNextCampMi !== null ? fmtMi(row.toNextCampMi, sys) : '—'}
                 </span>
                 {waterLoading && row.toNextWaterMi === null
                   ? <span className="font-mono text-[10px] text-text-dim">…</span>
                   : row.toNextWaterMi !== null
-                    ? <span className="font-mono text-[10px]" style={{ color: '#0ea5e9' }}>{row.toNextWaterMi.toFixed(1)} mi</span>
+                    ? <span className="font-mono text-[10px]" style={{ color: '#0ea5e9' }}>{fmtMi(row.toNextWaterMi, sys)}</span>
                     : <span className="font-mono text-[10px] text-amber">None</span>
                 }
                 <span />
@@ -321,10 +328,10 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
                     </span>
                   )}
                 </div>
-                <span className="font-mono text-[10px] text-text">{row.entry.distFromStartMi.toFixed(1)} mi</span>
+                <span className="font-mono text-[10px] text-text">{fmtMi(row.entry.distFromStartMi, sys)}</span>
                 <span className="font-mono text-[10px] text-text-dim">—</span>
                 {row.toNextWaterMi !== null
-                  ? <span className="font-mono text-[10px] text-text-mid">{row.toNextWaterMi.toFixed(1)} mi</span>
+                  ? <span className="font-mono text-[10px] text-text-mid">{fmtMi(row.toNextWaterMi, sys)}</span>
                   : <span className="font-mono text-[10px] text-text-dim">—</span>
                 }
                 <span />

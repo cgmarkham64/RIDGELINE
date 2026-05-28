@@ -80,7 +80,7 @@ export interface PlanMeta {
   location: string
   dateRange: string
   miles: number | null
-  elev: string
+  elevGainFt: number | null
   days: number
   weight: string
 }

@@ -2,6 +2,7 @@ import type { ClimateNormals, DepartureRiskFactor } from './weatherStage.types'
 import type { PlanWeatherData } from '../types'
 import { DEFAULT_WEATHER_TOLERANCES } from '../../../types/auth'
 import type { WeatherTolerances } from '../../../types/auth'
+import { cToF, kmhToMph } from '../../../lib/units'
 
 // ─── Cache TTLs ───────────────────────────────────────────────────────────────
 
@@ -89,16 +90,6 @@ const CARDINAL_DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const
 export function degToCardinal(deg: number): string {
   const index = Math.round(((deg % 360) + 360) % 360 / 45) % 8
   return CARDINAL_DIRS[index]
-}
-
-// ─── Unit conversions ─────────────────────────────────────────────────────────
-
-export function cToF(c: number): number {
-  return Math.round(c * 9 / 5 + 32)
-}
-
-export function kmhToMph(k: number): number {
-  return Math.round(k * 0.621371)
 }
 
 // ─── Open-Meteo response parsers ──────────────────────────────────────────────

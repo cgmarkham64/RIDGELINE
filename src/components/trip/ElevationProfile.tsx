@@ -1,6 +1,8 @@
 import { type ReactNode, useState, useRef, useLayoutEffect } from 'react'
 import type { GpxTrack, GpxTrackEntry, Waypoint } from '../../types'
 import { WAYPOINT_COLOR } from '../map/constants'
+import { ftToM, milesToKm } from '../../lib/units'
+import { useUnitSystem } from '../../hooks/useUnitSystem'
 
 // ─── Source resolution ────────────────────────────────────────────────────────
 
@@ -192,6 +194,7 @@ export function ElevationProfile({
   activeWaypointId?: string | null
   onWaypointClick?: (id: string) => void
 }) {
+  const sys = useUnitSystem()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [containerW, setContainerW] = useState(VB_W_DEFAULT)
   const svgRef = useRef<SVGSVGElement>(null)
@@ -300,9 +303,9 @@ export function ElevationProfile({
         />
 
         {([
-          { eleFt: maxEle,                    y: PAD.t,        dominantBaseline: 'hanging'    },
-          { eleFt: (maxEle + minEle) / 2,     y: PAD.t + CH / 2, dominantBaseline: 'middle'  },
-          { eleFt: minEle,                    y: PAD.t + CH,   dominantBaseline: 'alphabetic' },
+          { eleFt: maxEle,                    y: PAD.t,          dominantBaseline: 'hanging'    },
+          { eleFt: (maxEle + minEle) / 2,     y: PAD.t + CH / 2, dominantBaseline: 'middle'     },
+          { eleFt: minEle,                    y: PAD.t + CH,     dominantBaseline: 'alphabetic' },
         ] as const).map(({ eleFt, y, dominantBaseline }) => (
           <text
             key={y}
@@ -312,7 +315,9 @@ export function ElevationProfile({
             dominantBaseline={dominantBaseline}
             style={{ ...svgMonoStyle, fontSize: 9 }}
           >
-            {Math.round(eleFt).toLocaleString()}'
+            {sys === 'metric'
+              ? `${ftToM(Math.round(eleFt)).toLocaleString()}m`
+              : `${Math.round(eleFt).toLocaleString()}'`}
           </text>
         ))}
 
@@ -365,17 +370,17 @@ export function ElevationProfile({
             textAnchor={x <= PAD.l ? 'start' : x >= PAD.l + cw - 1 ? 'end' : 'middle'}
             style={{ ...svgMonoStyle, fontSize: 9 }}
           >
-            {distLabel} mi
+            {sys === 'metric' ? milesToKm(parseFloat(distLabel)).toFixed(1) : distLabel} {sys === 'metric' ? 'km' : 'mi'}
           </text>
         ))}
       </svg>
 
       <div className="grid grid-cols-4 gap-1">
         {[
-          { key: 'Gain', value: `+${gain.toLocaleString()} ft` },
-          { key: 'Loss', value: `-${loss.toLocaleString()} ft` },
-          { key: 'Max', value: `${Math.round(maxEle).toLocaleString()} ft` },
-          { key: 'Dist', value: `${totalDist.toFixed(1)} mi` },
+          { key: 'Gain', value: sys === 'metric' ? `+${ftToM(gain).toLocaleString()} m` : `+${gain.toLocaleString()} ft` },
+          { key: 'Loss', value: sys === 'metric' ? `-${ftToM(loss).toLocaleString()} m` : `-${loss.toLocaleString()} ft` },
+          { key: 'Max',  value: sys === 'metric' ? `${ftToM(Math.round(maxEle)).toLocaleString()} m` : `${Math.round(maxEle).toLocaleString()} ft` },
+          { key: 'Dist', value: sys === 'metric' ? `${milesToKm(totalDist).toFixed(1)} km` : `${totalDist.toFixed(1)} mi` },
         ].map(({ key, value }) => (
           <div key={key} className="bg-surface-2 rounded-sm px-1 py-1.25">
             <span className={monoCls}>{key}</span>

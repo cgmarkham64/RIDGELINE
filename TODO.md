@@ -155,6 +155,8 @@ Full gear inventory system:
 - Upscale all text application wide focusing especially on the smallest text which is borderline unreadable. Pay attention to UX on this, not just aesthetics. If you need to change fonts its fine, I quite like the one we have now but totally accept changing it if it's not conducive to a good UX. Font sizes across the application could maybe use a more consistent approach; would it make sense to introduce static variables for sizing consistency? I'm thinking like H1, H2, and H3 conceptually, but also for subheadings and body fonts? Maybe icon sizes too? 
 - The src/components/plan/stages folder has gotten rather unruly. Clean it up based on which stage the file is used in by putting them in relevant directories. The /src/components/plan directory files might make sense in a 'commons' folder under the same parent directory.
 - Notifications via text/email when key dates are coming up, weather becomes available for checking, final steps need completion prior to trip
+- User setting addition for English vs. Metric units of measure. Temps should be able to be viewed in Farenheit or Celsius and distance in miles or kilometers.
+- Badass mode for User settings. Button that overrides all weather warnings/tolerances with a warning message that it's doing so. Also let people know to tag the app on Instagram with whatever pictures they take if they enter full badass mode.
 
 ---
 

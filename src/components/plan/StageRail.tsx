@@ -2,10 +2,12 @@ import type { Stage, PlanView } from './types'
 import { stageState } from './constants'
 import { Ring } from './Ring'
 import { IconChevronRight, IconMap, IconPencil } from '../icons'
+import { fmtElevGain, fmtDist } from '../../lib/units'
+import { useUnitSystem } from '../../hooks/useUnitSystem'
 
 interface StageRailProps {
   stages: Stage[]
-  trip: { title: string; location: string; dateRange: string; miles: number | null; elev: string; days: number; weight: string }
+  trip: { title: string; location: string; dateRange: string; miles: number | null; elevGainFt: number | null; days: number; weight: string }
   activeStageIdx: number
   view: PlanView
   totalDone: number
@@ -49,6 +51,7 @@ function StageRailItem({
 
 export function StageRail({ stages, trip, activeStageIdx, view, totalDone, totalAll, onSelectStage, onSelectOverview, onEditDetails }: StageRailProps) {
   const isOverview = view === 'overview'
+  const sys = useUnitSystem()
 
   return (
     <aside className="w-[280px] shrink-0 bg-surface border-r border-border flex flex-col h-full overflow-hidden">
@@ -122,8 +125,8 @@ export function StageRail({ stages, trip, activeStageIdx, view, totalDone, total
         <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2">Snapshot</div>
         <div className="grid grid-cols-2 gap-1.5">
           {[
-            { value: trip.miles ?? '—', label: 'miles' },
-            { value: trip.elev,         label: 'gain' },
+            { value: trip.miles != null ? fmtDist(trip.miles, sys) : '—', label: 'dist' },
+            { value: trip.elevGainFt != null ? fmtElevGain(trip.elevGainFt, sys) : '—', label: 'gain' },
             { value: trip.days || '—',  label: 'days' },
             { value: trip.weight,       label: 'base' },
           ].map(({ value, label }) => (

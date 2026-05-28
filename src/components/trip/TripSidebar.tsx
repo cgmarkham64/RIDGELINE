@@ -4,6 +4,8 @@ import { useTrips } from '../../hooks/useTrips'
 import { useAuthStore } from '../../store/auth'
 import { MoonLoader } from '../ui/MoonLoader'
 import { Pill } from '../plan/Pill'
+import { kmToMiles, mToFt, fmtDist, fmtElevGain, distUnit, elevUnit } from '../../lib/units'
+import { useUnitSystem } from '../../hooks/useUnitSystem'
 
 interface Props {
   selectedId: string | null
@@ -44,6 +46,7 @@ const filterDateInputCls = 'w-full px-2 py-[4px] bg-surface-2 border border-bord
 export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: Props) {
   const { data: trips, isLoading, isError } = useTrips()
   const userId = useAuthStore((s) => s.user?.id)
+  const sys = useUnitSystem()
 
   const [search, setSearch] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -112,10 +115,10 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
     const isOwner = !!userId && trip.ownerSub === userId
     if (ownership === 'mine' && !isOwner) return false
     if (ownership === 'shared' && isOwner) return false
-    if (minMiles && trip.distanceMiles != null && trip.distanceMiles < parseFloat(minMiles)) return false
-    if (maxMiles && trip.distanceMiles != null && trip.distanceMiles > parseFloat(maxMiles)) return false
-    if (minElev && trip.elevationGainFt != null && trip.elevationGainFt < parseFloat(minElev)) return false
-    if (maxElev && trip.elevationGainFt != null && trip.elevationGainFt > parseFloat(maxElev)) return false
+    if (minMiles && trip.distanceMiles != null && trip.distanceMiles < (sys === 'metric' ? kmToMiles(parseFloat(minMiles)) : parseFloat(minMiles))) return false
+    if (maxMiles && trip.distanceMiles != null && trip.distanceMiles > (sys === 'metric' ? kmToMiles(parseFloat(maxMiles)) : parseFloat(maxMiles))) return false
+    if (minElev && trip.elevationGainFt != null && trip.elevationGainFt < (sys === 'metric' ? mToFt(parseFloat(minElev)) : parseFloat(minElev))) return false
+    if (maxElev && trip.elevationGainFt != null && trip.elevationGainFt > (sys === 'metric' ? mToFt(parseFloat(maxElev)) : parseFloat(maxElev))) return false
     if (dateFrom && trip.endDate.slice(0, 10) < dateFrom) return false
     if (dateTo && trip.startDate.slice(0, 10) > dateTo) return false
     if (statusFilter.length > 0 && !statusFilter.includes((trip.status ?? 'complete') as TripStatus)) return false
@@ -204,7 +207,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
 
                 {/* Distance */}
                 <div>
-                  <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1">Miles</div>
+                  <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1">Dist ({distUnit(sys)})</div>
                   <div className="grid grid-cols-2 gap-1.5">
                     <input type="number" min="0" value={minMiles} onChange={(e) => setMinMiles(e.target.value)} placeholder="Min" className={filterInputCls} />
                     <input type="number" min="0" value={maxMiles} onChange={(e) => setMaxMiles(e.target.value)} placeholder="Max" className={filterInputCls} />
@@ -213,7 +216,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
 
                 {/* Elevation */}
                 <div>
-                  <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1">Elev gain (ft)</div>
+                  <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1">Elev gain ({elevUnit(sys)})</div>
                   <div className="grid grid-cols-2 gap-1.5">
                     <input type="number" min="0" value={minElev} onChange={(e) => setMinElev(e.target.value)} placeholder="Min" className={filterInputCls} />
                     <input type="number" min="0" value={maxElev} onChange={(e) => setMaxElev(e.target.value)} placeholder="Max" className={filterInputCls} />
@@ -340,11 +343,11 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                 </div>
                 {(trip.distanceMiles || trip.elevationGainFt) && (
                   <div className="flex gap-2 mt-0.75">
-                    {trip.distanceMiles && (
-                      <span className="font-mono text-[9px] text-text-dim">{trip.distanceMiles} mi</span>
+                    {trip.distanceMiles != null && (
+                      <span className="font-mono text-[9px] text-text-dim">{fmtDist(trip.distanceMiles, sys)}</span>
                     )}
-                    {trip.elevationGainFt && (
-                      <span className="font-mono text-[9px] text-text-dim">+{trip.elevationGainFt.toLocaleString()} ft</span>
+                    {trip.elevationGainFt != null && (
+                      <span className="font-mono text-[9px] text-text-dim">{fmtElevGain(trip.elevationGainFt, sys)}</span>
                     )}
                   </div>
                 )}

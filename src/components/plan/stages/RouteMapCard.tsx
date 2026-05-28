@@ -17,6 +17,8 @@ import type { StageBodyProps } from '../types'
 import type { GpxTrackEntry } from '../../../types'
 import { FitBounds, InvalidateSize, DrawInteractionLayer, ContextMenuLayer, type ContextMenuPayload } from './routeMapCard.helpers'
 import { DrawConfirmTray } from './DrawConfirmTray'
+import { milesToKm, ftToM } from '../../../lib/units'
+import { useUnitSystem } from '../../../hooks/useUnitSystem'
 
 // ─── Public handle type ───────────────────────────────────────────────────────
 
@@ -73,6 +75,7 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
     const { drawState, setDrawState, onCancelDraw, onConfirmSegment, onMapClick, onPinDrag, onEndpointDrag, onResetStartPin } = drawProps
     const { canEdit } = uploadProps
 
+    const sys = useUnitSystem()
     const qc = useQueryClient()
     const [tileLayer,   setTileLayer]   = useState<TileLayerKey>('topo')
     const [uploadLabel, setUploadLabel] = useState<string | null>(null)
@@ -199,7 +202,7 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
             </div>
             <div className="font-mono text-[9px] text-text-dim mt-0.5">
               {segments.length > 0
-                ? `${totalMiles.toFixed(1)} mi · +${totalGain.toLocaleString()} ft gain · ${segments.length} segment${segments.length !== 1 ? 's' : ''}`
+                ? `${sys === 'metric' ? milesToKm(totalMiles).toFixed(1) + ' km' : totalMiles.toFixed(1) + ' mi'} · +${sys === 'metric' ? ftToM(totalGain).toLocaleString() + ' m' : totalGain.toLocaleString() + ' ft'} gain · ${segments.length} segment${segments.length !== 1 ? 's' : ''}`
                 : 'No segments added yet'}
             </div>
           </div>
@@ -286,7 +289,7 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
                 >
                   <Tooltip direction="top" offset={[0, -10]} opacity={0.95}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>
-                      {src.label} · {src.distFromStartMi.toFixed(1)} mi from TH
+                      {src.label} · {sys === 'metric' ? milesToKm(src.distFromStartMi).toFixed(1) + ' km' : src.distFromStartMi.toFixed(1) + ' mi'} from TH
                       {src.checkDate && (
                         <span style={{ display: 'block', opacity: 0.6, fontSize: 9 }}>
                           OSM updated {src.checkDate}

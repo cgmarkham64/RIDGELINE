@@ -5,6 +5,7 @@ import { initials } from '../../lib/utils'
 import { IconX } from '../icons'
 import type { TimePreference, UserPreferences, WeatherTolerances } from '../../types/auth'
 import { DEFAULT_USER_PREFERENCES } from '../../types/auth'
+import { fToC, cToF, mphToKmh, kmhToMph, type UnitSystem } from '../../lib/units'
 
 interface Props {
   onClose: () => void
@@ -127,14 +128,44 @@ const TOLERANCE_ROWS: Array<{
   delayKey: keyof WeatherTolerances
   defaultCaution: number
   defaultDelay: number
-  unit: string
-  min: number
-  max: number
+  unitLabel: (sys: UnitSystem) => string
+  toDisplay: (v: number, sys: UnitSystem) => number
+  fromDisplay: (v: number, sys: UnitSystem) => number
+  min: (sys: UnitSystem) => number
+  max: (sys: UnitSystem) => number
   dir: '<' | '>'
 }> = [
-  { label: 'Temp',   cautionKey: 'tempCautionF',     delayKey: 'tempDelayF',     defaultCaution: 45, defaultDelay: 32, unit: '°F',  min: -60, max: 120, dir: '<' },
-  { label: 'Precip', cautionKey: 'precipCautionPct', delayKey: 'precipDelayPct', defaultCaution: 40, defaultDelay: 70, unit: '%',   min: 0,   max: 100, dir: '>' },
-  { label: 'Wind',   cautionKey: 'windCautionMph',   delayKey: 'windDelayMph',   defaultCaution: 30, defaultDelay: 45, unit: 'mph', min: 0,   max: 200, dir: '>' },
+  {
+    label: 'Temp',
+    cautionKey: 'tempCautionF', delayKey: 'tempDelayF',
+    defaultCaution: 45, defaultDelay: 32,
+    unitLabel: sys => sys === 'metric' ? '°C' : '°F',
+    toDisplay: (v, sys) => sys === 'metric' ? fToC(v) : v,
+    fromDisplay: (v, sys) => sys === 'metric' ? cToF(v) : v,
+    min: sys => sys === 'metric' ? -50 : -60,
+    max: sys => sys === 'metric' ? 50 : 120,
+    dir: '<',
+  },
+  {
+    label: 'Precip',
+    cautionKey: 'precipCautionPct', delayKey: 'precipDelayPct',
+    defaultCaution: 40, defaultDelay: 70,
+    unitLabel: () => '%',
+    toDisplay: v => v, fromDisplay: v => v,
+    min: () => 0, max: () => 100,
+    dir: '>',
+  },
+  {
+    label: 'Wind',
+    cautionKey: 'windCautionMph', delayKey: 'windDelayMph',
+    defaultCaution: 30, defaultDelay: 45,
+    unitLabel: sys => sys === 'metric' ? 'km/h' : 'mph',
+    toDisplay: (v, sys) => sys === 'metric' ? mphToKmh(v) : v,
+    fromDisplay: (v, sys) => sys === 'metric' ? kmhToMph(v) : v,
+    min: () => 0,
+    max: sys => sys === 'metric' ? 320 : 200,
+    dir: '>',
+  },
 ]
 
 export function AccountDialog({ onClose }: Props) {
@@ -150,6 +181,7 @@ export function AccountDialog({ onClose }: Props) {
     ...DEFAULT_USER_PREFERENCES,
     ...user?.preferences,
     weatherTolerances: user?.preferences?.weatherTolerances ?? DEFAULT_USER_PREFERENCES.weatherTolerances,
+    unitSystem: user?.preferences?.unitSystem ?? 'imperial',
   }))
   const [prefsSaving, setPrefsSaving] = useState(false)
   const [prefsError, setPrefsError] = useState<string | null>(null)
@@ -324,7 +356,28 @@ export function AccountDialog({ onClose }: Props) {
           {/* ── Preferences tab ──────────────────────────────────────────────── */}
           {activeTab === 'preferences' && (
             <>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
+                <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Units</label>
+                <div className="flex gap-1">
+                  {(['imperial', 'metric'] as const).map(sys => (
+                    <button
+                      key={sys}
+                      type="button"
+                      onClick={() => { setPrefs(prev => ({ ...prev, unitSystem: sys })); setPrefsSaved(false) }}
+                      className="flex-1 py-[5px] font-mono text-[10px] rounded-sm border transition-colors duration-100 cursor-pointer"
+                      style={{
+                        background:   prefs.unitSystem === sys ? 'var(--color-amber-dim)'    : 'var(--color-surface-2)',
+                        borderColor:  prefs.unitSystem === sys ? 'var(--color-amber-border)' : 'var(--color-border)',
+                        color:        prefs.unitSystem === sys ? 'var(--color-amber)'        : 'var(--color-text-dim)',
+                      }}
+                    >
+                      {sys === 'imperial' ? 'Imperial (mi, °F)' : 'Metric (km, °C)'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-4 flex flex-col gap-3">
                 <div className="flex items-center gap-1.5">
                   <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Default times</label>
                   <InfoTooltip text="Auto-fills new route segments. Relative anchors to local sunrise or sunset on each hiking day." />
@@ -350,10 +403,13 @@ export function AccountDialog({ onClose }: Props) {
                   <span className="font-mono text-[9px] text-red/60 text-center">Delay</span>
                   <span />
                   {TOLERANCE_ROWS.map(row => {
+                    const sys        = prefs.unitSystem
                     const cautionVal = prefs.weatherTolerances[row.cautionKey]
                     const delayVal   = prefs.weatherTolerances[row.delayKey]
                     const cautionOn  = cautionVal !== null
                     const delayOn    = delayVal   !== null
+                    const cautionDisplay = cautionVal !== null ? row.toDisplay(cautionVal, sys) : row.toDisplay(row.defaultCaution, sys)
+                    const delayDisplay   = delayVal   !== null ? row.toDisplay(delayVal, sys)   : row.toDisplay(row.defaultDelay, sys)
                     const toggleCls  = (on: boolean) =>
                       `w-3 h-3 rounded-[2px] border flex items-center justify-center shrink-0 cursor-pointer transition-colors ${
                         on ? 'bg-amber border-amber' : 'bg-surface-2 border-border-mid hover:border-amber'
@@ -372,21 +428,23 @@ export function AccountDialog({ onClose }: Props) {
                         </button>
                         <span className={dimCls(cautionOn)}>{row.dir}</span>
                         <input type="number" disabled={!cautionOn}
-                          value={cautionVal ?? row.defaultCaution} min={row.min} max={row.max}
-                          onChange={e => patchWeatherTolerance({ [row.cautionKey]: Number(e.target.value) })}
+                          value={cautionDisplay}
+                          min={row.min(sys)} max={row.max(sys)}
+                          onChange={e => patchWeatherTolerance({ [row.cautionKey]: row.fromDisplay(Number(e.target.value), sys) })}
                           className={inputCls(cautionOn)}
                         />
-                        <span className={unitCls(cautionOn)}>{row.unit}</span>
+                        <span className={unitCls(cautionOn)}>{row.unitLabel(sys)}</span>
                         <button type="button" onClick={() => patchWeatherTolerance({ [row.delayKey]: delayOn ? null : row.defaultDelay })} className={toggleCls(delayOn)}>
                           {delayOn && <span className="text-[6px] text-surface font-bold leading-none select-none">✓</span>}
                         </button>
                         <span className={dimCls(delayOn)}>{row.dir}</span>
                         <input type="number" disabled={!delayOn}
-                          value={delayVal ?? row.defaultDelay} min={row.min} max={row.max}
-                          onChange={e => patchWeatherTolerance({ [row.delayKey]: Number(e.target.value) })}
+                          value={delayDisplay}
+                          min={row.min(sys)} max={row.max(sys)}
+                          onChange={e => patchWeatherTolerance({ [row.delayKey]: row.fromDisplay(Number(e.target.value), sys) })}
                           className={inputCls(delayOn)}
                         />
-                        <span className={unitCls(delayOn)}>{row.unit}</span>
+                        <span className={unitCls(delayOn)}>{row.unitLabel(sys)}</span>
                       </>
                     )
                   })}

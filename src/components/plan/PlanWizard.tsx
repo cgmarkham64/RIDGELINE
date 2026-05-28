@@ -51,7 +51,7 @@ function buildMeta(trip: { title?: string; location?: string; startDate?: string
     location:  trip.location ?? '—',
     dateRange: hasDate ? formatDateRange(trip.startDate!, trip.endDate!) : '—',
     miles:     trip.distanceMiles  ?? null,
-    elev:      trip.elevationGainFt ? `+${trip.elevationGainFt.toLocaleString()} ft` : '—',
+    elevGainFt: trip.elevationGainFt ?? null,
     days:      hasDate ? tripDays(trip.startDate!, trip.endDate!) : 0,
     weight:    '—',
   }

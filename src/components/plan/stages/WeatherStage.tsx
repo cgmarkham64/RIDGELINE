@@ -14,6 +14,8 @@ import type { ClimateNormals } from './weatherStage.types'
 import { WmoConditionIcon } from './WmoConditionIcon'
 import { useAuthStore } from '../../../store/auth'
 import { DEFAULT_WEATHER_TOLERANCES } from '../../../types/auth'
+import { fmtTemp, fmtWind } from '../../../lib/units'
+import { useUnitSystem } from '../../../hooks/useUnitSystem'
 
 const ARCHIVE_URL  = 'https://archive-api.open-meteo.com/v1/archive'
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
@@ -110,6 +112,7 @@ const DAYS_PER_PAGE = 7
 export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true, onEditTrip }: StageBodyProps) {
   const { user } = useAuthStore()
   const tolerances = user?.preferences?.weatherTolerances ?? DEFAULT_WEATHER_TOLERANCES
+  const sys = useUnitSystem()
 
   const tripLoc  = trip?.location ?? ''
   // Normalize to YYYY-MM-DD — API dates may arrive as full ISO strings
@@ -340,12 +343,12 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
             {climateError   && <div className="font-mono text-[11px] text-red py-4 text-center">Failed to load climate data.</div>}
             {climate && (
               <div className="grid grid-cols-4 gap-px bg-border rounded overflow-hidden">
-                {([
-                  { v: `${climate.avgHighF}°F`, l: 'avg high'    },
-                  { v: `${climate.avgLowF}°F`,  l: 'avg low'     },
-                  { v: `${climate.precipPct}%`, l: 'precip days' },
-                  { v: climate.snowLikely ? 'likely' : 'rare',   l: 'snow' },
-                ] as const).map(s => (
+                {[
+                  { v: fmtTemp(climate.avgHighF, sys), l: 'avg high'    },
+                  { v: fmtTemp(climate.avgLowF, sys),  l: 'avg low'     },
+                  { v: `${climate.precipPct}%`,         l: 'precip days' },
+                  { v: climate.snowLikely ? 'likely' : 'rare', l: 'snow' },
+                ].map(s => (
                   <div key={s.l} className="bg-surface px-3 py-2">
                     <div className="font-heading text-[16px] font-extrabold text-amber leading-none">{s.v}</div>
                     <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mt-1">{s.l}</div>
@@ -472,8 +475,8 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
 
                         {/* High / low */}
                         <div className="relative z-10 flex-1 flex items-center gap-1.5">
-                          <span className="font-heading text-[16px] font-extrabold text-text leading-none">{d.highF}°</span>
-                          <span className="font-mono text-[10px] text-text-dim leading-none">{d.lowF}°</span>
+                          <span className="font-heading text-[16px] font-extrabold text-text leading-none">{fmtTemp(d.highF, sys)}</span>
+                          <span className="font-mono text-[10px] text-text-dim leading-none">{fmtTemp(d.lowF, sys)}</span>
                         </div>
 
                         {/* Precip + wind */}
@@ -482,7 +485,7 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
                             style={{ color: d.precipPct >= 40 ? 'var(--sky)' : 'var(--text-dim)', fontWeight: d.precipPct >= 40 ? 600 : undefined }}>
                             {d.precipPct}%
                           </div>
-                          <div className="font-mono text-[9px] text-text-dim leading-none">{d.windMph}mph {d.windDir}</div>
+                          <div className="font-mono text-[9px] text-text-dim leading-none">{fmtWind(d.windMph, sys)} {d.windDir}</div>
                         </div>
                       </div>
                     )
