@@ -20,14 +20,6 @@ All seven stages render with internal state. The items below are UI stubs, disco
 
 **Stage 2 — Weather** *(replaces Days; full stage to be built)*
 
-- **Data model**: Add `PlanWeatherData` slice to `PlanData` replacing `days?`. Minimum shape: `{ historicalReviewed: boolean; forecastChecked: boolean; sunriseReviewed: boolean; departureRisk: 'low' | 'moderate' | 'high' | null; notes: string }`. Wire `onChange` and `onProgress` from the start — don't repeat the Days mistake of leaving them unwired.
-- **Location + date banner**: Derive region, date range, and trip length from `trip.location` + `trip.startDate` / `endDate`. If dates are unset, show an amber prompt linking to `TripSetupDialog` — nothing else in the stage can compute without them.
-- **Historical climate card**: Monthly averages for the trip location and calendar month — avg high/low, precipitation probability, snow likelihood. API: Open-Meteo historical climate (`climate-api.open-meteo.com`) — free, no key, accepts lat/lng + month. Forward-geocode `trip.location` via Nominatim (already used in RouteStage for reverse geocode) to obtain coordinates. Cache the result in `PlanWeatherData` so it survives page reloads without re-fetching.
-- **Per-day sunrise/sunset table**: One row per trip day — date, sunrise time, sunset time, usable daylight hours. Compute client-side using a standard astronomical formula (no API needed). Good candidate for a new `src/lib/sun.ts` helper.
-- **10-day live forecast section**: Only rendered when `trip.startDate` is ≤ 14 days away; otherwise show a "Check back N days before departure" placeholder with the exact target date. Fetch from `api.open-meteo.com/v1/forecast` using the geocoded coordinates. Daily columns: date, high/low temp, precipitation probability, condition summary, wind speed/direction.
-- **Departure window card**: Synthesises forecast into a go / caution / delay banner. Starting heuristic: flag days with > 40% precipitation probability or projected temps below freezing at the planned elevation. Shown only when forecast data is available.
-- **Right-rail checklist**: Historical reviewed · Forecast checked (predicate gated — only completable within 14 days of departure) · Sunrise/sunset noted · Departure window assessed · Gear adjusted for conditions.
-- **Right-rail reminder**: Persistent "Re-check forecast 72 hrs before departure" note — always visible once forecast has been checked at least once.
 - ℹ Sunrise/sunset times computed here should eventually feed the Depart one-pager's per-day schedule column.
 
 **Stage 3 — Permits**
@@ -157,6 +149,7 @@ Full gear inventory system:
 - Notifications via text/email when key dates are coming up, weather becomes available for checking, final steps need completion prior to trip
 - **Weather Stage** See if Gear check box (right side) makes sense or if it should be on the Gear stage (#5) as an item that links back to the weather checkboxes
 - **Weather Stage** Remove "Noted" checkbox - it's a little redundant with the "Checked" for forecast.
+- **Route stage** — Stop flood of requests for water info!! We will get flagged for this eventually and its generally not professional
 
 ---
 
