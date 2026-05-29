@@ -1,4 +1,4 @@
-import type { PlanPermitEntry } from '../types'
+import type { PlanPermitEntry } from '../../types'
 
 export type PermitTone = 'amber' | 'sky' | 'pine'
 export type ViewMode = 'list' | 'map'

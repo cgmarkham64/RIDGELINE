@@ -1,4 +1,4 @@
-import type { PermitTypeName, ZoneStatus } from '../types'
+import type { PermitTypeName, ZoneStatus } from '../../types'
 import type { Permit, PermitTone } from './permitsStage.types'
 
 export const PERMIT_TYPES: Record<PermitTypeName, { label: string; tone: PermitTone; hint: string }> = {

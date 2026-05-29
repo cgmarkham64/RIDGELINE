@@ -25,6 +25,11 @@ export type PermitTypeName =
 
 export type ZoneStatus = 'available' | 'limited' | 'sold_out'
 
+export interface PermitSource {
+  url:   string
+  title: string
+}
+
 // ─── Per-stage plan data — used to seed state from an existing plan ───────────
 
 export interface PlanRouteData {
@@ -50,6 +55,9 @@ export interface PlanPermitEntry {
   fields: Record<string, string>
   party: number
   zones?: { night: number; zone: string; status: ZoneStatus }[]
+  url?: string
+  zoneId?: string
+  confidence?: 'high' | 'medium' | 'low'
 }
 
 export interface PlanMealEntry {
@@ -126,7 +134,13 @@ export interface PlanWeatherData {
 export interface PlanData {
   route?: PlanRouteData
   weather?: PlanWeatherData
-  permits?:{ permits: PlanPermitEntry[]; permitFree: boolean }
+  permits?: {
+    permits:      PlanPermitEntry[]
+    permitFree:   boolean
+    suggestions?: PlanPermitEntry[]
+    lastScanned?: string
+    sources?:     PermitSource[]
+  }
   food?: {
     meals: PlanMealEntry[]
     mealsLocked: boolean

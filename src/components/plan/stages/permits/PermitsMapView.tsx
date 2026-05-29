@@ -1,9 +1,9 @@
 import { useId, useState } from 'react'
-import { IconX, IconCheck, IconPlus, IconMap, IconChevronLeft, IconChevronRight } from '../../icons'
+import { IconX, IconCheck, IconPlus, IconMap, IconChevronLeft, IconChevronRight } from '../../../icons'
 import { TypeChip, Field, PermitTypeIcon } from './PermitAtoms'
 import { PERMIT_TYPES, TONE_CLS, MAP_ZONES, MAP_ROUTE, ZONE_PERMIT_MAP } from './permitsStage.constants'
 import type { Permit } from './permitsStage.types'
-import { JumpChip } from '../JumpChip'
+import { JumpChip } from '../../JumpChip'
 
 // ─── MapZoneSvg ───────────────────────────────────────────────────────────────
 
@@ -43,7 +43,7 @@ export function MapZoneSvg({ highlightId }: { highlightId?: string }) {
           )
         })}
       </svg>
-      <div className="absolute bottom-2.5 left-2.5 flex gap-3 px-2.5 py-1.5 rounded border border-border font-mono text-[9px] text-text-dim bg-[rgba(15,13,11,0.8)]">
+      <div className="absolute bottom-2.5 left-2.5 flex gap-3 px-2.5 py-1.5 rounded border border-border font-mono text-label text-text-dim bg-[rgba(15,13,11,0.8)]">
         <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-px bg-amber" /> route</span>
         <span className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 border border-sky bg-[rgba(90,180,220,0.25)] opacity-60" /> zone</span>
       </div>
@@ -70,8 +70,8 @@ export function MapModal({ permit, onClose }: { permit: Permit; onClose: () => v
             <PermitTypeIcon type={permit.type} size={13} />
           </span>
           <div className="flex-1 min-w-0">
-            <div className="font-heading text-[13px] font-bold text-text truncate">{permit.name}</div>
-            <div className="font-mono text-[9px] text-text-dim mt-0.5">{permit.agency}</div>
+            <div className="font-heading text-body font-bold text-text truncate">{permit.name}</div>
+            <div className="font-mono text-label text-text-dim mt-0.5">{permit.agency}</div>
           </div>
           <TypeChip type={permit.type} />
           <button onClick={onClose} className="text-text-dim hover:text-text p-1 transition-colors ml-1">
@@ -81,7 +81,7 @@ export function MapModal({ permit, onClose }: { permit: Permit; onClose: () => v
         <div className="p-5">
           <MapZoneSvg highlightId={matchingZone?.id} />
           {permit.why && (
-            <div className="mt-3.5 text-[11px] text-text-mid italic leading-relaxed">{permit.why}</div>
+            <div className="mt-3.5 text-fine text-text-mid italic leading-relaxed">{permit.why}</div>
           )}
           {fields.length > 0 && (
             <div className="grid gap-2.5 mt-3.5" style={{ gridTemplateColumns: `repeat(${Math.min(fields.length, 3)}, 1fr)` }}>
@@ -96,12 +96,13 @@ export function MapModal({ permit, onClose }: { permit: Permit; onClose: () => v
 
 // ─── PermitsMapView ───────────────────────────────────────────────────────────
 
-export function PermitsMapView({ permits, suggestions, onAccept, onViewMap, onJump }: {
+export function PermitsMapView({ permits, suggestions, onAccept, onViewMap, onJump, canEdit }: {
   permits: Permit[]
   suggestions: Permit[]
   onAccept: (p: Permit) => void
   onViewMap: (p: Permit) => void
   onJump: (id: string) => void
+  canEdit: boolean
 }) {
   const uid = useId()
   const patternId = `topo-mv-${uid}`
@@ -120,8 +121,8 @@ export function PermitsMapView({ permits, suggestions, onAccept, onViewMap, onJu
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
           <span className="text-amber shrink-0"><IconMap size={14} /></span>
           <div className="flex-1 min-w-0">
-            <div className="font-heading text-[13px] font-bold text-text">Permit zones along your route</div>
-            <div className="font-mono text-[9px] text-text-dim mt-0.5">
+            <div className="font-heading text-body font-bold text-text">Permit zones along your route</div>
+            <div className="font-mono text-label text-text-dim mt-0.5">
               Sierra High Route · {MAP_ZONES.length} zones · tap a zone to view its permit
             </div>
           </div>
@@ -175,7 +176,7 @@ export function PermitsMapView({ permits, suggestions, onAccept, onViewMap, onJu
               )
             })}
           </svg>
-          <div className="absolute bottom-2.5 left-2.5 flex gap-3 px-2.5 py-1.5 rounded border border-border font-mono text-[9px] text-text-dim bg-[rgba(15,13,11,0.8)]">
+          <div className="absolute bottom-2.5 left-2.5 flex gap-3 px-2.5 py-1.5 rounded border border-border font-mono text-label text-text-dim bg-[rgba(15,13,11,0.8)]">
             <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-px bg-amber" /> route</span>
             <span className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 border border-sky bg-[rgba(90,180,220,0.25)] opacity-60" /> zone</span>
           </div>
@@ -186,10 +187,10 @@ export function PermitsMapView({ permits, suggestions, onAccept, onViewMap, onJu
       <div className="bg-surface border border-border rounded-lg overflow-hidden">
         <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border bg-surface-2">
           <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: z.color }} />
-          <span className="font-mono text-[9px] text-text-dim uppercase tracking-widest">
+          <span className="font-mono text-label text-text-dim uppercase tracking-widest">
             Zone {activeIdx + 1} of {MAP_ZONES.length}
           </span>
-          <span className="font-heading text-[13px] font-bold text-text">{z.name}</span>
+          <span className="font-heading text-body font-bold text-text">{z.name}</span>
           <div className="flex gap-1 ml-auto">
             <button
               onClick={() => setActiveIdx(i => Math.max(0, i - 1))}
@@ -210,13 +211,13 @@ export function PermitsMapView({ permits, suggestions, onAccept, onViewMap, onJu
         <div className="p-4">
           {linkedPermit ? (
             isAdded ? (
-              <div className="flex items-center gap-2 text-[12px] text-text-mid">
+              <div className="flex items-center gap-2 text-body-sm text-text-mid">
                 <span className="text-pine shrink-0"><IconCheck size={14} /></span>
                 <span>
                   Permit added —{' '}
                   <button
                     onClick={() => onViewMap(linkedPermit)}
-                    className="text-sky hover:underline bg-transparent border-none cursor-pointer p-0 text-[12px]"
+                    className="text-sky hover:underline bg-transparent border-none cursor-pointer p-0 text-body-sm"
                   >
                     view detail
                   </button>
@@ -226,19 +227,21 @@ export function PermitsMapView({ permits, suggestions, onAccept, onViewMap, onJu
               <>
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <TypeChip type={linkedPermit.type} />
-                  <span className="font-heading text-[13px] font-bold text-text">{linkedPermit.name}</span>
+                  <span className="font-heading text-body font-bold text-text">{linkedPermit.name}</span>
                 </div>
-                <div className="text-[11px] text-text-mid italic leading-relaxed mb-3">{linkedPermit.why}</div>
+                <div className="text-fine text-text-mid italic leading-relaxed mb-3">{linkedPermit.why}</div>
                 <div className="flex gap-2 flex-wrap">
-                  <button
-                    onClick={() => onAccept(linkedPermit)}
-                    className="inline-flex items-center gap-1 font-heading text-[10px] font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-amber-border bg-amber-dim text-amber hover:bg-amber transition-colors cursor-pointer"
-                  >
-                    <IconPlus size={10} /> Add to trip
-                  </button>
+                  {canEdit && (
+                    <button
+                      onClick={() => onAccept(linkedPermit)}
+                      className="inline-flex items-center gap-1 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-amber-border bg-amber-dim text-amber hover:bg-amber transition-colors cursor-pointer"
+                    >
+                      <IconPlus size={10} /> Add to trip
+                    </button>
+                  )}
                   <button
                     onClick={() => onViewMap(linkedPermit)}
-                    className="inline-flex items-center gap-1 font-heading text-[10px] font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
                   >
                     <IconMap size={10} /> Focus detail
                   </button>
@@ -246,13 +249,13 @@ export function PermitsMapView({ permits, suggestions, onAccept, onViewMap, onJu
               </>
             )
           ) : (
-            <div className="text-[12px] text-text-mid italic">No permit detected for this zone.</div>
+            <div className="text-body-sm text-text-mid italic">No permit detected for this zone.</div>
           )}
         </div>
       </div>
 
       {/* Footer */}
-      <div className="flex items-center gap-3 px-4 py-2.5 bg-surface border border-border rounded-lg text-[11px] text-text-mid">
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-surface border border-border rounded-lg text-fine text-text-mid">
         <span className="text-text-dim shrink-0"><IconMap size={14} /></span>
         <span className="flex-1">
           {permits.length} of {MAP_ZONES.length} zones covered.{' '}

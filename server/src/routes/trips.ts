@@ -5,6 +5,7 @@ import { JournalDay } from '../models/JournalDay'
 import { Notification } from '../models/Notification'
 import { asyncRoute, requireOwner, HttpError } from '../utils/routeHelpers'
 import { normalizeShared, canRead, populateTripUsers, TripLean, SharedEntry } from '../services/tripService'
+import { suggestPermits } from '../services/permitService'
 
 const router = Router()
 
@@ -132,6 +133,30 @@ router.delete('/:id', asyncRoute(async (req, res) => {
   await trip.deleteOne()
   await JournalDay.deleteMany({ tripId: req.params.id })
   res.status(204).send()
+}))
+
+// ─── Permit suggestion ────────────────────────────────────────────────────────
+
+router.post('/:id/permits/suggest', asyncRoute(async (req, res) => {
+  const trip = await Trip.findById(req.params.id).lean()
+  if (!trip) throw new HttpError(404, 'Not found')
+  if (!canRead(trip as TripLean, req.user.sub)) throw new HttpError(403, 'Forbidden')
+
+  const shared    = normalizeShared((trip as TripLean).sharedWith)
+  const partySize = shared.length + 1
+
+  const gpxPlanned = trip.gpxPlanned as { coordinates?: [number, number, number][] } | undefined
+
+  const result = await suggestPermits({
+    title:     trip.title as string | undefined,
+    location:  trip.location as string | undefined,
+    startDate: trip.startDate?.toString(),
+    endDate:   trip.endDate?.toString(),
+    partySize,
+    gpxCoords: gpxPlanned?.coordinates,
+  })
+
+  res.json(result)
 }))
 
 export default router
