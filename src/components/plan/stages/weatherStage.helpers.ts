@@ -176,13 +176,13 @@ export function calcDepartureRisk(
     if (tolerances.tempDelayF !== null && adjustedLowF <= tolerances.tempDelayF) {
       factors.push({
         date:     d.date,
-        label:    `Freezing temps (low ${Math.round(adjustedLowF)}°F at your elevation)`,
+        label:    `Freezing temps (forecast ${Math.round(d.lowF)}°F → ${Math.round(adjustedLowF)}°F at your elevation)`,
         severity: 'high',
       })
     } else if (tolerances.tempCautionF !== null && adjustedLowF <= tolerances.tempCautionF) {
       factors.push({
         date:     d.date,
-        label:    `Cold temps (low ${Math.round(adjustedLowF)}°F at your elevation)`,
+        label:    `Cold temps (forecast ${Math.round(d.lowF)}°F → ${Math.round(adjustedLowF)}°F at your elevation)`,
         severity: 'moderate',
       })
     }

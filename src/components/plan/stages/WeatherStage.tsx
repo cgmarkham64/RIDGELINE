@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import type { StageBodyProps, PlanWeatherData } from '../types'
 import { CheckItem } from '../CheckItem'
 import { ProgressBar } from '../ProgressBar'
-import { IconAlertTriangle, IconCalendar, IconCheck, IconChevronLeft, IconChevronRight, IconSun } from '../../icons'
+import { IconAlertTriangle, IconCalendar, IconCheck, IconChevronLeft, IconChevronRight, IconPackage, IconSun } from '../../icons'
 import { nominatimGeocode } from '../../../lib/geocode'
 import { tripSunRows } from '../../../lib/sun'
 import {
@@ -223,11 +223,13 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
     onProgressRef.current?.(checklist.filter(c => c.done).length, checklist.length)
   }, [checklist])
 
+  const elevFt = useMemo(() => trip ? avgElevationFt(trip) : null, [trip])
+
   // Factors list for display — recomputed from cached forecast + current trip dates
   const computedRisk = useMemo(() => {
     if (!wd.cachedForecast || !hasDates) return null
-    return calcDepartureRisk(wd.cachedForecast.days, startDate, endDate, trip ? avgElevationFt(trip) : null, tolerances)
-  }, [wd.cachedForecast, hasDates, startDate, endDate, trip, tolerances])
+    return calcDepartureRisk(wd.cachedForecast.days, startDate, endDate, elevFt, tolerances)
+  }, [wd.cachedForecast, hasDates, startDate, endDate, elevFt, tolerances])
 
   // Sun times for every forecast day — used in card hover face and nav bar.
   // Keyed by YYYY-MM-DD for O(1) lookup per card.
@@ -497,30 +499,45 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
 
           {/* Departure window */}
           {computedRisk && risk && riskStyle && (
-            <div className={`border rounded-lg p-[18px] ${riskStyle.border} ${riskStyle.bg}`}>
-              <div className={`flex items-center gap-2.5 mb-2 ${riskStyle.text}`}>
-                {risk === 'low'
-                  ? <IconCheck size={14} />
-                  : <IconAlertTriangle size={14} className={riskStyle.text} />
-                }
-                <span className="font-heading text-[15px] font-extrabold">
-                  Departure window: {riskStyle.label}
-                </span>
+            <div className={`border rounded-lg overflow-hidden ${riskStyle.border} ${riskStyle.bg}`}>
+              {/* Verdict */}
+              <div className={`flex flex-col items-center gap-1.5 px-[18px] py-5 border-b ${riskStyle.border}`}>
+                <div className={`${riskStyle.text}`}>
+                  {risk === 'low'
+                    ? <IconCheck size={22} />
+                    : <IconAlertTriangle size={22} className={riskStyle.text} />
+                  }
+                </div>
+                <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Departure window</div>
+                <div className={`font-heading text-[22px] font-extrabold leading-tight ${riskStyle.text}`}>
+                  {riskStyle.label}
+                </div>
               </div>
-              {computedRisk.factors.length === 0
-                ? <p className="text-[12px] text-text-mid">No significant weather risks in the forecast window.</p>
-                : (
-                  <ul className="flex flex-col gap-1 mt-1">
-                    {computedRisk.factors.map((f, i) => (
-                      <li key={i} className={`flex items-center gap-2 text-[11px] ${riskStyle.text}`}>
-                        <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-current" />
-                        <span className="font-mono text-[9px] text-text-dim">{fmtShortDate(f.date)}</span>
-                        <span className="text-text-mid">{f.label}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )
-              }
+
+              {/* Detail */}
+              <div className="px-[18px] py-3.5">
+                {computedRisk.factors.length === 0
+                  ? <p className="text-[13px] text-text-mid text-center">No significant weather risks in the forecast window.</p>
+                  : (
+                    <>
+                      <ul className="flex flex-col gap-2 text-center">
+                        {computedRisk.factors.map((f, i) => (
+                          <li key={i}>
+                            <span className="font-mono text-[10px] text-text-dim">{fmtShortDate(f.date)}</span>
+                            <span className="font-mono text-[10px] text-text-dim mx-1.5">·</span>
+                            <span className="text-[13px] text-text-mid">{f.label}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {elevFt !== null && (
+                        <p className="font-mono text-[9px] text-text-dim mt-2.5 text-center">
+                          Temps adjusted for avg. trip elevation (~{Math.round(elevFt).toLocaleString()} ft)
+                        </p>
+                      )}
+                    </>
+                  )
+                }
+              </div>
             </div>
           )}
 
@@ -566,11 +583,14 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
             </div>
           )}
 
-          <div className="bg-surface border border-border rounded-lg p-3.5">
-            <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2">Gear check</div>
-            <p className="text-[11px] text-text-mid leading-relaxed mb-2.5">
-              After reviewing your loadout against the forecast, mark gear adjusted.
-            </p>
+          <div className="bg-surface border border-border rounded-lg p-3.5 flex flex-col items-center text-center gap-2">
+            <span className="text-text-dim mt-0.5 [&>svg]:w-[18px] [&>svg]:h-[18px]"><IconPackage /></span>
+            <div>
+              <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Gear check</div>
+              <p className="text-[11px] text-text-mid leading-relaxed mt-1">
+                Review your loadout against the forecast, then mark it adjusted.
+              </p>
+            </div>
             {canEdit && (
               <button type="button" onClick={() => toggle('gearAdjusted')}
                 className={`w-full flex items-center justify-center gap-1.5 px-3 py-1.5 font-mono text-[9px] rounded border cursor-pointer transition-colors ${wd.gearAdjusted ? 'bg-pine-dim border-pine-border text-pine' : 'bg-surface-2 border-border text-text-dim hover:border-border-mid'}`}>
