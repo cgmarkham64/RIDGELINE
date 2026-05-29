@@ -114,6 +114,7 @@ export interface PlanWeatherData {
   sunriseReviewed: boolean
   gearAdjusted: boolean
   departureRisk: 'low' | 'moderate' | 'high' | null
+  departureFactors?: Array<{ date: string; label: string; severity: 'moderate' | 'high' }>
   notes: string
   cachedCoords?:   { lat: number; lng: number; fetchedAt: string; forLocation: string }
   cachedClimate?:  { avgHighF: number; avgLowF: number; precipPct: number; snowLikely: boolean; fetchedAt: string; forLocation: string }

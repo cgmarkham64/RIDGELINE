@@ -3,8 +3,17 @@ import { JumpChip } from '../JumpChip'
 import { Pill } from '../Pill'
 import { ProgressBar } from '../ProgressBar'
 import { CheckItem } from '../CheckItem'
-import { IconGear, IconCheck, IconPlus } from '../../icons'
+import { IconAlertTriangle, IconCheck, IconGear, IconPlus } from '../../icons'
 import type { StageBodyProps, PlanGearCategoryEntry } from '../types'
+
+const WEATHER_RISK_STYLE = {
+  moderate: { border: 'border-amber-border', bg: 'bg-amber-dim', text: 'text-amber', label: 'Caution' },
+  high:     { border: 'border-red-border',   bg: 'bg-red-dim',   text: 'text-red',   label: 'Delay'   },
+} as const
+
+function fmtShortDate(s: string): string {
+  return new Date(s + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
 
 
 interface GearItem {
@@ -129,7 +138,7 @@ function CategoryCard({ category, onToggleItem }: {
 
 // ─── GearStage ────────────────────────────────────────────────────────────────
 
-export function GearStage({ onJump, plan, onChange }: StageBodyProps) {
+export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyProps) {
   const [categories, setCategories] = useState<GearCategory[]>(() =>
     plan?.gear?.categories ? fromPlanCategories(plan.gear.categories)
       : plan !== undefined  ? []
@@ -181,6 +190,35 @@ export function GearStage({ onJump, plan, onChange }: StageBodyProps) {
 
         {/* ── Left column ── */}
         <div className="flex flex-col gap-[18px]">
+
+          {/* Weather conditions banner */}
+          {(plan?.weather?.departureRisk === 'moderate' || plan?.weather?.departureRisk === 'high') && (() => {
+            const ws = WEATHER_RISK_STYLE[plan.weather!.departureRisk as 'moderate' | 'high']
+            return (
+              <div className={`border rounded-lg p-[18px] ${ws.border} ${ws.bg}`}>
+                <div className={`flex items-center justify-between mb-2`}>
+                  <div className={`flex items-center gap-2 ${ws.text}`}>
+                    <IconAlertTriangle size={13} className={ws.text} />
+                    <span className="font-mono text-[9px] tracking-[0.16em] uppercase">
+                      Weather {ws.label} — review your loadout
+                    </span>
+                  </div>
+                  <JumpChip to="weather" onJump={onJump}>View forecast</JumpChip>
+                </div>
+                {plan.weather!.departureFactors && plan.weather!.departureFactors.length > 0 && (
+                  <ul className="flex flex-col gap-1 mt-1">
+                    {plan.weather!.departureFactors.map((f, i) => (
+                      <li key={i} className="flex items-center gap-2">
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ws.text} bg-current`} />
+                        <span className="font-mono text-[10px] text-text-dim">{fmtShortDate(f.date)}</span>
+                        <span className="text-[13px] text-text-mid">{f.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
+          })()}
 
           {/* Hold banner */}
           <div className="bg-surface border border-dashed border-border rounded-lg p-[18px]">
@@ -295,6 +333,29 @@ export function GearStage({ onJump, plan, onChange }: StageBodyProps) {
             Loadout depends on confirmed dates + conditions. Auto-recomputes when{' '}
             <JumpChip to="permits" onJump={onJump}>Permits</JumpChip> resolves.
           </div>
+
+          {(plan?.weather?.departureRisk === 'moderate' || plan?.weather?.departureRisk === 'high') && (
+            <div className="bg-surface border border-border rounded-lg p-3.5">
+              <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2">Conditions check</div>
+              <p className="text-[11px] text-text-mid leading-relaxed mb-2.5">
+                Once your loadout is adjusted for the flagged conditions, mark it done.
+              </p>
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => onChange?.({ weather: { ...plan.weather!, gearAdjusted: !plan.weather!.gearAdjusted } })}
+                  className={`w-full flex items-center justify-center gap-1.5 px-3 py-1.5 font-mono text-[9px] rounded border cursor-pointer transition-colors ${
+                    plan.weather!.gearAdjusted
+                      ? 'bg-pine-dim border-pine-border text-pine'
+                      : 'bg-surface-2 border-border text-text-dim hover:border-border-mid'
+                  }`}
+                >
+                  {plan.weather!.gearAdjusted && <IconCheck size={9} />}
+                  {plan.weather!.gearAdjusted ? 'Loadout adjusted ✓' : 'Mark loadout adjusted'}
+                </button>
+              )}
+            </div>
+          )}
         </aside>
       </div>
     </div>

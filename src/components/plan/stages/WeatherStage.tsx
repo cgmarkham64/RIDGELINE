@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import type { StageBodyProps, PlanWeatherData } from '../types'
 import { CheckItem } from '../CheckItem'
 import { ProgressBar } from '../ProgressBar'
-import { IconAlertTriangle, IconCalendar, IconCheck, IconChevronLeft, IconChevronRight, IconPackage, IconSun } from '../../icons'
+import { IconAlertTriangle, IconCalendar, IconCheck, IconChevronLeft, IconChevronRight, IconSun } from '../../icons'
 import { nominatimGeocode } from '../../../lib/geocode'
 import { tripSunRows } from '../../../lib/sun'
 import {
@@ -109,7 +109,7 @@ const DAYS_PER_PAGE = 7
 
 // ─── WeatherStage ─────────────────────────────────────────────────────────────
 
-export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true, onEditTrip }: StageBodyProps) {
+export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true, onEditTrip, onJump }: StageBodyProps) {
   const { user } = useAuthStore()
   const tolerances = user?.preferences?.weatherTolerances ?? DEFAULT_WEATHER_TOLERANCES
   const sys = useUnitSystem()
@@ -125,10 +125,10 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
     const base = plan?.weather ?? INITIAL_WEATHER
     // Pre-compute departure risk if cached forecast exists but risk wasn't stored
     if (base.cachedForecast && base.departureRisk === null && startDate && endDate) {
-      const { overall } = calcDepartureRisk(
+      const { overall, factors } = calcDepartureRisk(
         base.cachedForecast.days, startDate, endDate, trip ? avgElevationFt(trip) : null, tolerances,
       )
-      return { ...base, departureRisk: overall }
+      return { ...base, departureRisk: overall, departureFactors: factors }
     }
     return base
   })
@@ -194,11 +194,12 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
       .then(days => {
         if (cancelled) return
         setForecastError(false)
-        const { overall } = calcDepartureRisk(days, startDate, endDate, elevFt, tolerances)
+        const { overall, factors } = calcDepartureRisk(days, startDate, endDate, elevFt, tolerances)
         setWd(prev => ({
           ...prev,
           cachedForecast: { days, fetchedAt: new Date().toISOString(), forLocation: tripLoc },
           departureRisk: overall,
+          departureFactors: factors,
         }))
       })
       .catch(() => { if (!cancelled) setForecastError(true) })
@@ -583,22 +584,23 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
             </div>
           )}
 
-          <div className="bg-surface border border-border rounded-lg p-3.5 flex flex-col items-center text-center gap-2">
-            <span className="text-text-dim mt-0.5 [&>svg]:w-[18px] [&>svg]:h-[18px]"><IconPackage /></span>
-            <div>
-              <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Gear check</div>
-              <p className="text-[11px] text-text-mid leading-relaxed mt-1">
-                Review your loadout against the forecast, then mark it adjusted.
+          {risk && risk !== 'low' && riskStyle && (
+            <div className={`border rounded-lg p-3.5 ${riskStyle.border} ${riskStyle.bg}`}>
+              <div className={`flex items-center gap-2 mb-2 ${riskStyle.text}`}>
+                <IconAlertTriangle size={12} className={riskStyle.text} />
+                <span className="font-mono text-[9px] tracking-[0.16em] uppercase">Loadout review needed</span>
+              </div>
+              <p className="text-[11px] text-text-mid leading-relaxed mb-2.5">
+                Conditions flagged for your trip window. Check your gear is ready for these conditions.
               </p>
+              {onJump && (
+                <button type="button" onClick={() => onJump('gear')}
+                  className={`w-full flex items-center justify-center gap-1.5 px-3 py-1.5 font-mono text-[9px] rounded border cursor-pointer transition-colors ${riskStyle.border} ${riskStyle.text} bg-transparent hover:opacity-80`}>
+                  Review gear →
+                </button>
+              )}
             </div>
-            {canEdit && (
-              <button type="button" onClick={() => toggle('gearAdjusted')}
-                className={`w-full flex items-center justify-center gap-1.5 px-3 py-1.5 font-mono text-[9px] rounded border cursor-pointer transition-colors ${wd.gearAdjusted ? 'bg-pine-dim border-pine-border text-pine' : 'bg-surface-2 border-border text-text-dim hover:border-border-mid'}`}>
-                {wd.gearAdjusted && <IconCheck size={9} />}
-                {wd.gearAdjusted ? 'Gear adjusted ✓' : 'Mark gear adjusted'}
-              </button>
-            )}
-          </div>
+          )}
 
         </aside>
       </div>
