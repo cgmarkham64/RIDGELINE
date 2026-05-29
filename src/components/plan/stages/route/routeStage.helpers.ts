@@ -1,6 +1,6 @@
 import type { CheckRow, RoutePreview, SegRow, WaterEntry, MergedRow } from './routeStage.types'
-import type { DetectedWaterSource } from '../../../lib/waterSources'
-import type { Waypoint } from '../../../types'
+import type { DetectedWaterSource } from '../../../../lib/waterSources'
+import type { Waypoint } from '../../../../types'
 
 export const DEFAULT_CHECKLIST: CheckRow[] = [
   { text: 'Route picked',                  done: false },

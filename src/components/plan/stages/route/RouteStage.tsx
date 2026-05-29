@@ -1,20 +1,20 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import L from 'leaflet'
-import { resolveStartEnd } from '../../map/constants'
-import { fetchDetectedWaterSources, type DetectedWaterSource } from '../../../lib/waterSources'
+import { resolveStartEnd } from '../../../map/constants'
+import { fetchDetectedWaterSources, type DetectedWaterSource } from '../../../../lib/waterSources'
 import {
   toLatLngs, gpxCoordsToMiles, buildMergedRows,
   DEFAULT_CHECKLIST, PARTNER_ITEMS, fetchRoutePreview, reverseGeocode,
   fetchSunTimes, splitSegmentAt, resolveTimePreference,
 } from './routeStage.helpers'
-import { useAuthStore } from '../../../store/auth'
-import { DEFAULT_USER_PREFERENCES } from '../../../types/auth'
+import { useAuthStore } from '../../../../store/auth'
+import { DEFAULT_USER_PREFERENCES } from '../../../../types/auth'
 import type { SegRow, CheckRow, DrawState } from './routeStage.types'
 import { RouteMapCard, type RouteMapCardHandle } from './RouteMapCard'
 import { RouteTable, type RouteTableHandle } from './RouteTable'
 import { RouteRightRail } from './RouteRightRail'
-import { suggestHard } from '../../../lib/trailDifficulty'
-import type { StageBodyProps } from '../types'
+import { suggestHard } from '../../../../lib/trailDifficulty'
+import type { StageBodyProps } from '../../types'
 
 export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }: StageBodyProps) {
   const [segments,      setSegments]      = useState<SegRow[]>(plan?.route?.segments ?? [])

@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useDebounce } from '../../../hooks/useDebounce'
-import { searchUsers, shareTrip, type UserSearchResult } from '../../../lib/users'
-import { unshareTrip } from '../../../lib/trips'
-import { initials } from '../../../lib/utils'
-import { useAuthStore } from '../../../store/auth'
-import { IconPlus, IconMinus, IconX, IconMoreVertical } from '../../icons'
-import type { StageBodyProps } from '../types'
+import { useDebounce } from '../../../../hooks/useDebounce'
+import { searchUsers, shareTrip, type UserSearchResult } from '../../../../lib/users'
+import { unshareTrip } from '../../../../lib/trips'
+import { initials } from '../../../../lib/utils'
+import { useAuthStore } from '../../../../store/auth'
+import { IconPlus, IconMinus, IconX, IconMoreVertical } from '../../../icons'
+import type { StageBodyProps } from '../../types'
 
 type PartnersCardProps = {
   trip: StageBodyProps['trip']
@@ -109,7 +109,7 @@ export function PartnersCard({ trip, canEdit, onInviteSent, onNoPartners }: Part
   return (
     <div className="bg-surface border border-border rounded-lg p-3.5">
       <div className="flex items-center justify-between mb-2.5">
-        <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">
+        <span className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">
           Partners ({partners.length + pendingInvites.length})
         </span>
         {canEdit && !inviteOpen && (
@@ -124,7 +124,7 @@ export function PartnersCard({ trip, canEdit, onInviteSent, onNoPartners }: Part
               <div className="absolute right-0 top-full mt-1 bg-surface border border-border-mid rounded shadow-xl z-20 overflow-hidden min-w-40">
                 <button
                   onMouseDown={() => { setPartnersMenuOpen(false); setInviteOpen(true) }}
-                  className="w-full flex items-center gap-2 px-3 py-2 font-heading text-[10px] font-bold tracking-[0.08em] uppercase text-text-dim hover:text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none text-left"
+                  className="w-full flex items-center gap-2 px-3 py-2 font-heading text-caption font-bold tracking-[0.08em] uppercase text-text-dim hover:text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none text-left"
                 >
                   <IconPlus size={10} />
                   Add partner
@@ -132,7 +132,7 @@ export function PartnersCard({ trip, canEdit, onInviteSent, onNoPartners }: Part
                 {isOwner && soloTrip && (
                   <button
                     onMouseDown={() => { setPartnersMenuOpen(false); onNoPartners() }}
-                    className="w-full flex items-center gap-2 px-3 py-2 font-heading text-[10px] font-bold tracking-[0.08em] uppercase text-text-dim hover:text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none text-left border-t border-border"
+                    className="w-full flex items-center gap-2 px-3 py-2 font-heading text-caption font-bold tracking-[0.08em] uppercase text-text-dim hover:text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none text-left border-t border-border"
                   >
                     <IconMinus size={10} />
                     No partners
@@ -145,19 +145,19 @@ export function PartnersCard({ trip, canEdit, onInviteSent, onNoPartners }: Part
       </div>
 
       {allPartners.length === 0 && !inviteOpen && (
-        <p className="font-mono text-[9px] text-text-dim italic">No partners yet.</p>
+        <p className="font-mono text-label text-text-dim italic">No partners yet.</p>
       )}
 
       {allPartners.map((p, i) => {
         const isThisOwner = p.sub === trip?.ownerSub
         return (
           <div key={p.sub} className={`flex items-center gap-2.5 py-2 ${i < allPartners.length - 1 || inviteOpen ? 'border-b border-border' : ''}`}>
-            <span className="w-6.5 h-6.5 rounded-full bg-surface-2 border border-border-mid flex items-center justify-center font-heading text-[10px] font-extrabold text-amber shrink-0">
+            <span className="w-6.5 h-6.5 rounded-full bg-surface-2 border border-border-mid flex items-center justify-center font-heading text-caption font-extrabold text-amber shrink-0">
               {initials(p.name)}
             </span>
-            <span className="text-[11px] font-semibold text-text truncate flex-1 min-w-0">{p.name}</span>
+            <span className="text-fine font-semibold text-text truncate flex-1 min-w-0">{p.name}</span>
             {p.pending && (
-              <span className="font-mono text-[9px] tracking-[0.12em] text-amber shrink-0">PENDING</span>
+              <span className="font-mono text-label tracking-[0.12em] text-amber shrink-0">PENDING</span>
             )}
             {isOwner && !isThisOwner && (
               <button
@@ -181,10 +181,10 @@ export function PartnersCard({ trip, canEdit, onInviteSent, onNoPartners }: Part
               onChange={e => setInviteQuery(e.target.value)}
               placeholder="Search by name or email…"
               autoFocus
-              className="w-full px-2.5 py-1.5 bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
+              className="w-full px-2.5 py-1.5 bg-surface-2 border border-border rounded-sm font-mono text-fine text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
             />
             {isSearching && (
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-[9px] text-text-dim">…</span>
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-label text-text-dim">…</span>
             )}
             {visibleResults.length > 0 && (
               <div className="absolute left-0 right-0 top-full mt-1 bg-surface border border-border-mid rounded shadow-xl z-10 overflow-hidden">
@@ -194,23 +194,23 @@ export function PartnersCard({ trip, canEdit, onInviteSent, onNoPartners }: Part
                     onMouseDown={e => { e.preventDefault(); handleInvite(u) }}
                     className="w-full flex items-center gap-2.5 px-3 py-2 text-left bg-transparent border-none cursor-pointer hover:bg-surface-2 transition-colors"
                   >
-                    <span className="w-5.5 h-5.5 rounded-full bg-surface-2 border border-border flex items-center justify-center font-heading text-[9px] font-extrabold text-amber shrink-0">
+                    <span className="w-5.5 h-5.5 rounded-full bg-surface-2 border border-border flex items-center justify-center font-heading text-label font-extrabold text-amber shrink-0">
                       {initials(u.name)}
                     </span>
-                    <span className="text-[11px] text-text truncate">{u.name}</span>
+                    <span className="text-fine text-text truncate">{u.name}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
           {inviteMsg && (
-            <p className="font-mono text-[9px] mt-1.5" style={{ color: inviteMsg.tone === 'pine' ? 'var(--pine)' : 'var(--red)' }}>
+            <p className="font-mono text-label mt-1.5" style={{ color: inviteMsg.tone === 'pine' ? 'var(--pine)' : 'var(--red)' }}>
               {inviteMsg.text}
             </p>
           )}
           <button
             onClick={closeInvitePanel}
-            className="font-mono text-[9px] text-text-dim hover:text-text transition-colors cursor-pointer bg-transparent border-none p-0 mt-2"
+            className="font-mono text-label text-text-dim hover:text-text transition-colors cursor-pointer bg-transparent border-none p-0 mt-2"
           >
             Cancel
           </button>

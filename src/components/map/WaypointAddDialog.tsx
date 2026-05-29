@@ -47,7 +47,7 @@ export function WaypointAddDialog({
             onChange={onChange}
           />
         </form>
-        {error && <p className="px-4 pb-3 text-[11px] text-red">{error}</p>}
+        {error && <p className="px-4 pb-3 text-fine text-red">{error}</p>}
       </div>
     </div>
   )

@@ -49,8 +49,8 @@ export function TripSetupDialog({
     }
   }
 
-  const inputCls = 'w-full px-3 py-2 border border-border focus:border-border-mid rounded-sm text-[12px] bg-surface-2 text-text outline-none transition-[border-color] duration-[140ms] placeholder:text-text-dim'
-  const labelCls = 'font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1.5 block'
+  const inputCls = 'w-full px-3 py-2 border border-border focus:border-border-mid rounded-sm text-body-sm bg-surface-2 text-text outline-none transition-[border-color] duration-[140ms] placeholder:text-text-dim'
+  const labelCls = 'font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1.5 block'
 
   return (
     <div
@@ -64,7 +64,7 @@ export function TripSetupDialog({
             {isEditing ? 'Edit trip details' : 'Name your trip'}
           </div>
           {!isEditing && (
-            <div className="font-mono text-[9px] tracking-widest uppercase text-text-dim mt-[3px]">
+            <div className="font-mono text-label tracking-widest uppercase text-text-dim mt-[3px]">
               You can edit these later
             </div>
           )}
@@ -117,7 +117,7 @@ export function TripSetupDialog({
             </div>
           </div>
 
-          {error && <p className="font-mono text-[10px] text-red -mt-1">{error}</p>}
+          {error && <p className="font-mono text-caption text-red -mt-1">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={onCancel ?? onClose} className="btn btn-ghost btn-sm">

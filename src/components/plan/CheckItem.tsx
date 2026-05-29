@@ -13,11 +13,11 @@ export function CheckItem({ text, done = false, na = false, onToggle }: {
              'border-border text-text-dim'
     }`}>
       {done && !na && <IconCheck size={9} strokeWidth={2.8} />}
-      {na && <span className="font-mono text-[9px] leading-none text-text-dim">—</span>}
+      {na && <span className="font-mono text-label leading-none text-text-dim">—</span>}
     </span>
   )
   const label = (
-    <span className={`text-[12px] ${na ? 'line-through opacity-35 text-text-dim' : done ? 'text-text' : 'text-text-dim'}`}>
+    <span className={`text-body-sm ${na ? 'line-through opacity-35 text-text-dim' : done ? 'text-text' : 'text-text-dim'}`}>
       {text}
     </span>
   )

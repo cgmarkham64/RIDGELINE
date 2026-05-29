@@ -8,7 +8,7 @@ export function JumpChip({ to, onJump, children }: JumpChipProps) {
   return (
     <button
       onClick={() => onJump(to)}
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-glow border border-amber-border rounded text-amber font-sans text-[11px] font-semibold cursor-pointer leading-snug hover:bg-amber-dim transition-colors"
+      className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-glow border border-amber-border rounded text-amber font-sans text-fine font-semibold cursor-pointer leading-snug hover:bg-amber-dim transition-colors"
       title={`Jump to ${to}`}
     >
       {children}

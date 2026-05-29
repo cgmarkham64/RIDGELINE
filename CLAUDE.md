@@ -12,7 +12,24 @@ An outdoor/hiking trip planning and logging app with a React frontend and Expres
 - **State**: Zustand (auth persisted to localStorage under key `ridgeline-auth`)
 - **Forms**: React Hook Form + Zod
 - **Styling**: Tailwind CSS v4 — always prefer Tailwind utility classes over inline `style={{}}` props or custom CSS. Use `hover:`, `focus:`, `group`/`group-hover:` pseudo-classes instead of JS event handlers for style changes. Only use inline styles for truly dynamic/computed values (e.g. colors from variables/props) or SVG-specific attributes.
-- **Minimum font size: 9px** — `text-[9px]` is the floor for all UI text project-wide. Use `text-[9px]` for dense labels (section headers, chips, filter labels, mono metadata), `text-[10px]`–`text-[11px]` for secondary text, `text-[12px]`–`text-[13px]` for body/list items, `text-[14px]`+ for headings. Exception: SVG inline `fontSize` in chart/map elements may go smaller only when the element is intentionally decorative at reduced scale (e.g. a print-preview one-pager).
+- **Type scale** — use the semantic Tailwind tokens defined in `@theme` in `src/index.css`. Do not use arbitrary `text-[Xpx]` classes for sizes that have a token:
+
+  | Token          | Size | Use for |
+  |----------------|------|---------|
+  | `text-label`   | 11px | Section labels, metadata, tags, mono dividers |
+  | `text-caption` | 12px | Buttons (`.btn-sm`), tooltips, tab labels |
+  | `text-fine`    | 13px | Badges, chips, secondary UI |
+  | `text-body-sm` | 14px | Form labels, secondary body, list items |
+  | `text-body`    | 15px | Primary body text, descriptions |
+  | `text-body-lg` | 16px | Prominent body text |
+  | `text-sub`     | 18px | Sub-headings |
+  | `text-h3`      | 20px | Section headings |
+  | `text-h2`      | 22px | Panel / page-section headings |
+  | `text-h1`      | 28px | Page titles |
+  | `text-hero`    | 34px | Hero / brand text |
+
+  **Minimum readable size is `text-label` (11px).** Exception: SVG inline `fontSize` in chart/map marker elements may go smaller only when intentionally decorative (e.g. a step number in a tiny map pin).
+  Icon sizes: prefer the exported constants `ICON_XS` (10) through `ICON_XL` (22) from `src/components/icons.tsx` over raw pixel values.
 - **One component per file** — each file exports one primary component. Extract sub-components, helpers, and types into their own files as soon as a file grows unwieldy (aim to keep files under ~400 lines). Co-locate tightly coupled helpers in a `componentName.helpers.ts` and types in `componentName.types.ts` alongside the component file.
 
 ### Backend (`/server`)

@@ -40,10 +40,23 @@
   --color-red-dim:      rgba(217, 64, 48, 0.1);
   --color-red-border:   rgba(217, 64, 48, 0.28);
 
-  /* Typography */
+  /* Typography — fonts */
   --font-sans:          'Karla', sans-serif;
   --font-heading:       'Syne', sans-serif;
   --font-mono:          'JetBrains Mono', monospace;
+
+  /* Typography — type scale */
+  --text-label:         11px;   /* section labels, metadata, tags */
+  --text-caption:       12px;   /* buttons, tooltips, tab labels */
+  --text-fine:          13px;   /* badges, secondary UI text */
+  --text-body-sm:       14px;   /* form labels, secondary body */
+  --text-body:          15px;   /* primary body text */
+  --text-body-lg:       16px;   /* prominent body text */
+  --text-sub:           18px;   /* sub-headings */
+  --text-h3:            20px;   /* section headings */
+  --text-h2:            22px;   /* panel headings */
+  --text-h1:            28px;   /* page titles */
+  --text-hero:          34px;   /* hero / brand text */
 
   /* Border radius */
   --radius-sm:          5px;
@@ -125,7 +138,7 @@
     align-items: center;
     gap: 6px;
     font-family: var(--font-heading), sans-serif;
-    font-size: 11px;
+    font-size: var(--text-fine);
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -172,7 +185,7 @@
   }
   .btn-pine:hover { background: rgba(66, 143, 94, 0.19); }
 
-  .btn-sm    { padding: 6px 10px; font-size: 10px; }
+  .btn-sm    { padding: 6px 10px; font-size: var(--text-caption); }
   .btn-block { width: 100%; justify-content: center; }
 
   .btn-text {
@@ -180,7 +193,7 @@
     border: none;
     cursor: pointer;
     font-family: var(--font-mono), sans-serif;
-    font-size: 9px;
+    font-size: var(--text-label);
     letter-spacing: 0.08em;
     color: var(--color-text-dim);
     padding: 0;
@@ -236,7 +249,7 @@
     border: 1px solid var(--color-border-mid);
     color: var(--color-text-mid);
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: var(--text-label);
     letter-spacing: 0.08em;
     text-transform: uppercase;
     padding: 4px 8px;
@@ -313,8 +326,8 @@
   .day-btn.active .day-btn-num  { color: var(--color-amber); }
   .day-btn-date {
     font-family: var(--font-mono), serif;
-    font-size: 8px;
-    letter-spacing: 0.08em;
+    font-size: var(--text-label);
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--color-text-dim);
   }
@@ -334,8 +347,8 @@
   /* Section label */
   .sec-label {
     font-family: var(--font-mono), sans-serif;
-    font-size: 9px;
-    letter-spacing: 0.16em;
+    font-size: var(--text-label);
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--color-text-dim);
     margin-bottom: 10px;
@@ -358,7 +371,7 @@
   .center-pane  { flex: 1; overflow-y: auto; padding: 22px 24px; min-width: 0; }
 
   .trip-description {
-    font-size: 13px;
+    font-size: var(--text-body);
     line-height: 1.7;
     color: var(--color-text-dim);
     margin-bottom: 24px;
@@ -377,7 +390,7 @@
   }
   .tab-btn {
     font-family: var(--font-heading), sans-serif;
-    font-size: 10px;
+    font-size: var(--text-caption);
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -413,7 +426,7 @@
     color: var(--color-text);
     margin-bottom: 8px;
   }
-  .empty-state__body  { font-size: 13px; color: var(--color-text-dim); margin-bottom: 24px; max-width: 260px; }
+  .empty-state__body  { font-size: var(--text-body); color: var(--color-text-dim); margin-bottom: 24px; max-width: 280px; }
 
   /* Coming soon placeholder */
   .tab-coming-soon {
@@ -433,8 +446,8 @@
   }
   .tab-coming-soon__label {
     font-family: var(--font-mono), sans-serif;
-    font-size: 9px;
-    letter-spacing: 0.14em;
+    font-size: var(--text-label);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--color-text-dim);
   }
@@ -504,8 +517,8 @@
   .auth-form .field    { display: flex; flex-direction: column; gap: 5px; }
   .auth-form label {
     font-family: var(--font-mono), sans-serif;
-    font-size: 9px;
-    letter-spacing: 0.14em;
+    font-size: var(--text-label);
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--color-text-dim);
   }
@@ -513,7 +526,7 @@
     padding: 9px 12px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
-    font-size: 13px;
+    font-size: var(--text-body);
     background: var(--color-surface-2);
     color: var(--color-text);
     outline: none;
@@ -527,7 +540,7 @@
     border: none;
     border-radius: var(--radius-sm);
     font-family: var(--font-heading), sans-serif;
-    font-size: 11px;
+    font-size: var(--text-fine);
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -536,8 +549,8 @@
   }
   .auth-form button[type='submit']:hover    { background: #fbb040; }
   .auth-form button[type='submit']:disabled { opacity: 0.6; cursor: not-allowed; }
-  .auth-form .error { font-size: 12px; color: var(--color-red); }
-  .auth-form p      { font-size: 13px; color: var(--color-text-mid); text-align: center; }
+  .auth-form .error { font-size: var(--text-fine); color: var(--color-red); }
+  .auth-form p      { font-size: var(--text-body); color: var(--color-text-mid); text-align: center; }
   .auth-form p a    { color: var(--color-amber); text-decoration: none; }
 
   /* Waypoint markers */
@@ -587,8 +600,8 @@
   }
   .hiker-overlay__status {
     font-family: var(--font-mono);
-    font-size: 9px;
-    letter-spacing: 0.18em;
+    font-size: var(--text-label);
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--color-amber);
   }
@@ -616,15 +629,15 @@
   }
   .hiker-overlay__tag {
     font-family: var(--font-mono);
-    font-size: 8px;
-    letter-spacing: 0.18em;
+    font-size: var(--text-label);
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--color-text-dim);
   }
   .hiker-overlay__saying {
     font-family: var(--font-sans);
     font-style: italic;
-    font-size: 13px;
+    font-size: var(--text-body);
     line-height: 1.75;
     color: var(--color-text-mid);
     max-width: 320px;

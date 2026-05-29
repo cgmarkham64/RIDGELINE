@@ -1,10 +1,10 @@
 import { useState, useRef, useId, useEffect } from 'react'
-import { JumpChip } from '../JumpChip'
-import { Pill } from '../Pill'
-import { ProgressBar } from '../ProgressBar'
-import { CheckItem } from '../CheckItem'
-import { IconCheck, IconPlus, IconPackage, IconDroplets, IconPencil, IconLock } from '../../icons'
-import type { StageBodyProps } from '../types'
+import { JumpChip } from '../../JumpChip'
+import { Pill } from '../../Pill'
+import { ProgressBar } from '../../ProgressBar'
+import { CheckItem } from '../../CheckItem'
+import { IconCheck, IconPlus, IconPackage, IconDroplets, IconPencil, IconLock } from '../../../icons'
+import type { StageBodyProps } from '../../types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,19 +89,19 @@ function TargetsCard({ targets, onTargetChange, days, onJump }: {
   const uid = useId()
   return (
     <div className="bg-surface border border-border rounded-lg p-[18px]">
-      <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-3">Daily targets</div>
+      <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-3">Daily targets</div>
       <div className="grid grid-cols-4 gap-2.5">
         {TARGET_FIELDS.map(f => (
           <div key={f.key}>
             <label
               htmlFor={`${uid}-${f.key}`}
-              className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-1 block"
+              className="font-mono text-label tracking-[0.14em] uppercase text-text-dim mb-1 block"
             >
               {f.label}
             </label>
             <input
               id={`${uid}-${f.key}`}
-              className="w-full px-2.5 py-1.5 border border-border rounded-sm text-[12px] bg-surface-2 text-text outline-none font-mono focus:border-border-mid transition-colors placeholder:text-text-dim"
+              className="w-full px-2.5 py-1.5 border border-border rounded-sm text-body-sm bg-surface-2 text-text outline-none font-mono focus:border-border-mid transition-colors placeholder:text-text-dim"
               placeholder={f.placeholder}
               value={targets[f.key]}
               onChange={e => onTargetChange(f.key, e.target.value)}
@@ -109,7 +109,7 @@ function TargetsCard({ targets, onTargetChange, days, onJump }: {
           </div>
         ))}
       </div>
-      <div className="font-mono text-[9px] text-text-mid mt-2.5">
+      <div className="font-mono text-label text-text-mid mt-2.5">
         Pulled from{' '}
         <JumpChip to="weather" onJump={onJump}>{days} days</JumpChip>
         {' · '}adjusted for tough days (D4, D8)
@@ -175,15 +175,15 @@ function MealGrid({ meals, onMealsChange, mealsLocked, onToggleLock }: {
   return (
     <div className="bg-surface border border-border rounded-lg overflow-hidden">
       <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
-        <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Meal plan</span>
-        <span className="font-mono text-[9px] text-text-dim">
+        <span className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">Meal plan</span>
+        <span className="font-mono text-label text-text-dim">
           {meals.length} days · {mealsLocked ? 'locked' : 'click any cell to edit'}
         </span>
         <div className="flex items-center gap-1.5 ml-auto">
           <button
             type="button"
             onClick={onToggleLock}
-            className={`inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border transition-colors cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border transition-colors cursor-pointer ${
               mealsLocked
                 ? 'border-pine-border bg-pine-dim text-pine'
                 : 'border-border text-text-mid bg-transparent hover:border-border-mid'
@@ -191,13 +191,13 @@ function MealGrid({ meals, onMealsChange, mealsLocked, onToggleLock }: {
           >
             <IconLock /> {mealsLocked ? 'Locked' : 'Lock meals'}
           </button>
-          <button type="button" className="inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer">
+          <button type="button" className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer">
             <IconPencil /> Bulk edit
           </button>
         </div>
       </div>
 
-      <div className="grid px-4 py-2 bg-surface-2 border-b border-border font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim grid-cols-[44px_1fr_1fr_1fr_1fr_64px]">
+      <div className="grid px-4 py-2 bg-surface-2 border-b border-border font-mono text-label tracking-[0.12em] uppercase text-text-dim grid-cols-[44px_1fr_1fr_1fr_1fr_64px]">
         <span>Day</span>
         <span>Breakfast</span>
         <span>Lunch</span>
@@ -208,15 +208,15 @@ function MealGrid({ meals, onMealsChange, mealsLocked, onToggleLock }: {
 
       {meals.length === 0 ? (
         <div className="px-4 py-10 text-center">
-          <p className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-2">No meals planned yet</p>
-          <p className="text-[12px] text-text-mid">Fill in Stage 2 · Days first — one meal row per trip day.</p>
+          <p className="font-mono text-label tracking-[0.14em] uppercase text-text-dim mb-2">No meals planned yet</p>
+          <p className="text-body-sm text-text-mid">Fill in Stage 2 · Days first — one meal row per trip day.</p>
         </div>
       ) : meals.map((m, rowIdx) => (
         <div
           key={m.n}
           className={`grid items-center px-4 gap-2 grid-cols-[44px_1fr_1fr_1fr_1fr_64px] ${rowIdx < meals.length - 1 ? 'border-b border-border' : ''}`}
         >
-          <span className="font-mono text-[9px] font-bold text-amber text-center py-1 my-2.5 bg-amber-dim border border-amber-border rounded">
+          <span className="font-mono text-label font-bold text-amber text-center py-1 my-2.5 bg-amber-dim border border-amber-border rounded">
             D{m.n}
           </span>
 
@@ -226,7 +226,7 @@ function MealGrid({ meals, onMealsChange, mealsLocked, onToggleLock }: {
               <div key={col} className="py-2.5">
                 {isEditing ? (
                   <input
-                    className="w-full bg-surface-2 border border-amber-border rounded px-1.5 py-0.5 text-[11px] text-text outline-none"
+                    className="w-full bg-surface-2 border border-amber-border rounded px-1.5 py-0.5 text-fine text-text outline-none"
                     autoFocus
                     value={editValue}
                     onChange={e => handleChange(e.target.value)}
@@ -236,7 +236,7 @@ function MealGrid({ meals, onMealsChange, mealsLocked, onToggleLock }: {
                 ) : (
                   <span
                     onClick={() => startEdit(rowIdx, col)}
-                    className={`text-[11px] block leading-snug ${m[col] === '—' ? 'text-text-dim' : 'text-text'} ${!mealsLocked ? 'cursor-text hover:text-amber transition-colors' : ''}`}
+                    className={`text-fine block leading-snug ${m[col] === '—' ? 'text-text-dim' : 'text-text'} ${!mealsLocked ? 'cursor-text hover:text-amber transition-colors' : ''}`}
                   >
                     {m[col]}
                   </span>
@@ -248,7 +248,7 @@ function MealGrid({ meals, onMealsChange, mealsLocked, onToggleLock }: {
           <div className="py-2.5 text-right">
             {editing?.row === rowIdx && editing.col === 'kcal' ? (
               <input
-                className="w-full bg-surface-2 border border-amber-border rounded px-1.5 py-0.5 text-[11px] text-right font-mono outline-none"
+                className="w-full bg-surface-2 border border-amber-border rounded px-1.5 py-0.5 text-fine text-right font-mono outline-none"
                 autoFocus
                 value={editValue}
                 onChange={e => handleChange(e.target.value)}
@@ -258,7 +258,7 @@ function MealGrid({ meals, onMealsChange, mealsLocked, onToggleLock }: {
             ) : (
               <span
                 onClick={() => startEdit(rowIdx, 'kcal')}
-                className={`font-mono text-[11px] ${kcalCls(m.kcal)} ${!mealsLocked ? 'cursor-text' : ''}`}
+                className={`font-mono text-fine ${kcalCls(m.kcal)} ${!mealsLocked ? 'cursor-text' : ''}`}
               >
                 {m.kcal.toLocaleString()}
               </span>
@@ -286,8 +286,8 @@ function ResupplyCard({ status, onToggleShipped, fields, onFieldChange }: {
           <IconPackage />
         </span>
         <div className="flex-1 min-w-0">
-          <div className="font-heading text-[14px] font-extrabold text-text">Resupply · Kearsarge Pass (Day 5)</div>
-          <div className="font-mono text-[9px] text-text-dim mt-0.5">Bishop Post Office · 4-day box · ship by Aug 1</div>
+          <div className="font-heading text-body-sm font-extrabold text-text">Resupply · Kearsarge Pass (Day 5)</div>
+          <div className="font-mono text-label text-text-dim mt-0.5">Bishop Post Office · 4-day box · ship by Aug 1</div>
         </div>
         <Pill tone={status === 'shipped' ? 'pine' : 'amber'}>
           {status === 'shipped' ? 'Shipped' : 'Unconfirmed'}
@@ -299,13 +299,13 @@ function ResupplyCard({ status, onToggleShipped, fields, onFieldChange }: {
           <div key={f.key}>
             <label
               htmlFor={`${uid}-${f.key}`}
-              className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-1 block"
+              className="font-mono text-label tracking-[0.14em] uppercase text-text-dim mb-1 block"
             >
               {f.label}
             </label>
             <input
               id={`${uid}-${f.key}`}
-              className="w-full px-2.5 py-1.5 border border-border rounded-sm text-[12px] bg-surface-2 text-text outline-none font-mono focus:border-border-mid transition-colors placeholder:text-text-dim"
+              className="w-full px-2.5 py-1.5 border border-border rounded-sm text-body-sm bg-surface-2 text-text outline-none font-mono focus:border-border-mid transition-colors placeholder:text-text-dim"
               placeholder={f.placeholder}
               value={fields[f.key]}
               onChange={e => onFieldChange(f.key, e.target.value)}
@@ -315,17 +315,17 @@ function ResupplyCard({ status, onToggleShipped, fields, onFieldChange }: {
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        <button type="button" className="inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-amber-border bg-amber-dim text-amber hover:bg-amber transition-colors cursor-pointer">
+        <button type="button" className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-amber-border bg-amber-dim text-amber hover:bg-amber transition-colors cursor-pointer">
           <IconPlus size={10} /> Generate label
         </button>
         <button
           type="button"
           onClick={onToggleShipped}
-          className="inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
         >
           {status === 'shipped' ? 'Mark unshipped' : 'Mark shipped'}
         </button>
-        <button type="button" className="inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer">
+        <button type="button" className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer">
           Swap location
         </button>
       </div>
@@ -343,15 +343,15 @@ function WaterPlanCard({ checks, onToggle }: {
     <div className="bg-surface border border-border rounded-lg p-[18px]">
       <div className="flex items-center gap-2 mb-2.5">
         <span className="text-sky shrink-0"><IconDroplets /></span>
-        <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Water plan</div>
+        <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">Water plan</div>
       </div>
-      <p className="text-[11px] text-text-mid mb-3 leading-relaxed">
+      <p className="text-fine text-text-mid mb-3 leading-relaxed">
         No cache plan for the dry stretch on D6 (Forester → Tyndall).
       </p>
       <CheckItem text="Sources scouted (D1–D5, D7–D8)" done={checks.sources} onToggle={() => onToggle('sources')} />
       <CheckItem text="Cache plan D6"                   done={checks.cache}   onToggle={() => onToggle('cache')} />
       <CheckItem text="Filter + backup"                 done={checks.filter}  onToggle={() => onToggle('filter')} />
-      <button type="button" className="inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 mt-3 rounded border border-amber-border bg-amber-dim text-amber hover:bg-amber transition-colors cursor-pointer">
+      <button type="button" className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 mt-3 rounded border border-amber-border bg-amber-dim text-amber hover:bg-amber transition-colors cursor-pointer">
         <IconPlus size={10} /> Add cache
       </button>
     </div>
@@ -405,8 +405,8 @@ function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
 
   return (
     <div className="bg-surface border border-border rounded-lg p-[18px]">
-      <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">Bear canister</div>
-      <p className="text-[11px] text-text-mid mb-3 leading-relaxed">
+      <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">Bear canister</div>
+      <p className="text-fine text-text-mid mb-3 leading-relaxed">
         Capacity depends on resupply. Hard-sided required at SEKI.
       </p>
       <div className="flex flex-col gap-1.5">
@@ -423,21 +423,21 @@ function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`font-mono text-[10px] font-bold ${isSelected ? 'text-amber' : 'text-text-mid'}`}>
+                  <span className={`font-mono text-caption font-bold ${isSelected ? 'text-amber' : 'text-text-mid'}`}>
                     {can.name}
                   </span>
                   {can.recommended && (
-                    <span className="font-mono text-[9px] tracking-widest uppercase text-pine bg-pine-dim border border-pine-border px-1.5 py-0.5 rounded">
+                    <span className="font-mono text-label tracking-widest uppercase text-pine bg-pine-dim border border-pine-border px-1.5 py-0.5 rounded">
                       recommended
                     </span>
                   )}
                 </div>
-                <div className="font-mono text-[9px] text-text-dim mt-0.5">
+                <div className="font-mono text-label text-text-dim mt-0.5">
                   {can.capacity} · {can.weight}
                   {can.note && <span className="text-amber"> · {can.note}</span>}
                 </div>
               </div>
-              <span className={`font-mono text-[9px] tracking-widest uppercase px-1.5 py-0.5 rounded border shrink-0 ${CAN_TYPE_CLS[can.type]}`}>
+              <span className={`font-mono text-label tracking-widest uppercase px-1.5 py-0.5 rounded border shrink-0 ${CAN_TYPE_CLS[can.type]}`}>
                 {can.type}
               </span>
               {isSelected && <span className="text-amber shrink-0"><IconCheck size={12} /></span>}
@@ -449,7 +449,7 @@ function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
         {enteringCustom ? (
           <div className="flex items-center gap-2 px-3 py-2 rounded border border-amber-border bg-amber-glow">
             <input
-              className="flex-1 bg-transparent border-none text-[12px] text-text outline-none placeholder:text-text-dim font-mono"
+              className="flex-1 bg-transparent border-none text-body-sm text-text outline-none placeholder:text-text-dim font-mono"
               placeholder="Container name or model…"
               autoFocus
               value={customName}
@@ -467,7 +467,7 @@ function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
               selectedId === 'custom' ? 'bg-amber-glow border-amber-border' : 'bg-transparent border-border hover:border-border-mid'
             }`}
           >
-            <span className={`font-mono text-[10px] ${selectedId === 'custom' ? 'text-amber font-bold' : 'text-text-dim'}`}>
+            <span className={`font-mono text-caption ${selectedId === 'custom' ? 'text-amber font-bold' : 'text-text-dim'}`}>
               {selectedId === 'custom' && customName ? customName : 'Custom / other…'}
             </span>
             {selectedId !== 'custom' && <span className="ml-auto text-text-dim"><IconPlus size={10} /></span>}
@@ -569,7 +569,7 @@ export function FoodStage({ onJump, plan, onChange }: StageBodyProps) {
         <aside className="flex flex-col gap-3.5">
 
           <div className="bg-surface border border-border rounded-lg p-3.5">
-            <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">This stage</div>
+            <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">This stage</div>
             <CheckItem text="Daily calories set"  done={item1} />
             <CheckItem text="Protein target"      done={item2} />
             <CheckItem text="Resupply confirmed"  done={item3} />
@@ -578,22 +578,22 @@ export function FoodStage({ onJump, plan, onChange }: StageBodyProps) {
             <CheckItem text="Trail meals locked"  done={item6} />
             <div className="h-px bg-border my-3" />
             <ProgressBar value={progress} tone="amber" />
-            <div className="font-mono text-[9px] text-text-dim text-center mt-1.5">{doneCount} of 6</div>
+            <div className="font-mono text-label text-text-dim text-center mt-1.5">{doneCount} of 6</div>
           </div>
 
           <div className="bg-surface border border-border rounded-lg p-3.5">
-            <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">Totals</div>
+            <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">Totals</div>
             <div className="grid grid-cols-2 gap-3">
               {totals.map(s => (
                 <div key={s.label}>
-                  <div className="font-heading text-[18px] font-extrabold text-amber leading-none">{s.value}</div>
-                  <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mt-1">{s.label}</div>
+                  <div className="font-heading text-sub font-extrabold text-amber leading-none">{s.value}</div>
+                  <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mt-1">{s.label}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="px-3 py-3 bg-amber-dim border border-amber-border rounded-lg text-[11px] text-text-mid leading-relaxed">
+          <div className="px-3 py-3 bg-amber-dim border border-amber-border rounded-lg text-fine text-text-mid leading-relaxed">
             <span className="font-semibold text-amber">Heads up.</span>{' '}
             Big-day calories (D4, D8) should clear 4,200. D8 is light because you exit to Whitney Portal — burger after.
           </div>

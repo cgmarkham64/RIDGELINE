@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import type { StageBodyProps, PlanWeatherData } from '../types'
-import { CheckItem } from '../CheckItem'
-import { ProgressBar } from '../ProgressBar'
-import { IconAlertTriangle, IconCalendar, IconCheck, IconChevronLeft, IconChevronRight, IconSun } from '../../icons'
-import { nominatimGeocode } from '../../../lib/geocode'
-import { tripSunRows } from '../../../lib/sun'
+import type { StageBodyProps, PlanWeatherData } from '../../types'
+import { CheckItem } from '../../CheckItem'
+import { ProgressBar } from '../../ProgressBar'
+import { IconAlertTriangle, IconCalendar, IconCheck, IconChevronLeft, IconChevronRight, IconSun } from '../../../icons'
+import { nominatimGeocode } from '../../../../lib/geocode'
+import { tripSunRows } from '../../../../lib/sun'
 import {
   isGeocodeCacheValid, isClimateCacheValid, isForecastCacheValid,
   parseClimateNormals, parseForecastDays, calcDepartureRisk,
@@ -12,10 +12,10 @@ import {
 } from './weatherStage.helpers'
 import type { ClimateNormals } from './weatherStage.types'
 import { WmoConditionIcon } from './WmoConditionIcon'
-import { useAuthStore } from '../../../store/auth'
-import { DEFAULT_WEATHER_TOLERANCES } from '../../../types/auth'
-import { fmtTemp, fmtWind } from '../../../lib/units'
-import { useUnitSystem } from '../../../hooks/useUnitSystem'
+import { useAuthStore } from '../../../../store/auth'
+import { DEFAULT_WEATHER_TOLERANCES } from '../../../../types/auth'
+import { fmtTemp, fmtWind } from '../../../../lib/units'
+import { useUnitSystem } from '../../../../hooks/useUnitSystem'
 
 const ARCHIVE_URL  = 'https://archive-api.open-meteo.com/v1/archive'
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
@@ -266,21 +266,21 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
     return (
       <div className="flex-1 overflow-y-auto p-8">
         <div className="max-w-[480px] mx-auto mt-16">
-          <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-3">Stage 2 · Weather</div>
-          <h2 className="font-heading text-[22px] font-extrabold text-text mb-2">Start and end dates required.</h2>
-          <p className="text-[13px] text-text-mid leading-relaxed mb-5">
+          <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-3">Stage 2 · Weather</div>
+          <h2 className="font-heading text-h2 font-extrabold text-text mb-2">Start and end dates required.</h2>
+          <p className="text-body text-text-mid leading-relaxed mb-5">
             Weather analysis, sunrise/sunset times, and the forecast window all depend on knowing when your trip starts and ends.
           </p>
           <div className="flex items-start gap-3 px-4 py-3 bg-red-dim border border-red-border rounded-lg mb-5">
             <IconAlertTriangle size={14} className="text-red" />
-            <p className="text-[12px] text-text-mid leading-relaxed">
+            <p className="text-body-sm text-text-mid leading-relaxed">
               <span className="font-semibold text-red">Trip dates are not set.</span>{' '}
               Add start and end dates to enable this stage.
             </p>
           </div>
           {onEditTrip && (
             <button type="button" onClick={onEditTrip}
-              className="px-4 py-2 font-heading text-[10px] font-bold tracking-widest uppercase rounded border cursor-pointer transition-colors"
+              className="px-4 py-2 font-heading text-caption font-bold tracking-widest uppercase rounded border cursor-pointer transition-colors"
               style={{ background: 'var(--amber-dim)', borderColor: 'var(--amber-border)', color: 'var(--amber)' }}>
               Set trip dates
             </button>
@@ -314,8 +314,8 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
           <div className="bg-surface border border-border rounded-lg px-4 py-3 flex items-center gap-3">
             <IconCalendar size={15} />
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-semibold text-text truncate">{trip!.location || '—'}</div>
-              <div className="font-mono text-[9px] text-text-dim mt-0.5">
+              <div className="text-body font-semibold text-text truncate">{trip!.location || '—'}</div>
+              <div className="font-mono text-label text-text-dim mt-0.5">
                 {new Date(startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 {' – '}
                 {new Date(endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -323,25 +323,25 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
                 {coordsLat != null ? ` · ${coordsLat.toFixed(2)}°, ${coordsLng!.toFixed(2)}°` : ''}
               </div>
             </div>
-            {geoLoading && <span className="font-mono text-[9px] text-text-dim shrink-0">geocoding…</span>}
-            {geoError   && <span className="font-mono text-[9px] text-red shrink-0">location not found</span>}
+            {geoLoading && <span className="font-mono text-label text-text-dim shrink-0">geocoding…</span>}
+            {geoError   && <span className="font-mono text-label text-red shrink-0">location not found</span>}
           </div>
 
           {/* Historical climate */}
           <div className="bg-surface border border-border rounded-lg p-[18px]">
             <div className="flex items-center justify-between mb-3">
-              <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">
+              <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">
                 Typical {new Date(startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long' })} · 3-yr avg
               </div>
               {canEdit && (
                 <button type="button" onClick={() => toggle('historicalReviewed')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 font-mono text-[9px] rounded border cursor-pointer transition-colors ${wd.historicalReviewed ? 'bg-pine-dim border-pine-border text-pine' : 'bg-surface-2 border-border text-text-dim hover:border-border-mid'}`}>
+                  className={`flex items-center gap-1.5 px-2.5 py-1 font-mono text-label rounded border cursor-pointer transition-colors ${wd.historicalReviewed ? 'bg-pine-dim border-pine-border text-pine' : 'bg-surface-2 border-border text-text-dim hover:border-border-mid'}`}>
                   {wd.historicalReviewed && <IconCheck size={9} />} Reviewed
                 </button>
               )}
             </div>
-            {climateLoading && <div className="font-mono text-[11px] text-text-dim py-4 text-center">Fetching climate data…</div>}
-            {climateError   && <div className="font-mono text-[11px] text-red py-4 text-center">Failed to load climate data.</div>}
+            {climateLoading && <div className="font-mono text-fine text-text-dim py-4 text-center">Fetching climate data…</div>}
+            {climateError   && <div className="font-mono text-fine text-red py-4 text-center">Failed to load climate data.</div>}
             {climate && (
               <div className="grid grid-cols-4 gap-px bg-border rounded overflow-hidden">
                 {[
@@ -351,8 +351,8 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
                   { v: climate.snowLikely ? 'likely' : 'rare', l: 'snow' },
                 ].map(s => (
                   <div key={s.l} className="bg-surface px-3 py-2">
-                    <div className="font-heading text-[16px] font-extrabold text-amber leading-none">{s.v}</div>
-                    <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mt-1">{s.l}</div>
+                    <div className="font-heading text-body-lg font-extrabold text-amber leading-none">{s.v}</div>
+                    <div className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mt-1">{s.l}</div>
                   </div>
                 ))}
               </div>
@@ -363,10 +363,10 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
           {/* Live forecast / placeholder */}
           <div className="bg-surface border border-border rounded-lg overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-              <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Forecast</span>
+              <span className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">Forecast</span>
               {inWindow && canEdit && (
                 <button type="button" onClick={() => toggle('forecastChecked')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 font-mono text-[9px] rounded border cursor-pointer transition-colors ${wd.forecastChecked ? 'bg-pine-dim border-pine-border text-pine' : 'bg-surface-2 border-border text-text-dim hover:border-border-mid'}`}>
+                  className={`flex items-center gap-1.5 px-2.5 py-1 font-mono text-label rounded border cursor-pointer transition-colors ${wd.forecastChecked ? 'bg-pine-dim border-pine-border text-pine' : 'bg-surface-2 border-border text-text-dim hover:border-border-mid'}`}>
                   {wd.forecastChecked && <IconCheck size={9} />} Checked
                 </button>
               )}
@@ -375,23 +375,23 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
               <div className="flex items-center gap-3 px-4 py-2 border-b border-border">
                 <IconSun size={12} />
                 <div className="flex items-center gap-4">
-                  <span className="font-mono text-[9px] text-text-dim">↑ {fmtSolarTime(midDaySun.sunrise, coordsLng)}</span>
-                  <span className="font-mono text-[9px] text-text-dim">↓ {fmtSolarTime(midDaySun.sunset, coordsLng)}</span>
-                  <span className="font-mono text-[9px] text-text-dim">{midDaySun.daylightHours.toFixed(1)} hrs daylight</span>
+                  <span className="font-mono text-label text-text-dim">↑ {fmtSolarTime(midDaySun.sunrise, coordsLng)}</span>
+                  <span className="font-mono text-label text-text-dim">↓ {fmtSolarTime(midDaySun.sunset, coordsLng)}</span>
+                  <span className="font-mono text-label text-text-dim">{midDaySun.daylightHours.toFixed(1)} hrs daylight</span>
                 </div>
               </div>
             )}
             {!inWindow && (
               <div className="px-4 py-6 text-center">
                 <div className="font-heading text-[15px] font-bold text-text mb-1">Not in forecast range yet.</div>
-                <div className="font-mono text-[11px] text-text-mid">
+                <div className="font-mono text-fine text-text-mid">
                   Check back <span className="text-amber font-semibold">{forecastTargetDate(startDate)}</span>
                   {daysAway > 14 ? ` · ${daysAway - 14} days from now` : ''}
                 </div>
               </div>
             )}
-            {inWindow && forecastLoading && <div className="font-mono text-[11px] text-text-dim py-6 text-center">Loading forecast…</div>}
-            {inWindow && forecastError   && <div className="font-mono text-[11px] text-red py-6 text-center">Failed to load forecast.</div>}
+            {inWindow && forecastLoading && <div className="font-mono text-fine text-text-dim py-6 text-center">Loading forecast…</div>}
+            {inWindow && forecastError   && <div className="font-mono text-fine text-red py-6 text-center">Failed to load forecast.</div>}
             {inWindow && forecast && forecast.days.length > 0 && (
               <>
                 {/* Week pagination controls */}
@@ -406,7 +406,7 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
                       <IconChevronLeft size={13} />
                     </button>
                     <div className="flex items-center gap-2.5">
-                      <span className="font-mono text-[9px] text-text-dim">
+                      <span className="font-mono text-label text-text-dim">
                         {pagedays[0] && fmtShortDate(pagedays[0].date)}
                         {' – '}
                         {pagedays[pagedays.length - 1] && fmtShortDate(pagedays[pagedays.length - 1].date)}
@@ -459,28 +459,28 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
 
                         {/* Date */}
                         <div className="relative z-10">
-                          <div className="font-mono text-[9px] tracking-[0.08em] uppercase leading-none mb-0.5"
+                          <div className="font-mono text-label tracking-[0.08em] uppercase leading-none mb-0.5"
                             style={{ color: inTrip ? 'var(--amber)' : 'var(--text-dim)' }}>
                             {dateObj.toLocaleDateString('en-US', { weekday: 'short' })}
                           </div>
-                          <div className="font-mono text-[9px] text-text-mid leading-none">
+                          <div className="font-mono text-label text-text-mid leading-none">
                             {dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </div>
                         </div>
 
                         {/* High / low */}
                         <div className="relative z-10 flex-1 flex items-center gap-1.5">
-                          <span className="font-heading text-[16px] font-extrabold text-text leading-none">{fmtTemp(d.highF, sys)}</span>
-                          <span className="font-mono text-[10px] text-text-dim leading-none">{fmtTemp(d.lowF, sys)}</span>
+                          <span className="font-heading text-body-lg font-extrabold text-text leading-none">{fmtTemp(d.highF, sys)}</span>
+                          <span className="font-mono text-caption text-text-dim leading-none">{fmtTemp(d.lowF, sys)}</span>
                         </div>
 
                         {/* Precip + wind */}
                         <div className="relative z-10 space-y-0.5">
-                          <div className="font-mono text-[9px] leading-none"
+                          <div className="font-mono text-label leading-none"
                             style={{ color: d.precipPct >= 40 ? 'var(--sky)' : 'var(--text-dim)', fontWeight: d.precipPct >= 40 ? 600 : undefined }}>
                             {d.precipPct}%
                           </div>
-                          <div className="font-mono text-[9px] text-text-dim leading-none">{fmtWind(d.windMph, sys)} {d.windDir}</div>
+                          <div className="font-mono text-label text-text-dim leading-none">{fmtWind(d.windMph, sys)} {d.windDir}</div>
                         </div>
                       </div>
                     )
@@ -501,8 +501,8 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
                     : <IconAlertTriangle size={22} className={riskStyle.text} />
                   }
                 </div>
-                <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Departure window</div>
-                <div className={`font-heading text-[22px] font-extrabold leading-tight ${riskStyle.text}`}>
+                <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">Departure window</div>
+                <div className={`font-heading text-h2 font-extrabold leading-tight ${riskStyle.text}`}>
                   {riskStyle.label}
                 </div>
               </div>
@@ -510,20 +510,20 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
               {/* Detail */}
               <div className="px-[18px] py-3.5">
                 {computedRisk.factors.length === 0
-                  ? <p className="text-[13px] text-text-mid text-center">No significant weather risks in the forecast window.</p>
+                  ? <p className="text-body text-text-mid text-center">No significant weather risks in the forecast window.</p>
                   : (
                     <>
                       <ul className="flex flex-col gap-2 text-center">
                         {computedRisk.factors.map((f, i) => (
                           <li key={i}>
-                            <span className="font-mono text-[10px] text-text-dim">{fmtShortDate(f.date)}</span>
-                            <span className="font-mono text-[10px] text-text-dim mx-1.5">·</span>
-                            <span className="text-[13px] text-text-mid">{f.label}</span>
+                            <span className="font-mono text-caption text-text-dim">{fmtShortDate(f.date)}</span>
+                            <span className="font-mono text-caption text-text-dim mx-1.5">·</span>
+                            <span className="text-body text-text-mid">{f.label}</span>
                           </li>
                         ))}
                       </ul>
                       {elevFt !== null && (
-                        <p className="font-mono text-[9px] text-text-dim mt-2.5 text-center">
+                        <p className="font-mono text-label text-text-dim mt-2.5 text-center">
                           Temps adjusted for avg. trip elevation (~{Math.round(elevFt).toLocaleString()} ft)
                         </p>
                       )}
@@ -536,9 +536,9 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
 
           {/* Notes */}
           <div className="bg-surface border border-border rounded-lg p-[18px]">
-            <label className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2 block">Weather notes</label>
+            <label className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2 block">Weather notes</label>
             <textarea
-              className="w-full px-3 py-2 border border-border rounded-sm text-[12px] bg-surface-2 text-text outline-none focus:border-border-mid transition-colors resize-none leading-relaxed"
+              className="w-full px-3 py-2 border border-border rounded-sm text-body-sm bg-surface-2 text-text outline-none focus:border-border-mid transition-colors resize-none leading-relaxed"
               rows={3}
               placeholder="Conditions, concerns, or anything worth noting…"
               value={wd.notes}
@@ -552,7 +552,7 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
         <aside className="flex flex-col gap-3.5">
 
           <div className="bg-surface border border-border rounded-lg p-3.5">
-            <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">This stage</div>
+            <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">This stage</div>
             {checklist.map((c, idx) => {
               const gated = idx === 1 && !inWindow
               return (
@@ -563,13 +563,13 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
             })}
             <div className="h-px bg-border my-3" />
             <ProgressBar value={(doneCount / checklist.length) * 100} tone="pine" />
-            <div className="font-mono text-[9px] text-text-dim text-center mt-1.5">{doneCount} of {checklist.length}</div>
+            <div className="font-mono text-label text-text-dim text-center mt-1.5">{doneCount} of {checklist.length}</div>
           </div>
 
           {wd.forecastChecked && (
             <div className="flex items-start gap-2.5 px-3 py-3 bg-amber-dim border border-amber-border rounded-lg">
               <IconAlertTriangle size={12} className="text-amber mt-0.5" />
-              <p className="text-[11px] text-text-mid leading-relaxed">
+              <p className="text-fine text-text-mid leading-relaxed">
                 <span className="font-semibold text-amber block mb-0.5">Re-check forecast 72 hrs before departure.</span>
                 Conditions can shift fast in the mountains.
               </p>
@@ -580,14 +580,14 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
             <div className={`border rounded-lg p-3.5 ${riskStyle.border} ${riskStyle.bg}`}>
               <div className={`flex items-center gap-2 mb-2 ${riskStyle.text}`}>
                 <IconAlertTriangle size={12} className={riskStyle.text} />
-                <span className="font-mono text-[9px] tracking-[0.16em] uppercase">Loadout review needed</span>
+                <span className="font-mono text-label tracking-[0.16em] uppercase">Loadout review needed</span>
               </div>
-              <p className="text-[11px] text-text-mid leading-relaxed mb-2.5">
+              <p className="text-fine text-text-mid leading-relaxed mb-2.5">
                 Conditions flagged for your trip window. Check your gear is ready for these conditions.
               </p>
               {onJump && (
                 <button type="button" onClick={() => onJump('gear')}
-                  className={`w-full flex items-center justify-center gap-1.5 px-3 py-1.5 font-mono text-[9px] rounded border cursor-pointer transition-colors ${riskStyle.border} ${riskStyle.text} bg-transparent hover:opacity-80`}>
+                  className={`w-full flex items-center justify-center gap-1.5 px-3 py-1.5 font-mono text-label rounded border cursor-pointer transition-colors ${riskStyle.border} ${riskStyle.text} bg-transparent hover:opacity-80`}>
                   Review gear →
                 </button>
               )}

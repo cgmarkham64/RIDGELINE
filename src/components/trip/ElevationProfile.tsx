@@ -176,7 +176,7 @@ function toSvg(
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
-const monoCls = 'font-mono text-[9px] tracking-widest uppercase text-text-dim text-center'
+const monoCls = 'font-mono text-label tracking-widest uppercase text-text-dim text-center'
 const svgMonoStyle = { fontFamily: 'var(--font-mono)', fill: 'var(--text-dim)', letterSpacing: '0.05em' }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -384,11 +384,11 @@ export function ElevationProfile({
         ].map(({ key, value }) => (
           <div key={key} className="bg-surface-2 rounded-sm px-1 py-1.25">
             <span className={monoCls}>{key}</span>
-            <span className="font-mono text-[11px] tracking-[0.04em] text-amber block mt-0.5">{value}</span>
+            <span className="font-mono text-fine tracking-[0.04em] text-amber block mt-0.5">{value}</span>
           </div>
         ))}
       </div>
-      <p className="font-mono text-[9px] text-text-dim leading-relaxed opacity-60">
+      <p className="font-mono text-label text-text-dim leading-relaxed opacity-60">
         Elevation estimated from 90m terrain data — gain/loss is approximate and intended to give a general sense of the terrain profile.
       </p>
     </div>

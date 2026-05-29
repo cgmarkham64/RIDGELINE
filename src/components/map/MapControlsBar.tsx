@@ -56,7 +56,7 @@ export function MapControlsBar({
         </div>
 
         {waypoints.length === 0 && !addMode && !editingId ? (
-          <p style={mono} className="text-[9px] leading-[1.7]">
+          <p style={mono} className="text-label leading-[1.7]">
             No waypoints yet — mark campsites, wildlife sightings, viewpoints, and more.
           </p>
         ) : waypoints.length > 0 ? (

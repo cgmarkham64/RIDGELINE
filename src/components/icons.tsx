@@ -2,9 +2,16 @@
 // All icons use stroke="currentColor" — color is controlled by the parent's text class.
 // Fixed-size icons have no props; parameterized icons accept size and/or strokeWidth.
 
+// Icon size constants — use these for consistent sizing across the app.
+export const ICON_XS = 10;   // decorative / map-marker
+export const ICON_SM = 12;   // inline with label/caption text
+export const ICON_MD = 14;   // inline with body text
+export const ICON_LG = 18;   // action buttons, prominent UI
+export const ICON_XL = 22;   // nav rail, hero contexts
+
 // ─── Generic ──────────────────────────────────────────────────────────────────
 
-export function IconCheck({ size = 12, strokeWidth = 2.5 }: { size?: number; strokeWidth?: number }) {
+export function IconCheck({ size = 13, strokeWidth = 2.5 }: { size?: number; strokeWidth?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
       <polyline points="20 6 9 17 4 12" />
@@ -12,7 +19,7 @@ export function IconCheck({ size = 12, strokeWidth = 2.5 }: { size?: number; str
   )
 }
 
-export function IconPlus({ size = 11 }: { size?: number }) {
+export function IconPlus({ size = 13 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -20,7 +27,7 @@ export function IconPlus({ size = 11 }: { size?: number }) {
   )
 }
 
-export function IconMinus({ size = 11 }: { size?: number }) {
+export function IconMinus({ size = 13 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <line x1="5" y1="12" x2="19" y2="12" />
@@ -28,7 +35,7 @@ export function IconMinus({ size = 11 }: { size?: number }) {
   )
 }
 
-export function IconFitBounds({ size = 11 }: { size?: number }) {
+export function IconFitBounds({ size = 13 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <path d="M1 5V1h4M11 1h4v4M15 11v4h-4M5 15H1v-4" />
@@ -46,7 +53,7 @@ export function IconX({ size = 14 }: { size?: number }) {
 
 export function IconSearch() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
   )
@@ -54,7 +61,7 @@ export function IconSearch() {
 
 export function IconList() {
   return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
       <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
     </svg>
@@ -71,7 +78,7 @@ export function IconLayers({ size = 12 }: { size?: number }) {
   )
 }
 
-export function IconChevronLeft({ size = 10 }: { size?: number }) {
+export function IconChevronLeft({ size = 12 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="15 18 9 12 15 6" />
@@ -79,7 +86,7 @@ export function IconChevronLeft({ size = 10 }: { size?: number }) {
   )
 }
 
-export function IconChevronRight({ size = 10 }: { size?: number }) {
+export function IconChevronRight({ size = 12 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="9 18 15 12 9 6" />
@@ -88,7 +95,7 @@ export function IconChevronRight({ size = 10 }: { size?: number }) {
 }
 
 /** Arrow with a horizontal line + arrowhead — used for Prev/Next stage navigation. */
-export function IconArrowLeft({ size = 10 }: { size?: number }) {
+export function IconArrowLeft({ size = 12 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="19" y1="12" x2="5" y2="12" />
@@ -97,7 +104,7 @@ export function IconArrowLeft({ size = 10 }: { size?: number }) {
   )
 }
 
-export function IconArrowRight({ size = 10 }: { size?: number }) {
+export function IconArrowRight({ size = 12 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="5" y1="12" x2="19" y2="12" />
@@ -108,7 +115,7 @@ export function IconArrowRight({ size = 10 }: { size?: number }) {
 
 export function IconSparkle() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
     </svg>
   )
@@ -152,7 +159,7 @@ export function IconMoreVertical({ size = 14 }: { size?: number }) {
   )
 }
 
-export function IconPencil({ size = 10 }: { size?: number }) {
+export function IconPencil({ size = 12 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -179,7 +186,7 @@ export function IconGear() {
   )
 }
 
-export function IconBell({ size = 11 }: { size?: number }) {
+export function IconBell({ size = 13 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -188,7 +195,7 @@ export function IconBell({ size = 11 }: { size?: number }) {
   )
 }
 
-export function IconDownload({ size = 10 }: { size?: number }) {
+export function IconDownload({ size = 12 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -198,7 +205,7 @@ export function IconDownload({ size = 10 }: { size?: number }) {
   )
 }
 
-export function IconFile({ size = 10 }: { size?: number }) {
+export function IconFile({ size = 12 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -215,7 +222,7 @@ export function IconCircle({ size = 12 }: { size?: number }) {
   )
 }
 
-export function IconTrash({ size = 11 }: { size?: number }) {
+export function IconTrash({ size = 13 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="3 6 5 6 21 6" />

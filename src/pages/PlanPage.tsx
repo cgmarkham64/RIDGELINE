@@ -36,7 +36,7 @@ export function PlanPage() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (createError) return (
-    <div className="flex h-full items-center justify-center text-[13px] text-text-mid">
+    <div className="flex h-full items-center justify-center text-body text-text-mid">
       Failed to create trip. Refresh to try again.
     </div>
   )

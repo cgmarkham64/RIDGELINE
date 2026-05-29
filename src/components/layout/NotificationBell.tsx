@@ -48,7 +48,7 @@ export function NotificationBell() {
       >
         <IconBell size={17} />
         {badgeCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 min-w-3.5 h-3.5 rounded-full bg-red flex items-center justify-center font-mono text-[9px] font-bold text-white leading-none px-[3px]">
+          <span className="absolute top-1.5 right-1.5 min-w-3.5 h-3.5 rounded-full bg-red flex items-center justify-center font-mono text-label font-bold text-white leading-none px-[3px]">
             {badgeCount > 9 ? '9+' : badgeCount}
           </span>
         )}
@@ -60,11 +60,11 @@ export function NotificationBell() {
           style={{ maxHeight: '480px' }}
         >
           <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
-            <span className="font-heading text-[12px] font-extrabold text-text">Notifications</span>
+            <span className="font-heading text-body-sm font-extrabold text-text">Notifications</span>
             {notifications.length > 0 && (
               <button
                 onClick={() => markRead.mutate()}
-                className="font-mono text-[9px] tracking-widest uppercase text-text-dim hover:text-amber transition-colors duration-100"
+                className="font-mono text-label tracking-widest uppercase text-text-dim hover:text-amber transition-colors duration-100"
               >
                 Mark all read
               </button>
@@ -73,7 +73,7 @@ export function NotificationBell() {
 
           <div className="overflow-y-auto flex-1">
             {notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center font-mono text-[10px] text-text-dim tracking-wider">
+              <div className="px-4 py-8 text-center font-mono text-caption text-text-dim tracking-wider">
                 No notifications
               </div>
             ) : (

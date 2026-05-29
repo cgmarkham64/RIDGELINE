@@ -167,7 +167,7 @@ export function DaySelector({ startDate, endDate, selectedDate, entries, onSelec
             <IconChevronLeft size={14} />
           </button>
         ) : <div className="w-6" />}
-        <span className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-mid">
+        <span className="font-mono text-label tracking-[0.14em] uppercase text-text-mid">
           {currentMonth?.label}
         </span>
         {monthGroups.length > 1 ? (
@@ -184,7 +184,7 @@ export function DaySelector({ startDate, endDate, selectedDate, entries, onSelec
       {/* Day-of-week header */}
       <div className="grid grid-cols-7 border-b border-border">
         {DOW.map((d, i) => (
-          <div key={i} className="text-center py-1.5 font-mono text-[9px] tracking-widest uppercase text-text-dim">
+          <div key={i} className="text-center py-1.5 font-mono text-label tracking-widest uppercase text-text-dim">
             {d}
           </div>
         ))}
@@ -215,13 +215,13 @@ export function DaySelector({ startDate, endDate, selectedDate, entries, onSelec
                 ].join(' ')}
               >
                 <span className={[
-                  'font-heading text-[12px] font-extrabold leading-none',
+                  'font-heading text-body-sm font-extrabold leading-none',
                   isSelected ? 'text-amber' : 'text-text-mid',
                 ].join(' ')}>
                   {cell.dayNumber}
                 </span>
                 <span className={[
-                  'font-mono text-[9px] tracking-[0.06em] uppercase leading-none',
+                  'font-mono text-label tracking-[0.06em] uppercase leading-none',
                   isSelected ? 'text-amber/55' : 'text-text-dim',
                 ].join(' ')}>
                   {calDate}
@@ -244,7 +244,7 @@ export function DaySelector({ startDate, endDate, selectedDate, entries, onSelec
           onClick={() => setVisibleMonthIdx((i) => i + 1)}
           className="w-full flex items-center justify-end gap-1.5 px-2.5 py-1.5 border-t border-border text-text-dim hover:text-text hover:bg-surface-3 transition-colors duration-120 cursor-pointer"
         >
-          <span className="font-mono text-[9px] tracking-widest uppercase">
+          <span className="font-mono text-label tracking-widest uppercase">
             Continues in {currentMonth.nextLabel}
           </span>
           <IconChevronRight size={12} />

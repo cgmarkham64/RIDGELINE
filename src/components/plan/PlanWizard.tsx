@@ -4,13 +4,13 @@ import { createStages } from './constants'
 import { StageRail } from './StageRail'
 import { StageHeader } from './StageHeader'
 import { PlanOverview } from './PlanOverview'
-import { RouteStage } from './stages/RouteStage'
-import { WeatherStage } from './stages/WeatherStage'
-import { PermitsStage } from './stages/PermitsStage'
-import { FoodStage } from './stages/FoodStage'
-import { GearStage } from './stages/GearStage'
-import { DepartStage } from './stages/DepartStage'
-import { JournalStage } from './stages/JournalStage'
+import { RouteStage } from './stages/route/RouteStage'
+import { WeatherStage } from './stages/weather/WeatherStage'
+import { PermitsStage } from './stages/permits/PermitsStage'
+import { FoodStage } from './stages/food/FoodStage'
+import { GearStage } from './stages/gear/GearStage'
+import { DepartStage } from './stages/depart/DepartStage'
+import { JournalStage } from './stages/journal/JournalStage'
 import { MoonLoader } from '../ui/MoonLoader'
 import { TripSetupDialog } from './TripSetupDialog'
 import { usePlan, useUpdatePlan } from '../../hooks/usePlans'
@@ -227,7 +227,7 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
           <div className="font-heading text-[17px] font-extrabold text-text mb-2">
             {is403 ? 'Looks like you got uninvited' : 'Something scared us off the trail'}
           </div>
-          <p className="text-[13px] text-text-mid leading-relaxed">
+          <p className="text-body text-text-mid leading-relaxed">
             {is403
               ? "You no longer have access to this trip. If you think this is a mistake, contact the trip owner — they'll know what to do."
               : "We hit an unexpected snag loading this trip. Try refreshing the page to get back on track."}
@@ -327,20 +327,20 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
       {confirmComplete && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
           <div className="bg-surface border border-border-mid rounded-xl p-6 w-full max-w-sm shadow-2xl">
-            <h2 className="font-heading text-[18px] font-extrabold text-text mb-2">No journal entries yet.</h2>
-            <p className="text-[13px] text-text-mid leading-relaxed mb-5">
+            <h2 className="font-heading text-sub font-extrabold text-text mb-2">No journal entries yet.</h2>
+            <p className="text-body text-text-mid leading-relaxed mb-5">
               Consider adding a trip report before marking this complete — it only takes a few minutes.
             </p>
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => { setConfirmComplete(false); jumpTo('journal') }}
-                className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-widest uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
+                className="px-3 py-1.5 font-heading text-caption font-bold tracking-widest uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
               >
                 Add entries
               </button>
               <button
                 onClick={() => { doUpdate({ id: planId, body: { status: 'complete' } }); setConfirmComplete(false) }}
-                className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-widest uppercase rounded border cursor-pointer transition-colors"
+                className="px-3 py-1.5 font-heading text-caption font-bold tracking-widest uppercase rounded border cursor-pointer transition-colors"
                 style={{ background: 'var(--amber-dim)', borderColor: 'var(--amber-border)', color: 'var(--amber)' }}
               >
                 Complete anyway

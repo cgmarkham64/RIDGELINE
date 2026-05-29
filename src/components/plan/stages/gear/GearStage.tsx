@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
-import { JumpChip } from '../JumpChip'
-import { Pill } from '../Pill'
-import { ProgressBar } from '../ProgressBar'
-import { CheckItem } from '../CheckItem'
-import { IconAlertTriangle, IconCheck, IconGear, IconPlus } from '../../icons'
-import type { StageBodyProps, PlanGearCategoryEntry } from '../types'
+import { JumpChip } from '../../JumpChip'
+import { Pill } from '../../Pill'
+import { ProgressBar } from '../../ProgressBar'
+import { CheckItem } from '../../CheckItem'
+import { IconAlertTriangle, IconCheck, IconGear, IconPlus } from '../../../icons'
+import type { StageBodyProps, PlanGearCategoryEntry } from '../../types'
 
 const WEATHER_RISK_STYLE = {
   moderate: { border: 'border-amber-border', bg: 'bg-amber-dim', text: 'text-amber', label: 'Caution' },
@@ -97,9 +97,9 @@ function CategoryCard({ category, onToggleItem }: {
   return (
     <div className="bg-surface border border-border rounded-lg overflow-hidden">
       <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-2 border-b border-border">
-        <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">{category.label}</span>
-        <span className="font-mono text-[9px] text-text-dim">{category.items.length} items</span>
-        <span className="ml-auto font-mono text-[10px] text-amber">{checkedOz.toFixed(1)} / {totalOz.toFixed(1)} oz</span>
+        <span className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">{category.label}</span>
+        <span className="font-mono text-label text-text-dim">{category.items.length} items</span>
+        <span className="ml-auto font-mono text-caption text-amber">{checkedOz.toFixed(1)} / {totalOz.toFixed(1)} oz</span>
       </div>
 
       {category.items.map((item, i) => (
@@ -120,14 +120,14 @@ function CategoryCard({ category, onToggleItem }: {
           <span className={`text-[11.5px] leading-snug ${item.checked ? 'text-text' : 'text-text-mid'}`}>
             {item.name}
           </span>
-          <span className="font-mono text-[10px] text-text-dim text-right">{item.weight} oz</span>
+          <span className="font-mono text-caption text-text-dim text-right">{item.weight} oz</span>
         </button>
       ))}
 
       <div className="px-4 py-2 border-t border-border">
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.08em] uppercase text-text-dim hover:text-text-mid transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase text-text-dim hover:text-text-mid transition-colors cursor-pointer"
         >
           <IconPlus /> Add item
         </button>
@@ -199,7 +199,7 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
                 <div className={`flex items-center justify-between mb-2`}>
                   <div className={`flex items-center gap-2 ${ws.text}`}>
                     <IconAlertTriangle size={13} className={ws.text} />
-                    <span className="font-mono text-[9px] tracking-[0.16em] uppercase">
+                    <span className="font-mono text-label tracking-[0.16em] uppercase">
                       Weather {ws.label} — review your loadout
                     </span>
                   </div>
@@ -210,8 +210,8 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
                     {plan.weather!.departureFactors.map((f, i) => (
                       <li key={i} className="flex items-center gap-2">
                         <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ws.text} bg-current`} />
-                        <span className="font-mono text-[10px] text-text-dim">{fmtShortDate(f.date)}</span>
-                        <span className="text-[13px] text-text-mid">{f.label}</span>
+                        <span className="font-mono text-caption text-text-dim">{fmtShortDate(f.date)}</span>
+                        <span className="text-body text-text-mid">{f.label}</span>
                       </li>
                     ))}
                   </ul>
@@ -227,10 +227,10 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
                 <IconGear />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-heading text-[16px] font-extrabold text-text mb-1">
+                <div className="font-heading text-body-lg font-extrabold text-text mb-1">
                   Gear opens Mar 24, when permits resolve.
                 </div>
-                <div className="text-[12px] text-text-mid leading-relaxed">
+                <div className="text-body-sm text-text-mid leading-relaxed">
                   Pre-filled from your{' '}
                   <JumpChip to="weather" onJump={onJump}>8-day plan</JumpChip>.
                   {' '}Tweak now — we'll re-balance weights once{' '}
@@ -244,8 +244,8 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
           {/* Category cards */}
           {categories.length === 0 ? (
             <div className="px-4 py-8 text-center border border-dashed border-border rounded-lg">
-              <p className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim mb-2">No categories yet</p>
-              <p className="text-[12px] text-text-mid">Add your first gear category to start building your kit.</p>
+              <p className="font-mono text-label tracking-[0.14em] uppercase text-text-dim mb-2">No categories yet</p>
+              <p className="text-body-sm text-text-mid">Add your first gear category to start building your kit.</p>
             </div>
           ) : categories.map((cat, ci) => (
             <CategoryCard
@@ -260,21 +260,21 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
             <button
               type="button"
               onClick={() => onJump('permits')}
-              className="inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-amber-border bg-amber-dim text-amber hover:bg-amber transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-amber-border bg-amber-dim text-amber hover:bg-amber transition-colors cursor-pointer"
             >
               Check Permits
             </button>
             <button
               type="button"
               onClick={() => onJump('food')}
-              className="inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
             >
               Confirm Food first
             </button>
             <button
               type="button"
               onClick={() => onJump('depart')}
-              className="inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
             >
               Skip ahead anyway
             </button>
@@ -286,10 +286,10 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
 
           {/* Weight stats */}
           <div className="bg-surface border border-border rounded-lg p-3.5">
-            <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">Loadout preview</div>
+            <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">Loadout preview</div>
             <div>
-              <div className="font-heading text-[18px] font-extrabold text-amber leading-none">{checkedCount} of {totalCount}</div>
-              <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mt-1">items packed</div>
+              <div className="font-heading text-sub font-extrabold text-amber leading-none">{checkedCount} of {totalCount}</div>
+              <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mt-1">items packed</div>
             </div>
             <div className="h-px bg-border my-3" />
             <div className="flex flex-col gap-2.5">
@@ -299,21 +299,21 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
                 { value: `${waterLb} lb`, label: 'water (start)' },
               ].map(s => (
                 <div key={s.label}>
-                  <div className="font-heading text-[16px] font-extrabold text-text leading-none">{s.value}</div>
-                  <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mt-0.5">{s.label}</div>
+                  <div className="font-heading text-body-lg font-extrabold text-text leading-none">{s.value}</div>
+                  <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mt-0.5">{s.label}</div>
                 </div>
               ))}
             </div>
             <div className="h-px bg-border my-3" />
             <div>
-              <div className="font-heading text-[20px] font-extrabold text-amber leading-none">{totalLb} lb</div>
-              <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mt-0.5">total D1 pack</div>
+              <div className="font-heading text-h3 font-extrabold text-amber leading-none">{totalLb} lb</div>
+              <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mt-0.5">total D1 pack</div>
             </div>
           </div>
 
           {/* Unlock checklist */}
           <div className="bg-surface border border-border rounded-lg p-3.5">
-            <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">Unlocks Mar 24</div>
+            <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">Unlocks Mar 24</div>
             {unlockChecklist.map((item, i) => (
               <CheckItem
                 key={item.text}
@@ -324,11 +324,11 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
             ))}
             <div className="h-px bg-border my-3" />
             <ProgressBar value={unlockProgress} tone="amber" />
-            <div className="font-mono text-[9px] text-text-dim text-center mt-1.5">{unlockDone} of {unlockChecklist.length}</div>
+            <div className="font-mono text-label text-text-dim text-center mt-1.5">{unlockDone} of {unlockChecklist.length}</div>
           </div>
 
           {/* Why locked callout */}
-          <div className="px-3 py-3 bg-sky-dim border border-sky-border rounded-lg text-[11px] text-text-mid leading-relaxed">
+          <div className="px-3 py-3 bg-sky-dim border border-sky-border rounded-lg text-fine text-text-mid leading-relaxed">
             <span className="font-semibold text-sky">Why locked?</span>{' '}
             Loadout depends on confirmed dates + conditions. Auto-recomputes when{' '}
             <JumpChip to="permits" onJump={onJump}>Permits</JumpChip> resolves.
@@ -336,15 +336,15 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
 
           {(plan?.weather?.departureRisk === 'moderate' || plan?.weather?.departureRisk === 'high') && (
             <div className="bg-surface border border-border rounded-lg p-3.5">
-              <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2">Conditions check</div>
-              <p className="text-[11px] text-text-mid leading-relaxed mb-2.5">
+              <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2">Conditions check</div>
+              <p className="text-fine text-text-mid leading-relaxed mb-2.5">
                 Once your loadout is adjusted for the flagged conditions, mark it done.
               </p>
               {canEdit && (
                 <button
                   type="button"
                   onClick={() => onChange?.({ weather: { ...plan.weather!, gearAdjusted: !plan.weather!.gearAdjusted } })}
-                  className={`w-full flex items-center justify-center gap-1.5 px-3 py-1.5 font-mono text-[9px] rounded border cursor-pointer transition-colors ${
+                  className={`w-full flex items-center justify-center gap-1.5 px-3 py-1.5 font-mono text-label rounded border cursor-pointer transition-colors ${
                     plan.weather!.gearAdjusted
                       ? 'bg-pine-dim border-pine-border text-pine'
                       : 'bg-surface-2 border-border text-text-dim hover:border-border-mid'

@@ -60,12 +60,12 @@ interface Props {
 }
 
 const condInputCls =
-  'w-full px-2 py-[6px] border border-border focus:border-border-mid rounded-sm text-[12px] bg-surface text-text outline-none transition-[border-color] duration-[140ms]'
+  'w-full px-2 py-[6px] border border-border focus:border-border-mid rounded-sm text-body-sm bg-surface text-text outline-none transition-[border-color] duration-[140ms]'
 
 function CondCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="bg-surface-2 border border-border rounded-md px-2.75 py-2.25">
-      <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-mid mb-1.25">
+      <div className="font-mono text-label tracking-[0.12em] uppercase text-text-mid mb-1.25">
         {label}
       </div>
       {children}
@@ -287,7 +287,7 @@ export function JournalSection({ trip, readOnly }: Props) {
       />
 
       {readOnly && (
-        <div className="mb-4 px-3 py-2 rounded border border-border bg-surface-2 font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">
+        <div className="mb-4 px-3 py-2 rounded border border-border bg-surface-2 font-mono text-label tracking-[0.12em] uppercase text-text-dim">
           View only — you have view access to this trip
         </div>
       )}
@@ -306,7 +306,7 @@ export function JournalSection({ trip, readOnly }: Props) {
           />
 
           <div className="flex items-baseline gap-2.5 flex-wrap pb-3.5 mb-4.5 border-b border-border">
-            <span className="font-heading text-[28px] font-extrabold text-amber leading-none tracking-[-0.01em] shrink-0">
+            <span className="font-heading text-h1 font-extrabold text-amber leading-none tracking-[-0.01em] shrink-0">
               Day {dayNumber}
             </span>
             <input
@@ -319,7 +319,7 @@ export function JournalSection({ trip, readOnly }: Props) {
               onClick={() => fileInputRef.current?.click()}
               disabled={scanning}
               title="Scan a photo of your journal page to auto-fill this entry"
-              className="flex items-center gap-1.25 font-mono text-[9px] tracking-widest uppercase bg-transparent border border-current rounded-sm px-2 py-1 shrink-0"
+              className="flex items-center gap-1.25 font-mono text-label tracking-widest uppercase bg-transparent border border-current rounded-sm px-2 py-1 shrink-0"
               style={{
                 color: scanning ? 'var(--text-dim)' : 'var(--amber)',
                 cursor: scanning ? 'default' : 'pointer',
@@ -330,7 +330,7 @@ export function JournalSection({ trip, readOnly }: Props) {
           </div>
 
           {scanError && (
-            <p className="text-[11px] text-red mb-3">{scanError}</p>
+            <p className="text-fine text-red mb-3">{scanError}</p>
           )}
 
           <div className="grid grid-cols-5 gap-1.5 mb-5.5">
@@ -393,14 +393,14 @@ export function JournalSection({ trip, readOnly }: Props) {
           {plannedTimeRows.length > 0 && (
             <>
               <div className="flex items-center gap-3 mb-3">
-                <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim shrink-0">Times</span>
+                <span className="font-mono text-label tracking-[0.12em] uppercase text-text-dim shrink-0">Times</span>
                 <hr className="flex-1 border-0 border-t border-border" />
               </div>
               <div className="grid grid-cols-3 gap-2 mb-5">
                 {plannedTimeRows.map(({ label, planned, field }) => (
                   <div key={field} className="bg-surface-2 border border-border rounded-md px-2.75 py-2.25">
-                    <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-mid mb-1.25">{label}</div>
-                    <div className="font-mono text-[9px] text-text-dim mb-1">Plan: {planned}</div>
+                    <div className="font-mono text-label tracking-[0.12em] uppercase text-text-mid mb-1.25">{label}</div>
+                    <div className="font-mono text-label text-text-dim mb-1">Plan: {planned}</div>
                     <input
                       {...register(field)}
                       placeholder="HH:MM"
@@ -413,7 +413,7 @@ export function JournalSection({ trip, readOnly }: Props) {
           )}
 
           <div className="flex items-center gap-3 mb-4">
-            <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim shrink-0">Field Notes</span>
+            <span className="font-mono text-label tracking-[0.12em] uppercase text-text-dim shrink-0">Field Notes</span>
             <hr className="flex-1 border-0 border-t border-border" />
           </div>
           <div className="border-l-2 border-amber-border pl-4 mb-5">
@@ -426,13 +426,13 @@ export function JournalSection({ trip, readOnly }: Props) {
           </div>
 
           {errors.body && (
-            <p className="text-[11px] text-red mb-3">
+            <p className="text-fine text-red mb-3">
               {errors.body.message}
             </p>
           )}
 
           <div className="flex items-center gap-3 mb-3 mt-1">
-            <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim shrink-0">Wildlife</span>
+            <span className="font-mono text-label tracking-[0.12em] uppercase text-text-dim shrink-0">Wildlife</span>
             <hr className="flex-1 border-0 border-t border-border" />
           </div>
           <div className="mb-5">
@@ -444,7 +444,7 @@ export function JournalSection({ trip, readOnly }: Props) {
           </div>
 
           <div className="flex items-center gap-3 mb-3">
-            <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim shrink-0">Companions</span>
+            <span className="font-mono text-label tracking-[0.12em] uppercase text-text-dim shrink-0">Companions</span>
             <hr className="flex-1 border-0 border-t border-border" />
           </div>
           <div className="mb-5">
@@ -459,7 +459,7 @@ export function JournalSection({ trip, readOnly }: Props) {
               }}
             />
             {pendingInviteCount > 0 && (
-              <p className="font-mono text-[9px] text-text-dim mt-2">
+              <p className="font-mono text-label text-text-dim mt-2">
                 {pendingInviteCount === 1
                   ? 'Will send 1 collaboration invite on save'
                   : `Will send ${pendingInviteCount} collaboration invites on save`}
@@ -468,9 +468,9 @@ export function JournalSection({ trip, readOnly }: Props) {
           </div>
 
           <div className="flex items-center gap-3 justify-end">
-            {save.isError && <span className="text-[11px] text-red">Save failed</span>}
+            {save.isError && <span className="text-fine text-red">Save failed</span>}
             {savedFeedback && (
-              <span className="font-mono text-[9px] tracking-widest uppercase text-pine">
+              <span className="font-mono text-label tracking-widest uppercase text-pine">
                 Saved ✓
               </span>
             )}

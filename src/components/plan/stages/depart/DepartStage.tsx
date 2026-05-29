@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { ProgressBar } from '../ProgressBar'
-import { IconBell, IconCheck, IconDownload, IconPlus, IconFile, IconCircle } from '../../icons'
-import type { StageBodyProps, ReminderTone, ContactTone } from '../types'
+import { ProgressBar } from '../../ProgressBar'
+import { IconBell, IconCheck, IconDownload, IconPlus, IconFile, IconCircle } from '../../../icons'
+import type { StageBodyProps, ReminderTone, ContactTone } from '../../types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -158,7 +158,7 @@ function TakeItItem({ item, onToggle }: { item: ChecklistItem; onToggle: () => v
       className="flex items-center gap-2.5 py-1.5 w-full text-left cursor-pointer"
     >
       {indicator}
-      <span className={`text-[12px] ${item.done ? 'text-text' : 'text-text-dim'}`}>{item.text}</span>
+      <span className={`text-body-sm ${item.done ? 'text-text' : 'text-text-dim'}`}>{item.text}</span>
     </button>
   )
 }
@@ -209,24 +209,24 @@ export function DepartStage({ plan, onChange }: StageBodyProps) {
 
           {/* Reminders */}
           <div className="bg-surface border border-border rounded-lg p-[18px]">
-            <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-3">Reminders</div>
+            <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-3">Reminders</div>
             {reminders.map((r, i) => (
               <div
                 key={r.date + r.description}
                 className={`grid items-center gap-3 py-2.5 ${i < reminders.length - 1 ? 'border-b border-border' : ''}`}
                 style={{ gridTemplateColumns: '56px 1fr 56px' }}
               >
-                <span className={`font-mono text-[11px] font-bold ${REMINDER_DATE_CLS[r.tone]}`}>
+                <span className={`font-mono text-fine font-bold ${REMINDER_DATE_CLS[r.tone]}`}>
                   {r.date}
                 </span>
-                <span className="text-[12px] text-text">{r.description}</span>
+                <span className="text-body-sm text-text">{r.description}</span>
                 {r.set ? (
-                  <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-pine text-right">SET</span>
+                  <span className="font-mono text-label tracking-[0.12em] uppercase text-pine text-right">SET</span>
                 ) : (
                   <button
                     type="button"
                     onClick={() => toggleReminder(i)}
-                    className="font-heading text-[9px] font-bold tracking-[0.08em] uppercase px-2 py-1 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer text-right"
+                    className="font-heading text-label font-bold tracking-[0.08em] uppercase px-2 py-1 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer text-right"
                   >
                     Set
                   </button>
@@ -238,10 +238,10 @@ export function DepartStage({ plan, onChange }: StageBodyProps) {
           {/* Emergency contacts */}
           <div className="bg-surface border border-border rounded-lg p-[18px]">
             <div className="flex items-center gap-2.5 mb-3">
-              <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Emergency contacts</span>
+              <span className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">Emergency contacts</span>
               <button
                 type="button"
-                className="ml-auto inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
+                className="ml-auto inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
               >
                 <IconPlus /> Contact
               </button>
@@ -256,10 +256,10 @@ export function DepartStage({ plan, onChange }: StageBodyProps) {
                   <IconBell />
                 </span>
                 <div className="min-w-0">
-                  <div className="text-[12px] font-semibold text-text leading-snug">{c.name}</div>
-                  <div className="font-mono text-[9px] text-text-dim mt-0.5">{c.role}</div>
+                  <div className="text-body-sm font-semibold text-text leading-snug">{c.name}</div>
+                  <div className="font-mono text-label text-text-dim mt-0.5">{c.role}</div>
                 </div>
-                <span className="font-mono text-[10px] text-text-mid whitespace-nowrap">{c.phone}</span>
+                <span className="font-mono text-caption text-text-mid whitespace-nowrap">{c.phone}</span>
               </div>
             ))}
           </div>
@@ -267,9 +267,9 @@ export function DepartStage({ plan, onChange }: StageBodyProps) {
           {/* Offline maps */}
           <div className="bg-surface border border-border rounded-lg p-[18px]">
             <div className="flex items-center gap-2.5 mb-3">
-              <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Offline maps</span>
-              <span className="font-mono text-[9px] text-text-dim">cached to all phones</span>
-              <span className={`ml-auto font-mono text-[10px] ${readyCount === mapLayers.length ? 'text-pine' : 'text-amber'}`}>
+              <span className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">Offline maps</span>
+              <span className="font-mono text-label text-text-dim">cached to all phones</span>
+              <span className={`ml-auto font-mono text-caption ${readyCount === mapLayers.length ? 'text-pine' : 'text-amber'}`}>
                 {readyCount} of {mapLayers.length} ready
               </span>
             </div>
@@ -284,13 +284,13 @@ export function DepartStage({ plan, onChange }: StageBodyProps) {
                 </span>
                 <div className="min-w-0">
                   <div className="text-[11.5px] font-semibold text-text leading-snug">{m.name}</div>
-                  <div className="font-mono text-[9px] text-text-dim mt-0.5">{m.size}</div>
+                  <div className="font-mono text-label text-text-dim mt-0.5">{m.size}</div>
                 </div>
                 {!m.ok && (
                   <button
                     type="button"
                     onClick={() => downloadLayer(i)}
-                    className="inline-flex items-center gap-1.5 font-heading text-[9px] font-bold tracking-[0.08em] uppercase px-2 py-1 rounded border border-amber-border bg-amber-dim text-amber hover:bg-amber transition-colors cursor-pointer whitespace-nowrap"
+                    className="inline-flex items-center gap-1.5 font-heading text-label font-bold tracking-[0.08em] uppercase px-2 py-1 rounded border border-amber-border bg-amber-dim text-amber hover:bg-amber transition-colors cursor-pointer whitespace-nowrap"
                   >
                     <IconDownload /> Download
                   </button>
@@ -306,29 +306,29 @@ export function DepartStage({ plan, onChange }: StageBodyProps) {
           {/* One-pager */}
           <div className="bg-surface border border-border rounded-lg p-3.5">
             <div className="flex items-center gap-2 mb-2.5">
-              <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">One-pager</span>
+              <span className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">One-pager</span>
               <button
                 type="button"
-                className="ml-auto inline-flex items-center gap-1.5 font-heading text-[9px] font-bold tracking-[0.08em] uppercase px-2 py-1 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
+                className="ml-auto inline-flex items-center gap-1.5 font-heading text-label font-bold tracking-[0.08em] uppercase px-2 py-1 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
               >
                 <IconFile /> PDF
               </button>
             </div>
             <OnePagerPreview days={days} contacts={contacts} />
-            <p className="font-mono text-[9px] text-text-dim italic mt-2 leading-relaxed">
+            <p className="font-mono text-label text-text-dim italic mt-2 leading-relaxed">
               Auto-generated from Route, Days, Permits, Food. Print &amp; leave with Sam.
             </p>
           </div>
 
           {/* Take it with you */}
           <div className="bg-surface border border-border rounded-lg p-3.5">
-            <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">Take it with you</div>
+            <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">Take it with you</div>
             {checklist.map((item, i) => (
               <TakeItItem key={item.text} item={item} onToggle={() => toggleChecklist(i)} />
             ))}
             <div className="h-px bg-border my-3" />
             <ProgressBar value={progress} tone="pine" />
-            <div className="font-mono text-[9px] text-text-dim text-center mt-1.5">{doneCount} of {checklist.length}</div>
+            <div className="font-mono text-label text-text-dim text-center mt-1.5">{doneCount} of {checklist.length}</div>
           </div>
         </aside>
       </div>

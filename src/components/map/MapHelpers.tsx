@@ -121,7 +121,7 @@ export function MapFocuser({
 
 export function AttributionStrip({ tileLayer }: { tileLayer: TileLayerKey }) {
   return (
-    <div className="px-3 py-1 border-t border-border bg-surface font-mono text-[9px] tracking-[0.06em] text-text-dim">
+    <div className="px-3 py-1 border-t border-border bg-surface font-mono text-label tracking-[0.06em] text-text-dim">
       Map data &copy;{' '}
       <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-text transition-colors">
         OpenStreetMap

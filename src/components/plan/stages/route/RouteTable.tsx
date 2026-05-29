@@ -5,19 +5,19 @@ import {
 import type { DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { JumpChip } from '../JumpChip'
-import { MoonLoader } from '../../ui/MoonLoader'
-import { WaypointIcon } from '../../map/WaypointIcon'
-import { WAYPOINT_COLOR } from '../../map/constants'
+import { JumpChip } from '../../JumpChip'
+import { MoonLoader } from '../../../ui/MoonLoader'
+import { WaypointIcon } from '../../../map/WaypointIcon'
+import { WAYPOINT_COLOR } from '../../../map/constants'
 import {
   IconPlus, IconCheck, IconTent, IconPencil, IconTrash,
   IconTriangleRight, IconSparkle, IconGrip,
-} from '../../icons'
+} from '../../../icons'
 import { GRID, DRAG_GRID, ACTIVE_BG, EXP_LABEL, SEG_COLORS } from './routeStage.helpers'
 import type { MergedRow, SegRow } from './routeStage.types'
-import type { StageBodyProps } from '../types'
-import { milesToKm, type UnitSystem } from '../../../lib/units'
-import { useUnitSystem } from '../../../hooks/useUnitSystem'
+import type { StageBodyProps } from '../../types'
+import { milesToKm, type UnitSystem } from '../../../../lib/units'
+import { useUnitSystem } from '../../../../hooks/useUnitSystem'
 
 const fmtMi = (mi: number, sys: UnitSystem) =>
   sys === 'metric' ? `${milesToKm(mi).toFixed(1)} km` : `${mi.toFixed(1)} mi`
@@ -103,14 +103,14 @@ function SortableCampRow({
         {row.isFinish ? <IconCheck size={15} /> : <IconTent />}
       </span>
       <div className="min-w-0">
-        <span className="text-[12px] font-semibold text-text truncate block">{row.seg.name}</span>
+        <span className="text-body-sm font-semibold text-text truncate block">{row.seg.name}</span>
         {(row.seg.water || row.seg.exposure || row.seg.hard) && (
           <div className="flex items-center gap-1 mt-0.5 flex-wrap">
             {row.seg.water && (
-              <span className="font-mono text-[9px] text-sky-400/80 uppercase tracking-[0.06em]">{row.seg.water}</span>
+              <span className="font-mono text-label text-sky-400/80 uppercase tracking-[0.06em]">{row.seg.water}</span>
             )}
             {row.seg.exposure && (
-              <span className={`font-mono text-[9px] font-semibold px-1 rounded border uppercase tracking-[0.06em] ${
+              <span className={`font-mono text-label font-semibold px-1 rounded border uppercase tracking-[0.06em] ${
                 row.seg.exposure === 'low'     ? 'text-pine border-pine-border bg-pine-dim' :
                 row.seg.exposure === 'med'     ? 'text-sky border-sky-border bg-sky-dim' :
                 row.seg.exposure === 'high'    ? 'text-amber border-amber-border bg-amber-dim' :
@@ -118,30 +118,30 @@ function SortableCampRow({
               }`}>{EXP_LABEL[row.seg.exposure]}</span>
             )}
             {row.seg.hard && (
-              <span className="font-mono text-[9px] font-semibold px-1 rounded border uppercase tracking-[0.06em] text-amber border-amber-border bg-amber-dim">tough</span>
+              <span className="font-mono text-label font-semibold px-1 rounded border uppercase tracking-[0.06em] text-amber border-amber-border bg-amber-dim">tough</span>
             )}
           </div>
         )}
       </div>
-      <span className="font-mono text-[10px] text-text">
+      <span className="font-mono text-caption text-text">
         {repositioning.has(row.segIdx) ? '…' : fmtMi(row.distFromStartMi, sys)}
       </span>
       {row.isFinish
-        ? <span className="font-mono text-[10px] text-text-dim">—</span>
-        : <span className="font-mono text-[10px] text-text-mid">
+        ? <span className="font-mono text-caption text-text-dim">—</span>
+        : <span className="font-mono text-caption text-text-mid">
             {row.toNextCampMi !== null ? fmtMi(row.toNextCampMi, sys) : '—'}
           </span>
       }
       {row.isFinish
-        ? <span className="font-mono text-[10px] text-text-dim">—</span>
+        ? <span className="font-mono text-caption text-text-dim">—</span>
         : row.toNextWaterMi !== null
-          ? <span className="font-mono text-[10px]"
+          ? <span className="font-mono text-caption"
               style={{ color: row.dryLeg ? 'var(--amber)' : '#0ea5e9' }}
               title={row.dryLeg ? 'No water on this leg — nearest is further ahead' : undefined}
             >
               {fmtMi(row.toNextWaterMi, sys)}{row.dryLeg ? ' ↑' : ''}
             </span>
-          : <span className="font-mono text-[10px] text-amber">None</span>
+          : <span className="font-mono text-caption text-amber">None</span>
       }
       {canEdit
         ? <div className="flex items-center gap-0.5 shrink-0" onClick={e => e.stopPropagation()}>
@@ -210,24 +210,24 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
   return (
     <div className="bg-surface border border-border rounded-lg overflow-hidden">
       <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
-        <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Route</span>
+        <span className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">Route</span>
         {segments.length > 0 && (
-          <span className="font-mono text-[9px] text-text-dim">
+          <span className="font-mono text-label text-text-dim">
             {segments.length} seg{segments.length !== 1 ? 's' : ''} · auto-pulls into{' '}
             <JumpChip to="weather" onJump={onJump}>Weather</JumpChip>
           </span>
         )}
-        {waterError && <span className="font-mono text-[9px] text-red" title={waterError}>· water error</span>}
+        {waterError && <span className="font-mono text-label text-red" title={waterError}>· water error</span>}
         {canEdit && !isDrawing && (
           <button
             onClick={() => onEnterDraw()}
-            className="ml-auto inline-flex items-center gap-1.5 font-heading text-[10px] font-bold tracking-widest uppercase px-2.5 py-1.5 rounded border border-border text-text bg-transparent hover:border-border-mid transition-colors cursor-pointer"
+            className="ml-auto inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-widest uppercase px-2.5 py-1.5 rounded border border-border text-text bg-transparent hover:border-border-mid transition-colors cursor-pointer"
           >
             <IconPlus size={13} />
             Add segment
           </button>
         )}
-        {isDrawing && <span className="ml-auto font-mono text-[9px] tracking-widest uppercase text-amber">Drawing…</span>}
+        {isDrawing && <span className="ml-auto font-mono text-label tracking-widest uppercase text-amber">Drawing…</span>}
       </div>
 
       {mergedRows.length > 0 && (
@@ -237,18 +237,18 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
         >
           {isDraggable && <span />}
           <span />
-          <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Name</span>
-          <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">From TH</span>
-          <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Next camp</span>
-          <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Next water</span>
+          <span className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">Name</span>
+          <span className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">From TH</span>
+          <span className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">Next camp</span>
+          <span className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">Next water</span>
           {canEdit && <span />}
         </div>
       )}
 
       {mergedRows.length === 0 && !isDrawing && (
         <div className="px-4 py-8 text-center">
-          <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1.5">No segments yet</p>
-          <p className="text-[12px] text-text-mid">
+          <p className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1.5">No segments yet</p>
+          <p className="text-body-sm text-text-mid">
             {canEdit
               ? 'Click "Add segment" above, then click two points on the map to define a leg.'
               : 'No segments have been added to this route.'}
@@ -273,16 +273,16 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
               >
                 {isDraggable && <span />}
                 <span className="text-pine"><IconTriangleRight size={15} /></span>
-                <span className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Trailhead</span>
-                <span className="font-mono text-[10px] text-text-dim">{fmtMi(0, sys)}</span>
-                <span className="font-mono text-[10px] text-text-mid">
+                <span className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">Trailhead</span>
+                <span className="font-mono text-caption text-text-dim">{fmtMi(0, sys)}</span>
+                <span className="font-mono text-caption text-text-mid">
                   {row.toNextCampMi !== null ? fmtMi(row.toNextCampMi, sys) : '—'}
                 </span>
                 {waterLoading && row.toNextWaterMi === null
-                  ? <span className="font-mono text-[10px] text-text-dim">…</span>
+                  ? <span className="font-mono text-caption text-text-dim">…</span>
                   : row.toNextWaterMi !== null
-                    ? <span className="font-mono text-[10px]" style={{ color: '#0ea5e9' }}>{fmtMi(row.toNextWaterMi, sys)}</span>
-                    : <span className="font-mono text-[10px] text-amber">None</span>
+                    ? <span className="font-mono text-caption" style={{ color: '#0ea5e9' }}>{fmtMi(row.toNextWaterMi, sys)}</span>
+                    : <span className="font-mono text-caption text-amber">None</span>
                 }
                 <span />
               </div>
@@ -321,18 +321,18 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
                   <WaypointIcon type={row.entry.waypointType} size={15} />
                 </span>
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-[12px] font-semibold text-text truncate">{row.entry.label}</span>
+                  <span className="text-body-sm font-semibold text-text truncate">{row.entry.label}</span>
                   {row.entry.isDetected && (
-                    <span className="shrink-0 inline-flex items-center gap-0.5 font-mono text-[9px] tracking-[0.06em] uppercase px-1 py-0.5 rounded-sm border border-dashed border-border text-text-dim/60">
+                    <span className="shrink-0 inline-flex items-center gap-0.5 font-mono text-label tracking-[0.06em] uppercase px-1 py-0.5 rounded-sm border border-dashed border-border text-text-dim/60">
                       <IconSparkle />auto
                     </span>
                   )}
                 </div>
-                <span className="font-mono text-[10px] text-text">{fmtMi(row.entry.distFromStartMi, sys)}</span>
-                <span className="font-mono text-[10px] text-text-dim">—</span>
+                <span className="font-mono text-caption text-text">{fmtMi(row.entry.distFromStartMi, sys)}</span>
+                <span className="font-mono text-caption text-text-dim">—</span>
                 {row.toNextWaterMi !== null
-                  ? <span className="font-mono text-[10px] text-text-mid">{fmtMi(row.toNextWaterMi, sys)}</span>
-                  : <span className="font-mono text-[10px] text-text-dim">—</span>
+                  ? <span className="font-mono text-caption text-text-mid">{fmtMi(row.toNextWaterMi, sys)}</span>
+                  : <span className="font-mono text-caption text-text-dim">—</span>
                 }
                 <span />
               </div>

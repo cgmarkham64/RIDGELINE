@@ -21,10 +21,10 @@ export function LeaveConfirm({ trip, onClose, onLeft }: Props) {
       title="Leave trip?"
       body={
         <>
-          <p className="text-[13px] text-text-mid mb-[6px]">
+          <p className="text-body text-text-mid mb-[6px]">
             You'll lose access to <span className="text-text">{trip.title}</span>.
           </p>
-          <p className="text-[12px] text-text-dim">
+          <p className="text-body-sm text-text-dim">
             The trip won't be deleted. The owner can invite you again if needed.
           </p>
         </>

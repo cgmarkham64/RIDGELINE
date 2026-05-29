@@ -50,26 +50,26 @@ export function NotificationItem({
     >
       <div className="flex items-start gap-2.5 mb-1.5">
         <div
-          className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center font-mono text-[9px] font-bold mt-[1px]"
+          className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center font-mono text-label font-bold mt-[1px]"
           style={{ background: 'var(--amber-dim)', color: 'var(--amber)' }}
         >
           {initials(n.fromName)}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-sans text-[11px] text-text leading-snug">
+          <p className="font-sans text-fine text-text leading-snug">
             {messageFor(n)}
           </p>
-          <p className="font-mono text-[9px] text-text-dim mt-0.5 truncate">
+          <p className="font-mono text-label text-text-dim mt-0.5 truncate">
             {n.tripTitle}
           </p>
-          <p className="font-mono text-[9px] text-text-dim mt-0.5">
+          <p className="font-mono text-label text-text-dim mt-0.5">
             {relativeTime(n.createdAt)}
           </p>
         </div>
         {!isPending && (
           <button
             onClick={onDismiss}
-            className="text-text-dim hover:text-amber shrink-0 leading-none text-[14px] mt-[1px] transition-colors duration-100"
+            className="text-text-dim hover:text-amber shrink-0 leading-none text-body-sm mt-[1px] transition-colors duration-100"
             title="Dismiss"
           >
             ×
@@ -98,7 +98,7 @@ export function NotificationItem({
       )}
 
       {n.type === 'trip_share_invite' && n.status !== 'pending' && (
-        <p className="pl-[34px] font-mono text-[9px]" style={{
+        <p className="pl-[34px] font-mono text-label" style={{
           color: n.status === 'accepted' ? 'var(--pine)' : 'var(--text-dim)'
         }}>
           {n.status === 'accepted' ? '✓ Accepted' : 'Declined'}

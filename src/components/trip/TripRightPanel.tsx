@@ -53,7 +53,7 @@ export function TripRightPanel({ trip, onTripUpdated, activeTab }: Props) {
         <ComingSoon />
       </RpSection>
       {!isMapTab && (
-        <div className="mt-auto pt-4 font-mono text-[9px] tracking-[0.06em] text-text-dim leading-[1.8]">
+        <div className="mt-auto pt-4 font-mono text-label tracking-[0.06em] text-text-dim leading-[1.8]">
           Map data &copy;{' '}
           <a
             href="https://www.openstreetmap.org/copyright"
@@ -81,7 +81,7 @@ export function TripRightPanel({ trip, onTripUpdated, activeTab }: Props) {
 function RpSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="mb-6">
-      <div className="font-heading text-[9px] font-bold tracking-[0.2em] uppercase text-text-dim pb-2 mb-3 border-b border-border">
+      <div className="font-heading text-label font-bold tracking-[0.2em] uppercase text-text-dim pb-2 mb-3 border-b border-border">
         {label}
       </div>
       {children}
@@ -92,7 +92,7 @@ function RpSection({ label, children }: { label: string; children: React.ReactNo
 function ComingSoon() {
   return (
     <div className="bg-surface-2 border border-dashed border-border rounded-md px-4 py-[22px] text-center">
-      <p className="font-mono text-[9px] tracking-widest uppercase text-text-dim">
+      <p className="font-mono text-label tracking-widest uppercase text-text-dim">
         Coming soon
       </p>
     </div>

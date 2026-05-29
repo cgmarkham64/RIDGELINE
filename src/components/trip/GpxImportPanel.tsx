@@ -19,14 +19,14 @@ function KabobMenu({
       onClick={(e) => e.stopPropagation()}
     >
       <button
-        className="block w-full text-left px-3 py-2 text-[11px] font-mono tracking-[0.06em] uppercase bg-transparent border-0 cursor-pointer text-text"
+        className="block w-full text-left px-3 py-2 text-fine font-mono tracking-[0.06em] uppercase bg-transparent border-0 cursor-pointer text-text"
         onClick={onImport}
       >
         {importLabel}
       </button>
       {hasTrack && (
         <button
-          className="block w-full text-left px-3 py-2 text-[11px] font-mono tracking-[0.06em] uppercase bg-transparent border-0 cursor-pointer text-red border-t border-border"
+          className="block w-full text-left px-3 py-2 text-fine font-mono tracking-[0.06em] uppercase bg-transparent border-0 cursor-pointer text-red border-t border-border"
           onClick={onRemove}
         >
           Remove
@@ -66,8 +66,8 @@ export function GpxImportPanel({
             <line x1="0" y1="3" x2="18" y2="3" stroke={PLANNED_COLOR} strokeWidth="2.5" strokeDasharray="5 3" />
           </svg>
           <div className="min-w-0">
-            <div className="font-heading text-[12px] font-bold text-text whitespace-nowrap">Planned Route</div>
-            <div className="font-mono text-[9px] tracking-widest uppercase text-text-dim">
+            <div className="font-heading text-body-sm font-bold text-text whitespace-nowrap">Planned Route</div>
+            <div className="font-mono text-label tracking-widest uppercase text-text-dim">
               {importing === 'planned'
                 ? 'Importing…'
                 : removing === 'planned'
@@ -106,7 +106,7 @@ export function GpxImportPanel({
           className="flex items-center justify-between gap-2"
           style={{ marginBottom: gpxTracks.length > 0 ? 8 : 0 }}
         >
-          <div className="font-heading text-[12px] font-bold text-text">GPS Tracks</div>
+          <div className="font-heading text-body-sm font-bold text-text">GPS Tracks</div>
           <button
             className="btn btn-ghost btn-sm shrink-0"
             style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '2px 8px' }}
@@ -118,7 +118,7 @@ export function GpxImportPanel({
         </div>
 
         {gpxTracks.length === 0 ? (
-          <div className="font-mono text-[9px] tracking-widest uppercase text-text-dim">Import after each day</div>
+          <div className="font-mono text-label tracking-widest uppercase text-text-dim">Import after each day</div>
         ) : (
           <div className="flex flex-col gap-1.25">
             {gpxTracks.map((entry, i) => {
@@ -132,7 +132,7 @@ export function GpxImportPanel({
                     <svg width="14" height="6" className="shrink-0">
                       <line x1="0" y1="3" x2="14" y2="3" stroke={color} strokeWidth="2.5" />
                     </svg>
-                    <span className="font-mono text-[9px] tracking-widest uppercase text-text overflow-hidden text-ellipsis whitespace-nowrap">
+                    <span className="font-mono text-label tracking-widest uppercase text-text overflow-hidden text-ellipsis whitespace-nowrap">
                       {isImporting ? 'Importing…' : isRemoving ? 'Removing…' : entry.label}
                     </span>
                   </div>

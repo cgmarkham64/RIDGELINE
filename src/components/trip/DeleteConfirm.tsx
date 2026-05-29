@@ -21,10 +21,10 @@ export function DeleteConfirm({ trip, onClose, onDeleted }: Props) {
       title="Delete trip?"
       body={
         <>
-          <p className="text-[13px] text-text-mid mb-[6px]">
+          <p className="text-body text-text-mid mb-[6px]">
             <span className="text-text">{trip.title}</span> will be permanently deleted.
           </p>
-          <p className="text-[12px] text-text-dim">This action cannot be undone.</p>
+          <p className="text-body-sm text-text-dim">This action cannot be undone.</p>
         </>
       }
       confirmLabel="Delete"

@@ -23,9 +23,35 @@ All seven stages render with internal state. The items below are UI stubs, disco
 - ℹ Sunrise/sunset times computed here should eventually feed the Depart one-pager's per-day schedule column.
 
 **Stage 3 — Permits**
-- ⚠ "Re-scan" button on the detection banner does nothing.
-- ⚠ Party size "override" button on `PermitCard` has no handler.
-- ⚠ `partyConfirmed` state is tracked but no UI renders for it once confirmed.
+
+*Hardcoded / mock data that needs replacing*
+- ✅ Section header subtitle reads from `trip.location` (falling back to `trip.title`); renders nothing when both are absent.
+- ✅ Detection banner type-count and agency-count computed from the live `permits + suggestions` lists; shows a helpful fallback when both are empty.
+- ⚠ `CRITICAL_DATES` in the right rail always renders Sierra High Route–specific Whitney/Inyo dates; they are never derived from the actual permits added to the plan. Replace with dates computed from `permit.fields` across all added permits.
+- ⚠ `MAP_ZONES`, `MAP_ROUTE`, and `ZONE_PERMIT_MAP` in `permitsStage.constants.ts` are hardcoded SHR SVG geometry. The map view is entirely decorative for non-demo plans. Long-term: derive zone overlays from GPX + permit data. Short-term: hide the map view toggle or show an empty-state when no GPX is present.
+- ⚠ `MapModal` zone-highlight lookup uses hardcoded permit IDs (`sgt_whitney`, `sgt_inyo`, `sgt_canister`) — zones are never highlighted for user-added permits. Fix: store a `zoneId` on `PlanPermitEntry` so the modal can match by that field instead.
+- ✅ `PermitCard` walkup branch now reads from `permit.fields['Window opens']` and `permit.fields['Arrive by']` (editable, persisted) instead of hardcoded times.
+- ✅ `FreeformDialog` now accepts `partySize` prop and uses it instead of hardcoded `4`.
+
+*Broken stubs*
+- ⚠ "Re-scan" button on the detection banner has no `onClick` — needs a handler (at minimum, clear suggestions and re-run whatever detection logic exists; long-term, call the AI permit suggestion service).
+- ✅ Party "override" concept removed. Party size is always derived from `trip.sharedWith.length + 1` (all collaborators + owner). If the count is wrong, the user manages it through the partners list. The override button is gone from `PermitCard`.
+- ⚠ `partyConfirmed` state is tracked but produces no persistent visual feedback once confirmed (the inline banner text is easy to miss). After confirmation, show a green indicator or a locked party-size chip somewhere.
+- ✅ `onProgress` wired — fires `onProgressRef.current(doneCount, 5)` (or `(2, 2)` when permit-free) via `useEffect` on `doneCount` / `permitFree` changes; stage rail now reflects Permits progress.
+- ✅ `canEdit` prop read and enforced throughout: all mutation buttons (`Add`, `Not needed`, `Accept all`, `Remove`, `Mark as permit-free` / undo, `Add to trip` in map view, entire "Add another" section) hidden for read-only collaborators.
+- ⚠ Search input in "Add another" → `search` state is tracked but never used to filter anything; the permit-type quick-add buttons all route to `onAddFreeform` ignoring the selected type. The search should filter a real dataset (or a curated static list of common permits); the type chips should pre-select the type in `FreeformDialog`.
+- ✅ `Field` component in `PermitAtoms.tsx` is now controlled when an `onChange` handler is provided — edits to permit field values are persisted back through `updatePermitField` → `setPermits` in `PermitsStage`. Read-only (modal) usage is unchanged.
+
+*Missing UX flows*
+- ✅ Party size derived from partners list (`trip.sharedWith.length + 1`); shown live in the detection banner and on each `PermitCard`. `PartnersCard` (same component as Route stage) embedded in the Permits right rail so users can add/remove partners without leaving the stage. `FreeformDialog` inherits current party size. Policy: everyone going on the trip must be a Ridgeline collaborator — if the party count is wrong, add or remove partners here or in Stage 1.
+- ⚠ No URL / booking link field on `PlanPermitEntry` or in `FreeformDialog` — recreation.gov, permit.nps.gov, etc. links are critical for lottery/reservation permits. Add a `url` field to the type and render it as a link on `PermitCard`.
+- ⚠ No way to record a confirmation number after booking a lottery or reservation permit — the `fields` map can hold it but `FreeformDialog` has no dedicated input for it. Add a "Confirmation #" field for relevant permit types.
+- ⚠ `FreeformDialog` step 2 shows the same name/agency/notes form regardless of type. Type-specific fields would reduce friction: lottery → open/close/results dates; reservation → booking date + confirmation #; walkup → window-opens time + arrive-by time; zonenights → zone-per-night builder; selfissue → trailhead name.
+- ⚠ No permit editing after creation — only remove + re-add. An edit action should reopen a pre-populated version of `FreeformDialog` (or an inline expand).
+- ⚠ Rejected suggestions disappear with no recovery path. Store dismissed suggestion IDs and add a "Show dismissed (n)" toggle below the suggestions section.
+- ⚠ `remindersSet` and `backupPlanned` are always `false` with no UI path to check them — the right-rail checklist items "Reminders set" and "Walk-up backup planned" can never be completed. At minimum, add inline toggles or notes fields on the relevant permit cards.
+- ⚠ `hut`, `fishing`, and `vehicle` permit types in `PermitCard` render no type-specific content (no field layout, no action row). Add appropriate layouts: hut → booking date + nights; fishing → license number + expiry; vehicle → pass type + pass number.
+- ⚠ `PermitsMapView` zone navigation uses only `MAP_ZONES` (three hardcoded SHR zones) — zone count in the panel subtitle is always 3 regardless of the actual plan. This view is non-functional for real plans until zone data is derived from plan data.
 
 **Stage 4 — Food**
 - ⚠ "Bulk edit" button is a stub. Per-meal granularity (more fields than just Breakfast / Lunch / Dinner) and the ability to recover cleared cell content are also needed here.
@@ -144,11 +170,10 @@ Full gear inventory system:
 - **User Profile** — Investigate OnX Backcountry integration options for personal app projects — import tracks, waypoints, or gear lists.
 - **User Profile** — Investigate Garmin API integration — Vo2 max as a metric to inform trip difficulty rating / user readiness.
 - **User Preferences** Badass mode for User settings. Button that overrides all weather warnings/tolerances with a warning message that it's doing so. Also let people know to tag the app on Instagram with whatever pictures they take if they enter full badass mode.
-- Upscale all text application wide focusing especially on the smallest text which is borderline unreadable. Pay attention to UX on this, not just aesthetics. If you need to change fonts its fine, I quite like the one we have now but totally accept changing it if it's not conducive to a good UX. Font sizes across the application could maybe use a more consistent approach; would it make sense to introduce static variables for sizing consistency? I'm thinking like H1, H2, and H3 conceptually, but also for subheadings and body fonts? Maybe icon sizes too? 
 - The src/components/plan/stages folder has gotten rather unruly. Clean it up based on which stage the file is used in by putting them in relevant directories. The /src/components/plan directory files might make sense in a 'commons' folder under the same parent directory.
 - Notifications via text/email when key dates are coming up, weather becomes available for checking, final steps need completion prior to trip
-- **Weather Stage** Remove "Noted" checkbox - it's a little redundant with the "Checked" for forecast.
 - **Route stage** — Stop flood of requests for water info!! We will get flagged for this eventually and its generally not professional
+- **Route stage** Polish annotate checkbox step so it's clear that you must add that info to each segment on the trip. It's not clear right now.
 
 ---
 

@@ -10,7 +10,7 @@ const toneClasses: Record<PillTone, string> = {
 
 export function Pill({ tone = '' as PillTone, children }: { tone?: PillTone; children: React.ReactNode }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 font-mono text-[9px] tracking-[0.12em] uppercase px-2 py-0.5 rounded-full border ${toneClasses[tone]}`}>
+    <span className={`inline-flex items-center gap-1.5 font-mono text-label tracking-[0.12em] uppercase px-2 py-0.5 rounded-full border ${toneClasses[tone]}`}>
       {children}
     </span>
   )

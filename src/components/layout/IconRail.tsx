@@ -59,7 +59,7 @@ export function IconRail() {
     <>
       <nav className="w-16 shrink-0 bg-surface border-r border-border flex flex-col items-center py-4 pb-5 gap-0.5 h-full">
         <div
-          className="font-heading text-[11px] font-extrabold tracking-[0.22em] text-amber mb-5 select-none"
+          className="font-heading text-fine font-extrabold tracking-[0.22em] text-amber mb-5 select-none"
           style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
         >
           RDGLN
@@ -105,7 +105,7 @@ export function IconRail() {
                 className="w-full h-full object-cover block"
               />
             ) : (
-              <span className="font-heading text-[12px] font-extrabold text-amber leading-none">
+              <span className="font-heading text-body-sm font-extrabold text-amber leading-none">
                 {initials(user.name)}
               </span>
             )}

@@ -40,8 +40,8 @@ const STATUS_LABEL: Record<TripStatus, string> = {
 }
 const ALL_STATUSES: TripStatus[] = ['planning', 'ready', 'on-trail', 'wrap-up', 'complete']
 
-const filterInputCls ='w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]'
-const filterDateInputCls = 'w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-[10px] text-text outline-none focus:border-border-mid transition-[border-color] duration-[140ms]'
+const filterInputCls ='w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-fine text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]'
+const filterDateInputCls = 'w-full px-2 py-[4px] bg-surface-2 border border-border rounded-sm font-mono text-caption text-text outline-none focus:border-border-mid transition-[border-color] duration-[140ms]'
 
 export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: Props) {
   const { data: trips, isLoading, isError } = useTrips()
@@ -132,7 +132,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
     <aside className="w-64.5 shrink-0 bg-surface border-r border-border flex flex-col h-full">
       {/* Header */}
       <div className="px-3.5 pt-4 pb-3 border-b border-border shrink-0 flex flex-col gap-2.5">
-        <span className="font-heading text-[9px] font-extrabold tracking-[0.22em] uppercase text-text-dim">
+        <span className="font-heading text-label font-extrabold tracking-[0.22em] uppercase text-text-dim">
           Trips
         </span>
 
@@ -155,7 +155,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search trips…"
-              className="w-full pl-7 pr-6 py-[5px] bg-surface-2 border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]"
+              className="w-full pl-7 pr-6 py-[5px] bg-surface-2 border border-border rounded-sm font-mono text-fine text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color] duration-[140ms]"
             />
             {search && (
               <button
@@ -183,17 +183,17 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
 
             {filtersOpen && (
               <div className="absolute left-[calc(100%+8px)] top-0 w-56 bg-surface border border-border-mid rounded-lg shadow-xl z-50 p-3.5 flex flex-col gap-3">
-                <div className="font-heading text-[11px] font-extrabold text-text">Filters</div>
+                <div className="font-heading text-fine font-extrabold text-text">Filters</div>
 
                 {/* Ownership */}
                 <div>
-                  <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1.5">Show</div>
+                  <div className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1.5">Show</div>
                   <div className="flex gap-1">
                     {(['all', 'mine', 'shared'] as Ownership[]).map((opt) => (
                       <button
                         key={opt}
                         onClick={() => setOwnership(opt)}
-                        className="flex-1 py-[4px] font-mono text-[9px] rounded-sm border transition-colors duration-100"
+                        className="flex-1 py-[4px] font-mono text-label rounded-sm border transition-colors duration-100"
                         style={{
                           background: ownership === opt ? 'var(--amber-dim)' : 'var(--surface-2)',
                           borderColor: ownership === opt ? 'var(--amber-border)' : 'var(--border)',
@@ -208,7 +208,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
 
                 {/* Distance */}
                 <div>
-                  <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1">Dist ({distUnit(sys)})</div>
+                  <div className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1">Dist ({distUnit(sys)})</div>
                   <div className="grid grid-cols-2 gap-1.5">
                     <input type="number" min="0" value={minMiles} onChange={(e) => setDistElevFilters(f => ({ ...f, sys, minMiles: e.target.value }))} placeholder="Min" className={filterInputCls} />
                     <input type="number" min="0" value={maxMiles} onChange={(e) => setDistElevFilters(f => ({ ...f, sys, maxMiles: e.target.value }))} placeholder="Max" className={filterInputCls} />
@@ -217,7 +217,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
 
                 {/* Elevation */}
                 <div>
-                  <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1">Elev gain ({elevUnit(sys)})</div>
+                  <div className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1">Elev gain ({elevUnit(sys)})</div>
                   <div className="grid grid-cols-2 gap-1.5">
                     <input type="number" min="0" value={minElev} onChange={(e) => setDistElevFilters(f => ({ ...f, sys, minElev: e.target.value }))} placeholder="Min" className={filterInputCls} />
                     <input type="number" min="0" value={maxElev} onChange={(e) => setDistElevFilters(f => ({ ...f, sys, maxElev: e.target.value }))} placeholder="Max" className={filterInputCls} />
@@ -226,20 +226,20 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
 
                 {/* Date range */}
                 <div>
-                  <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1">Date range</div>
+                  <div className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1">Date range</div>
                   <div className="grid grid-cols-2 gap-1.5">
                     <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className={filterDateInputCls} />
                     <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className={filterDateInputCls} />
                   </div>
                   <div className="flex justify-between mt-0.5">
-                    <span className="font-mono text-[9px] text-text-dim">From</span>
-                    <span className="font-mono text-[9px] text-text-dim">To</span>
+                    <span className="font-mono text-label text-text-dim">From</span>
+                    <span className="font-mono text-label text-text-dim">To</span>
                   </div>
                 </div>
 
                 {/* Status */}
                 <div>
-                  <div className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1.5">Status</div>
+                  <div className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1.5">Status</div>
                   <div className="flex flex-wrap gap-1">
                     {ALL_STATUSES.map((s) => {
                       const active = statusFilter.includes(s)
@@ -247,7 +247,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                         <button
                           key={s}
                           onClick={() => toggleStatus(s)}
-                          className="py-[3px] px-2 font-mono text-[9px] rounded-sm border transition-colors duration-100"
+                          className="py-[3px] px-2 font-mono text-label rounded-sm border transition-colors duration-100"
                           style={{
                             background: active ? 'var(--amber-dim)' : 'var(--surface-2)',
                             borderColor: active ? 'var(--amber-border)' : 'var(--border)',
@@ -262,7 +262,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                 </div>
 
                 {hasActiveFilters && (
-                  <button onClick={clearFilters} className="self-end font-mono text-[9px] text-text-dim hover:text-amber transition-colors duration-100">
+                  <button onClick={clearFilters} className="self-end font-mono text-label text-text-dim hover:text-amber transition-colors duration-100">
                     Clear filters
                   </button>
                 )}
@@ -277,13 +277,13 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
         {isLoading && <MoonLoader />}
 
         {isError && (
-          <p className="px-3.5 pt-6 pb-6 font-mono text-[9px] text-red tracking-widest uppercase">
+          <p className="px-3.5 pt-6 pb-6 font-mono text-label text-red tracking-widest uppercase">
             Could not load trips
           </p>
         )}
 
         {!isLoading && !isError && sorted.length === 0 && (
-          <p className="px-3.5 pt-6 pb-6 font-mono text-[9px] text-text-dim tracking-widest uppercase leading-[1.8]">
+          <p className="px-3.5 pt-6 pb-6 font-mono text-label text-text-dim tracking-widest uppercase leading-[1.8]">
             No trips yet.
             <br />
             Create one above.
@@ -291,13 +291,13 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
         )}
 
         {showResultCount && (
-          <p className="px-3.5 pt-1.5 pb-1 font-mono text-[9px] tracking-widest uppercase text-text-dim">
+          <p className="px-3.5 pt-1.5 pb-1 font-mono text-label tracking-widest uppercase text-text-dim">
             {filtered.length} of {sorted.length} trip{sorted.length !== 1 ? 's' : ''}
           </p>
         )}
 
         {!isLoading && !isError && sorted.length > 0 && filtered.length === 0 && (
-          <p className="px-3.5 pt-4 font-mono text-[9px] text-text-dim tracking-widest uppercase">
+          <p className="px-3.5 pt-4 font-mono text-label text-text-dim tracking-widest uppercase">
             No trips match
           </p>
         )}
@@ -325,7 +325,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-0.5 min-w-0">
                   <span
-                    className="font-heading text-[12px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis flex-1 min-w-0"
+                    className="font-heading text-body-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis flex-1 min-w-0"
                     style={{ color: isSelected ? 'var(--amber)' : 'var(--text)' }}
                   >
                     {trip.title}
@@ -336,24 +336,24 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
                     </Pill>
                   )}
                 </div>
-                <div className="font-mono text-[9px] text-text-dim whitespace-nowrap overflow-hidden text-ellipsis">
+                <div className="font-mono text-label text-text-dim whitespace-nowrap overflow-hidden text-ellipsis">
                   {trip.location}
                 </div>
-                <div className="font-mono text-[9px] text-text-dim mt-px">
+                <div className="font-mono text-label text-text-dim mt-px">
                   {formatDateRange(trip.startDate, trip.endDate)}
                 </div>
                 {(trip.distanceMiles || trip.elevationGainFt) && (
                   <div className="flex gap-2 mt-0.75">
                     {trip.distanceMiles != null && (
-                      <span className="font-mono text-[9px] text-text-dim">{fmtDist(trip.distanceMiles, sys)}</span>
+                      <span className="font-mono text-label text-text-dim">{fmtDist(trip.distanceMiles, sys)}</span>
                     )}
                     {trip.elevationGainFt != null && (
-                      <span className="font-mono text-[9px] text-text-dim">{fmtElevGain(trip.elevationGainFt, sys)}</span>
+                      <span className="font-mono text-label text-text-dim">{fmtElevGain(trip.elevationGainFt, sys)}</span>
                     )}
                   </div>
                 )}
                 {!isOwner && (
-                  <div className="font-mono text-[9px] mt-0.75" style={{ color: 'var(--amber)', opacity: 0.7 }}>
+                  <div className="font-mono text-label mt-0.75" style={{ color: 'var(--amber)', opacity: 0.7 }}>
                     Shared by {trip.ownerName ?? '…'}
                   </div>
                 )}

@@ -160,7 +160,7 @@ export function GpxMapSection({
         onRemoveTrack={removeTrack}
       />
 
-      {error && <p className="text-[11px] text-red mb-2">{error}</p>}
+      {error && <p className="text-fine text-red mb-2">{error}</p>}
 
       {showMap && hasAny && bounds ? (
         <div className="relative z-1 rounded-md overflow-hidden border border-border">
@@ -208,7 +208,7 @@ export function GpxMapSection({
                 <svg width="20" height="6">
                   <line x1="0" y1="3" x2="20" y2="3" stroke={PLANNED_COLOR} strokeWidth="2.5" strokeDasharray="5 3" />
                 </svg>
-                <span className="font-mono text-[9px] tracking-widest uppercase text-text-dim">Planned Route</span>
+                <span className="font-mono text-label tracking-widest uppercase text-text-dim">Planned Route</span>
               </div>
             )}
             {tracksWithLatLngs
@@ -218,7 +218,7 @@ export function GpxMapSection({
                   <svg width="20" height="6">
                     <line x1="0" y1="3" x2="20" y2="3" stroke={color} strokeWidth="2.5" />
                   </svg>
-                  <span className="font-mono text-[9px] tracking-widest uppercase text-text-dim">{entry.label}</span>
+                  <span className="font-mono text-label tracking-widest uppercase text-text-dim">{entry.label}</span>
                 </div>
               ))}
           </div>
@@ -226,7 +226,7 @@ export function GpxMapSection({
       ) : showMap ? (
         <div className="border border-dashed border-border rounded-md px-5 py-7 text-center">
           <div className="text-2xl opacity-20 mb-1.5">🗺</div>
-          <p className="font-mono text-[9px] tracking-widest uppercase text-text-dim">Import a planned route or GPS track above to render the map</p>
+          <p className="font-mono text-label tracking-widest uppercase text-text-dim">Import a planned route or GPS track above to render the map</p>
         </div>
       ) : null}
 

@@ -32,12 +32,12 @@ function StageRailItem({
       <Ring done={stage.done} total={stage.total} blocked={stage.blocked} highlight={isActive} />
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1.5">
-          <span className="font-mono text-[9px] text-text-dim tracking-[0.08em]">{stage.n}</span>
-          <span className={`font-heading text-[12px] font-bold ${isActive ? 'text-amber' : state === 'done' ? 'text-text-mid' : 'text-text'}`}>
+          <span className="font-mono text-label text-text-dim tracking-[0.08em]">{stage.n}</span>
+          <span className={`font-heading text-body-sm font-bold ${isActive ? 'text-amber' : state === 'done' ? 'text-text-mid' : 'text-text'}`}>
             {stage.label}
           </span>
         </div>
-        <div className="font-mono text-[9px] text-text-dim mt-0.5">
+        <div className="font-mono text-label text-text-dim mt-0.5">
           {state === 'blocked' ? (stage.blockedReason ?? 'waiting on upstream stage') :
            state === 'done'    ? 'complete' :
            state === 'idle'    ? 'not started' :
@@ -59,9 +59,9 @@ export function StageRail({ stages, trip, activeStageIdx, view, totalDone, total
       <div className="px-[18px] py-3.5 border-b border-border shrink-0">
         <div className="flex items-start justify-between gap-1">
           <div className="min-w-0">
-            <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-amber mb-1.5">{trip.location}</div>
-            <div className="font-heading text-[16px] font-extrabold text-text leading-tight">{trip.title}</div>
-            <div className="font-mono text-[9px] text-text-dim mt-1 italic">{trip.dateRange}</div>
+            <div className="font-mono text-label tracking-[0.16em] uppercase text-amber mb-1.5">{trip.location}</div>
+            <div className="font-heading text-body-lg font-extrabold text-text leading-tight">{trip.title}</div>
+            <div className="font-mono text-label text-text-dim mt-1 italic">{trip.dateRange}</div>
           </div>
           {onEditDetails && (
             <button
@@ -93,8 +93,8 @@ export function StageRail({ stages, trip, activeStageIdx, view, totalDone, total
             <IconMap size={14} />
           </span>
           <div className="flex-1 min-w-0">
-            <div className={`font-heading text-[12px] font-bold ${isOverview ? 'text-amber' : 'text-text'}`}>Plan overview</div>
-            <div className="font-mono text-[9px] text-text-dim mt-0.5">{totalDone}/{totalAll} items · all stages</div>
+            <div className={`font-heading text-body-sm font-bold ${isOverview ? 'text-amber' : 'text-text'}`}>Plan overview</div>
+            <div className="font-mono text-label text-text-dim mt-0.5">{totalDone}/{totalAll} items · all stages</div>
           </div>
           {isOverview && <IconChevronRight size={11} />}
         </button>
@@ -103,8 +103,8 @@ export function StageRail({ stages, trip, activeStageIdx, view, totalDone, total
       {/* Stages label */}
       <div className="px-[18px] pt-3 pb-2 shrink-0">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim">Stages</span>
-          <span className="font-mono text-[9px] text-text-dim">jump anywhere</span>
+          <span className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">Stages</span>
+          <span className="font-mono text-label text-text-dim">jump anywhere</span>
         </div>
       </div>
 
@@ -122,7 +122,7 @@ export function StageRail({ stages, trip, activeStageIdx, view, totalDone, total
 
       {/* Snapshot stats */}
       <div className="px-[18px] py-3 border-t border-border shrink-0">
-        <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2">Snapshot</div>
+        <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2">Snapshot</div>
         <div className="grid grid-cols-2 gap-1.5">
           {[
             { value: trip.miles != null ? fmtDist(trip.miles, sys) : '—', label: 'dist' },
@@ -132,7 +132,7 @@ export function StageRail({ stages, trip, activeStageIdx, view, totalDone, total
           ].map(({ value, label }) => (
             <div key={label} className="bg-surface border border-border rounded p-2.5 text-center">
               <div className="font-heading text-[17px] font-extrabold text-amber leading-none mb-1">{value}</div>
-              <div className="font-mono text-[9px] tracking-[0.14em] uppercase text-text-dim">{label}</div>
+              <div className="font-mono text-label tracking-[0.14em] uppercase text-text-dim">{label}</div>
             </div>
           ))}
         </div>

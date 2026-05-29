@@ -34,11 +34,11 @@ export function WaypointChip({
         }}
       >
         <WaypointIcon type={wp.type} size={17} />
-        <span className="font-sans text-[12px] text-text overflow-hidden text-ellipsis whitespace-nowrap">
+        <span className="font-sans text-body-sm text-text overflow-hidden text-ellipsis whitespace-nowrap">
           {wp.label}
         </span>
         <span
-          className="font-mono text-[9px] tracking-[0.08em] uppercase shrink-0"
+          className="font-mono text-label tracking-[0.08em] uppercase shrink-0"
           style={{ color: WAYPOINT_COLOR[wp.type] }}
         >
           {WAYPOINT_LABEL[wp.type]}
@@ -96,7 +96,7 @@ function ChipMenuItem({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-2 px-3 py-1.75 font-mono text-[10px] tracking-[0.08em] uppercase transition-colors duration-80 cursor-pointer ${danger ? 'text-text-dim hover:text-red hover:bg-red-dim' : 'text-text-mid hover:text-amber hover:bg-surface-2'}`}
+      className={`w-full flex items-center gap-2 px-3 py-1.75 font-mono text-caption tracking-[0.08em] uppercase transition-colors duration-80 cursor-pointer ${danger ? 'text-text-dim hover:text-red hover:bg-red-dim' : 'text-text-mid hover:text-amber hover:bg-surface-2'}`}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5 shrink-0" style={{ strokeWidth: 2 }}>
         {icon}

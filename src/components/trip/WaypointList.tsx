@@ -22,7 +22,7 @@ export function WaypointList({
 
   if (waypoints.length === 0) {
     return (
-      <p className="font-mono text-[9px] tracking-widest uppercase text-text-dim leading-[1.7]">
+      <p className="font-mono text-label tracking-widest uppercase text-text-dim leading-[1.7]">
         No waypoints yet — add them from the Map tab
       </p>
     )
@@ -49,17 +49,17 @@ export function WaypointList({
             <div className="flex items-center gap-2">
               <WaypointIcon type={wp.type} size={16} />
               <div className="flex-1 min-w-0">
-                <div className="font-sans text-[12px] text-text overflow-hidden text-ellipsis whitespace-nowrap">
+                <div className="font-sans text-body-sm text-text overflow-hidden text-ellipsis whitespace-nowrap">
                   {wp.label}
                 </div>
                 <div className="flex items-center gap-1.5 mt-[2px]">
                   <span
-                    className="font-mono text-[9px] tracking-[0.08em] uppercase"
+                    className="font-mono text-label tracking-[0.08em] uppercase"
                     style={{ color }}
                   >
                     {WAYPOINT_LABEL[wp.type]}
                   </span>
-                  <span className="font-mono text-[9px] tracking-[0.04em] text-text-dim">
+                  <span className="font-mono text-label tracking-[0.04em] text-text-dim">
                     {wp.lat.toFixed(4)}, {wp.lon.toFixed(4)}
                   </span>
                 </div>
@@ -67,7 +67,7 @@ export function WaypointList({
             </div>
             {isActive && wp.notes && (
               <div
-                className="mt-[7px] pt-[7px] font-sans text-[11px] text-text-dim leading-normal"
+                className="mt-[7px] pt-[7px] font-sans text-fine text-text-dim leading-normal"
                 style={{ borderTop: `1px solid ${color}33` }}
               >
                 {wp.notes}

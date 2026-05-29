@@ -45,7 +45,7 @@ export function MoonLoader({ label }: Props) {
         </svg>
       </div>
       {label && (
-        <p className="font-mono text-[9px] tracking-[0.16em] uppercase text-amber">{label}</p>
+        <p className="font-mono text-label tracking-[0.16em] uppercase text-amber">{label}</p>
       )}
     </div>
   )

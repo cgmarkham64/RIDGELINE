@@ -3,22 +3,22 @@ import { MapContainer, TileLayer, Polyline, Marker, Tooltip } from 'react-leafle
 import 'leaflet/dist/leaflet.css'
 import L, { type LatLngBoundsExpression } from 'leaflet'
 import { useQueryClient } from '@tanstack/react-query'
-import { api } from '../../../lib/api'
-import { parseGpx, enrichWithElevation } from '../../../lib/gpx'
-import { PLANNED_COLOR, TILE_LAYERS, type TileLayerKey } from '../../map/constants'
-import { AttributionStrip, MapRefCapture, ZoomControls } from '../../map/MapHelpers'
-import { MapTileToggle } from '../../map/MapTileToggle'
-import { makeStartIcon, makeEndIcon, makeWaypointIcon, makeDetectedWaterIcon, makeDrawStartIcon, makeDrawEndIcon } from '../../map/leafletIcons'
-import { IconMap, IconDownload, IconX } from '../../icons'
+import { api } from '../../../../lib/api'
+import { parseGpx, enrichWithElevation } from '../../../../lib/gpx'
+import { PLANNED_COLOR, TILE_LAYERS, type TileLayerKey } from '../../../map/constants'
+import { AttributionStrip, MapRefCapture, ZoomControls } from '../../../map/MapHelpers'
+import { MapTileToggle } from '../../../map/MapTileToggle'
+import { makeStartIcon, makeEndIcon, makeWaypointIcon, makeDetectedWaterIcon, makeDrawStartIcon, makeDrawEndIcon } from '../../../map/leafletIcons'
+import { IconMap, IconDownload, IconX } from '../../../icons'
 import { SEG_COLORS, formatCoord } from './routeStage.helpers'
 import type { SegRow, DrawState } from './routeStage.types'
-import type { DetectedWaterSource } from '../../../lib/waterSources'
-import type { StageBodyProps } from '../types'
-import type { GpxTrackEntry } from '../../../types'
+import type { DetectedWaterSource } from '../../../../lib/waterSources'
+import type { StageBodyProps } from '../../types'
+import type { GpxTrackEntry } from '../../../../types'
 import { FitBounds, InvalidateSize, DrawInteractionLayer, ContextMenuLayer, type ContextMenuPayload } from './routeMapCard.helpers'
 import { DrawConfirmTray } from './DrawConfirmTray'
-import { milesToKm, ftToM } from '../../../lib/units'
-import { useUnitSystem } from '../../../hooks/useUnitSystem'
+import { milesToKm, ftToM } from '../../../../lib/units'
+import { useUnitSystem } from '../../../../hooks/useUnitSystem'
 
 // ─── Public handle type ───────────────────────────────────────────────────────
 
@@ -197,10 +197,10 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
             <IconMap size={16} />
           </span>
           <div className="flex-1 min-w-0">
-            <div className="font-heading text-[14px] font-extrabold text-text">
+            <div className="font-heading text-body-sm font-extrabold text-text">
               {trip?.title ?? 'Untitled Trip'}
             </div>
-            <div className="font-mono text-[9px] text-text-dim mt-0.5">
+            <div className="font-mono text-label text-text-dim mt-0.5">
               {segments.length > 0
                 ? `${sys === 'metric' ? milesToKm(totalMiles).toFixed(1) + ' km' : totalMiles.toFixed(1) + ' mi'} · +${sys === 'metric' ? ftToM(totalGain).toLocaleString() + ' m' : totalGain.toLocaleString() + ' ft'} gain · ${segments.length} segment${segments.length !== 1 ? 's' : ''}`
                 : 'No segments added yet'}
@@ -220,7 +220,7 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadLabel !== null}
-                className="inline-flex items-center gap-1.5 font-heading text-[9px] font-bold tracking-widest uppercase px-2 py-1 rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 font-heading text-label font-bold tracking-widest uppercase px-2 py-1 rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <IconDownload size={9} />
                 {uploadLabel ?? (trip?.gpxPlanned ? 'Replace' : 'Import .gpx')}
@@ -230,7 +230,7 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
         </div>
 
         {uploadError && (
-          <p className="font-mono text-[9px] text-red mb-2">{uploadError}</p>
+          <p className="font-mono text-label text-red mb-2">{uploadError}</p>
         )}
 
         {/* Map */}
@@ -240,7 +240,7 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 pointer-events-none"
               style={{ background: 'rgba(15,13,11,0.75)', borderRadius: 'inherit' }}>
               <IconDownload size={22} />
-              <p className="font-mono text-[10px] tracking-[0.12em] uppercase text-amber">Drop .gpx to import</p>
+              <p className="font-mono text-caption tracking-[0.12em] uppercase text-amber">Drop .gpx to import</p>
             </div>
           )}
 
@@ -415,16 +415,16 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
           ) : (
             <div className="h-full flex flex-col items-center justify-center gap-2" style={{ background: 'var(--surface-2)' }}>
               <span className="text-text-dim"><IconMap size={28} /></span>
-              <p className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">No GPX uploaded</p>
+              <p className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">No GPX uploaded</p>
               {canEdit ? (
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="font-mono text-[9px] text-text-dim underline underline-offset-2 hover:text-text transition-colors cursor-pointer bg-transparent border-none p-0"
+                  className="font-mono text-label text-text-dim underline underline-offset-2 hover:text-text transition-colors cursor-pointer bg-transparent border-none p-0"
                 >
                   Import a planned route .gpx to see the map
                 </button>
               ) : (
-                <p className="text-[11px] text-text-dim">Map available after GPX upload</p>
+                <p className="text-fine text-text-dim">Map available after GPX upload</p>
               )}
             </div>
           )}
@@ -436,7 +436,7 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
               style={{ left: contextMenu.x + 6, top: contextMenu.y + 6 }}
             >
               <button
-                className="w-full text-left px-3 py-2 font-mono text-[11px] text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none"
+                className="w-full text-left px-3 py-2 font-mono text-fine text-text hover:bg-surface-2 transition-colors cursor-pointer bg-transparent border-none"
                 onClick={() => {
                   onSplitSegment(contextMenu.segN, contextMenu.edgeIdx, contextMenu.splitPoint)
                   setContextMenu(null)
@@ -464,10 +464,10 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
                       <span className="font-mono text-[7px] font-bold text-amber">1</span>
                     </span>
                   )}
-                  <span className={`font-mono text-[9px] tracking-widest uppercase ${startPlaced ? 'text-pine' : 'text-amber font-bold'}`}>Start</span>
+                  <span className={`font-mono text-label tracking-widest uppercase ${startPlaced ? 'text-pine' : 'text-amber font-bold'}`}>Start</span>
                 </div>
 
-                <span className="text-text-dim text-[9px]">→</span>
+                <span className="text-text-dim text-label">→</span>
 
                 <div className="flex items-center gap-1.5">
                   {endPlaced ? (
@@ -479,19 +479,19 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
                       <span className={`font-mono text-[7px] font-bold ${startPlaced ? 'text-amber' : 'text-text-dim'}`}>2</span>
                     </span>
                   )}
-                  <span className={`font-mono text-[9px] tracking-widest uppercase ${endPlaced ? 'text-pine' : startPlaced ? 'text-amber font-bold' : 'text-text-dim'}`}>End</span>
+                  <span className={`font-mono text-label tracking-widest uppercase ${endPlaced ? 'text-pine' : startPlaced ? 'text-amber font-bold' : 'text-text-dim'}`}>End</span>
                   {!endPlaced && startPlaced && (
-                    <span className="font-mono text-[9px] text-text-dim">— click map</span>
+                    <span className="font-mono text-label text-text-dim">— click map</span>
                   )}
                   {!startPlaced && (
-                    <span className="font-mono text-[9px] text-text-dim">— click map</span>
+                    <span className="font-mono text-label text-text-dim">— click map</span>
                   )}
                 </div>
               </div>
 
               <button
                 onClick={onCancelDraw}
-                className="inline-flex items-center gap-1 font-heading text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded border border-border text-text-dim bg-surface hover:text-text hover:border-border-mid transition-colors cursor-pointer ml-4 shrink-0"
+                className="inline-flex items-center gap-1 font-heading text-caption font-bold tracking-widest uppercase px-2.5 py-1 rounded border border-border text-text-dim bg-surface hover:text-text hover:border-border-mid transition-colors cursor-pointer ml-4 shrink-0"
               >
                 <IconX size={9} />
                 Cancel
@@ -510,8 +510,8 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
                 }`}
               >
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: startPlaced ? 'var(--pine)' : 'var(--border)' }} />
-                <span className="font-mono text-[9px] tracking-widest uppercase text-text-dim shrink-0">Start</span>
-                <span className={`font-mono text-[9px] truncate ${startPlaced ? 'text-pine' : 'text-text-dim italic'}`}>
+                <span className="font-mono text-label tracking-widest uppercase text-text-dim shrink-0">Start</span>
+                <span className={`font-mono text-label truncate ${startPlaced ? 'text-pine' : 'text-text-dim italic'}`}>
                   {startPlaced ? formatCoord(drawState.start) : 'not placed'}
                 </span>
               </button>
@@ -522,8 +522,8 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
                   : 'border-border bg-surface-2 opacity-40'
               }`}>
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: endPlaced ? 'var(--amber)' : 'transparent', border: endPlaced ? 'none' : `1px solid ${startPlaced ? 'var(--amber)' : 'var(--border)'}` }} />
-                <span className="font-mono text-[9px] tracking-widest uppercase text-text-dim shrink-0">End</span>
-                <span className={`font-mono text-[9px] truncate ${endPlaced ? 'text-amber' : 'text-text-dim italic'}`}>
+                <span className="font-mono text-label tracking-widest uppercase text-text-dim shrink-0">End</span>
+                <span className={`font-mono text-label truncate ${endPlaced ? 'text-amber' : 'text-text-dim italic'}`}>
                   {endPlaced ? formatCoord(drawState.end) : startPlaced ? 'click map to place' : 'waiting…'}
                 </span>
               </div>

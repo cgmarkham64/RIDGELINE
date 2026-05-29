@@ -62,7 +62,7 @@ function ZoomControls({
 function AddModeHint() {
   return (
     <div
-      className="absolute bottom-4 z-1000 border border-amber-border rounded-sm px-3.5 py-1.5 font-mono text-[10px] tracking-[0.12em] uppercase text-amber pointer-events-none whitespace-nowrap"
+      className="absolute bottom-4 z-1000 border border-amber-border rounded-sm px-3.5 py-1.5 font-mono text-caption tracking-[0.12em] uppercase text-amber pointer-events-none whitespace-nowrap"
       style={{ left: '50%', transform: 'translateX(-50%)', background: 'rgba(15,13,11,0.85)' }}
     >
       Click to place waypoint · Esc to cancel
@@ -130,7 +130,7 @@ function ContextMenuItem({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-2 px-3 py-1.75 font-mono text-[10px] tracking-[0.08em] uppercase transition-colors duration-80 cursor-pointer ${danger ? 'text-text-dim hover:text-red hover:bg-red-dim' : 'text-text-mid hover:text-amber hover:bg-surface-2'}`}
+      className={`w-full flex items-center gap-2 px-3 py-1.75 font-mono text-caption tracking-[0.08em] uppercase transition-colors duration-80 cursor-pointer ${danger ? 'text-text-dim hover:text-red hover:bg-red-dim' : 'text-text-mid hover:text-amber hover:bg-surface-2'}`}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5 shrink-0" style={{ strokeWidth: 2 }}>
         {icon}

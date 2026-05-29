@@ -64,7 +64,7 @@ function InfoTooltip({ text, align = 'center' }: { text: string; align?: 'center
       </span>
       <div
         onMouseEnter={show} onMouseLeave={hide}
-        className={`absolute bottom-full mb-2 w-48 bg-surface-3 border border-border-mid rounded px-2.5 py-2 font-mono text-[10px] text-text-mid leading-relaxed z-50 whitespace-normal transition-opacity duration-200 ease-out ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'} ${pos}`}
+        className={`absolute bottom-full mb-2 w-48 bg-surface-3 border border-border-mid rounded px-2.5 py-2 font-mono text-caption text-text-mid leading-relaxed z-50 whitespace-normal transition-opacity duration-200 ease-out ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'} ${pos}`}
       >
         {text}
       </div>
@@ -77,12 +77,12 @@ function TimePrefRow({ label, pref, onChange }: {
   pref: TimePreference
   onChange: (patch: Partial<TimePreference>) => void
 }) {
-  const selectCls = 'bg-surface-2 border border-border rounded-sm px-2 py-1.5 text-text font-mono text-[11px] outline-none focus:border-amber cursor-pointer shrink-0'
-  const inputCls  = 'bg-surface-2 border border-border rounded-sm px-2 py-1.5 text-text font-mono text-[11px] outline-none focus:border-amber text-center shrink-0'
+  const selectCls = 'bg-surface-2 border border-border rounded-sm px-2 py-1.5 text-text font-mono text-fine outline-none focus:border-amber cursor-pointer shrink-0'
+  const inputCls  = 'bg-surface-2 border border-border rounded-sm px-2 py-1.5 text-text font-mono text-fine outline-none focus:border-amber text-center shrink-0'
 
   return (
     <div className="flex items-center gap-1.5">
-      <span className="font-mono text-[11px] text-text-mid w-[58px] shrink-0">{label}</span>
+      <span className="font-mono text-fine text-text-mid w-[58px] shrink-0">{label}</span>
       <select
         value={pref.mode}
         onChange={e => onChange({ mode: e.target.value as TimePreference['mode'], staticTime: undefined, anchor: 'sunrise', offsetMinutes: 0 })}
@@ -107,7 +107,7 @@ function TimePrefRow({ label, pref, onChange }: {
             onChange={e => onChange({ offsetMinutes: parseInt(e.target.value, 10) || 0 })}
             className={inputCls + ' w-[56px]'}
           />
-          <span className="font-mono text-[10px] text-text-dim shrink-0">min</span>
+          <span className="font-mono text-caption text-text-dim shrink-0">min</span>
           <InfoTooltip align="right" text="Negative = before the anchor. −60 means 60 min before sunrise/sunset." />
         </>
       ) : (
@@ -258,7 +258,7 @@ export function AccountDialog({ onClose }: Props) {
   }
 
   const tabCls = (tab: typeof activeTab) =>
-    `pb-2.5 pr-5 font-mono text-[11px] border-b-2 -mb-px transition-colors cursor-pointer bg-transparent border-x-0 border-t-0 ${
+    `pb-2.5 pr-5 font-mono text-fine border-b-2 -mb-px transition-colors cursor-pointer bg-transparent border-x-0 border-t-0 ${
       activeTab === tab
         ? 'text-amber border-amber'
         : 'text-text-dim border-transparent hover:text-text-mid'
@@ -323,31 +323,31 @@ export function AccountDialog({ onClose }: Props) {
                   <button
                     onClick={() => fileRef.current?.click()}
                     disabled={avatarSaving}
-                    className="bg-transparent border-0 font-mono text-[11px] p-0 transition-colors duration-80 text-text-mid hover:text-amber"
+                    className="bg-transparent border-0 font-mono text-fine p-0 transition-colors duration-80 text-text-mid hover:text-amber"
                     style={{ cursor: avatarSaving ? 'default' : 'pointer' }}
                   >
                     {avatarSaving ? 'Saving…' : 'Change photo'}
                   </button>
                   {user.avatarUrl && !avatarSaving && (
                     <>
-                      <span className="text-border-mid text-[10px]">·</span>
-                      <button onClick={handleRemoveAvatar} className="bg-transparent border-0 cursor-pointer p-0 font-mono text-[11px] transition-colors duration-30 text-text-dim hover:text-red">
+                      <span className="text-border-mid text-caption">·</span>
+                      <button onClick={handleRemoveAvatar} className="bg-transparent border-0 cursor-pointer p-0 font-mono text-fine transition-colors duration-30 text-text-dim hover:text-red">
                         Remove
                       </button>
                     </>
                   )}
                 </div>
-                {avatarError && <p className="font-mono text-[10px] text-red m-0">{avatarError}</p>}
+                {avatarError && <p className="font-mono text-caption text-red m-0">{avatarError}</p>}
               </div>
 
               <div className="border-t border-border pt-4 flex flex-col gap-3">
                 <div>
-                  <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1.25 block">Name</label>
-                  <input value={user.name} readOnly className="w-full bg-surface-2 border border-border rounded-sm px-2.5 py-2 text-text-dim font-sans text-[13px] outline-none cursor-default" />
+                  <label className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1.25 block">Name</label>
+                  <input value={user.name} readOnly className="w-full bg-surface-2 border border-border rounded-sm px-2.5 py-2 text-text-dim font-sans text-body outline-none cursor-default" />
                 </div>
                 <div>
-                  <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1.25 block">Email</label>
-                  <input value={user.email} readOnly className="w-full bg-surface-2 border border-border rounded-sm px-2.5 py-2 text-text-dim font-sans text-[13px] outline-none cursor-default" />
+                  <label className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1.25 block">Email</label>
+                  <input value={user.email} readOnly className="w-full bg-surface-2 border border-border rounded-sm px-2.5 py-2 text-text-dim font-sans text-body outline-none cursor-default" />
                 </div>
               </div>
             </>
@@ -357,14 +357,14 @@ export function AccountDialog({ onClose }: Props) {
           {activeTab === 'preferences' && (
             <>
               <div className="flex flex-col gap-2">
-                <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Units</label>
+                <label className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">Units</label>
                 <div className="flex gap-1">
                   {(['imperial', 'metric'] as const).map(sys => (
                     <button
                       key={sys}
                       type="button"
                       onClick={() => { setPrefs(prev => ({ ...prev, unitSystem: sys })); setPrefsSaved(false) }}
-                      className="flex-1 py-[5px] font-mono text-[10px] rounded-sm border transition-colors duration-100 cursor-pointer"
+                      className="flex-1 py-[5px] font-mono text-caption rounded-sm border transition-colors duration-100 cursor-pointer"
                       style={{
                         background:   prefs.unitSystem === sys ? 'var(--color-amber-dim)'    : 'var(--color-surface-2)',
                         borderColor:  prefs.unitSystem === sys ? 'var(--color-amber-border)' : 'var(--color-border)',
@@ -379,7 +379,7 @@ export function AccountDialog({ onClose }: Props) {
 
               <div className="border-t border-border pt-4 flex flex-col gap-3">
                 <div className="flex items-center gap-1.5">
-                  <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Default times</label>
+                  <label className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">Default times</label>
                   <InfoTooltip text="Auto-fills new route segments. Relative anchors to local sunrise or sunset on each hiking day." />
                 </div>
                 <div className="flex flex-col gap-2.5">
@@ -391,16 +391,16 @@ export function AccountDialog({ onClose }: Props) {
 
               <div className="border-t border-border pt-4 flex flex-col gap-3">
                 <div className="flex items-center gap-1.5">
-                  <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim">Weather tolerances</label>
+                  <label className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">Weather tolerances</label>
                   <InfoTooltip text="Sets your Go / Caution / Delay thresholds in the Weather stage. Temp triggers on forecast lows; precip and wind trigger above the set value." />
                 </div>
                 {/* 9-col grid: [label] [toggle] [dir] [input] [unit] [toggle] [dir] [input] [unit] */}
                 <div className="grid items-center gap-x-1.5 gap-y-2"
                   style={{ gridTemplateColumns: '44px 14px 10px 46px 18px 14px 10px 46px 18px' }}>
                   <span /><span /><span />
-                  <span className="font-mono text-[9px] text-amber/70 text-center">Caution</span>
+                  <span className="font-mono text-label text-amber/70 text-center">Caution</span>
                   <span /><span /><span />
-                  <span className="font-mono text-[9px] text-red/60 text-center">Delay</span>
+                  <span className="font-mono text-label text-red/60 text-center">Delay</span>
                   <span />
                   {TOLERANCE_ROWS.map(row => {
                     const sys        = prefs.unitSystem
@@ -415,14 +415,14 @@ export function AccountDialog({ onClose }: Props) {
                         on ? 'bg-amber border-amber' : 'bg-surface-2 border-border-mid hover:border-amber'
                       }`
                     const inputCls = (on: boolean) =>
-                      `bg-surface-2 border border-border rounded-sm py-1.5 font-mono text-[11px] text-center w-full outline-none transition-opacity ${
+                      `bg-surface-2 border border-border rounded-sm py-1.5 font-mono text-fine text-center w-full outline-none transition-opacity ${
                         on ? 'text-text focus:border-amber' : 'text-text-dim opacity-40 cursor-not-allowed'
                       }`
-                    const dimCls  = (on: boolean) => `font-mono text-[10px] text-text-dim text-right transition-opacity ${on ? '' : 'opacity-30'}`
-                    const unitCls = (on: boolean) => `font-mono text-[9px] text-text-dim transition-opacity ${on ? '' : 'opacity-30'}`
+                    const dimCls  = (on: boolean) => `font-mono text-caption text-text-dim text-right transition-opacity ${on ? '' : 'opacity-30'}`
+                    const unitCls = (on: boolean) => `font-mono text-label text-text-dim transition-opacity ${on ? '' : 'opacity-30'}`
                     return (
                       <>
-                        <span key={row.label} className="font-mono text-[11px] text-text-mid">{row.label}</span>
+                        <span key={row.label} className="font-mono text-fine text-text-mid">{row.label}</span>
                         <button type="button" onClick={() => patchWeatherTolerance({ [row.cautionKey]: cautionOn ? null : row.defaultCaution })} className={toggleCls(cautionOn)}>
                           {cautionOn && <span className="text-[6px] text-surface font-bold leading-none select-none">✓</span>}
                         </button>
@@ -451,11 +451,11 @@ export function AccountDialog({ onClose }: Props) {
                 </div>
               </div>
 
-              {prefsError && <p className="font-mono text-[10px] text-red m-0">{prefsError}</p>}
+              {prefsError && <p className="font-mono text-caption text-red m-0">{prefsError}</p>}
               <button
                 onClick={handleSavePreferences}
                 disabled={prefsSaving}
-                className="self-start font-mono text-[11px] px-3 py-1.5 rounded-sm border transition-colors duration-80 cursor-pointer disabled:opacity-50 disabled:cursor-default"
+                className="self-start font-mono text-fine px-3 py-1.5 rounded-sm border transition-colors duration-80 cursor-pointer disabled:opacity-50 disabled:cursor-default"
                 style={{
                   background:   prefsSaved ? 'var(--color-amber)'    : 'var(--color-surface-2)',
                   borderColor:  prefsSaved ? 'var(--color-amber)'    : 'var(--color-border)',

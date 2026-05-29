@@ -1,8 +1,8 @@
 import type { DrawState, SegRow } from './routeStage.types'
-import { shenandoahScore } from '../../../lib/trailDifficulty'
+import { shenandoahScore } from '../../../../lib/trailDifficulty'
 import { EXP_LABEL } from './routeStage.helpers'
-import { milesToKm, ftToM } from '../../../lib/units'
-import { useUnitSystem } from '../../../hooks/useUnitSystem'
+import { milesToKm, ftToM } from '../../../../lib/units'
+import { useUnitSystem } from '../../../../hooks/useUnitSystem'
 
 const EXP_CLS: Record<string, string> = {
   low:     'text-pine border-pine-border bg-pine-dim',
@@ -55,29 +55,29 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
     <div className="mt-3 rounded border border-border bg-surface-2 p-3">
       <div className="flex items-center gap-3 mb-2.5">
         {drawState.loading ? (
-          <span className="font-mono text-[9px] text-text-dim tracking-widest">Calculating…</span>
+          <span className="font-mono text-label text-text-dim tracking-widest">Calculating…</span>
         ) : drawState.result ? (
           <>
-            <span className="font-mono text-[11px] font-bold text-amber">
+            <span className="font-mono text-fine font-bold text-amber">
               {sys === 'metric' ? `${milesToKm(drawState.result.mi).toFixed(1)} km` : `${drawState.result.mi.toFixed(1)} mi`}
             </span>
-            <span className="font-mono text-[10px] text-text-mid">
+            <span className="font-mono text-caption text-text-mid">
               +{sys === 'metric' ? Math.round(ftToM(drawState.result.gain)).toLocaleString() + ' m' : drawState.result.gain.toLocaleString() + ' ft'} gain
             </span>
             {drawState.result.sparkElevs.length > 1 && (
-              <span className="font-mono text-[9px] text-text-dim">(drag pins to recalculate)</span>
+              <span className="font-mono text-label text-text-dim">(drag pins to recalculate)</span>
             )}
             {!drawState.showMore && drawState.hard && (
-              <span className="ml-auto font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded border uppercase tracking-[0.08em] text-amber border-amber-border bg-amber-dim">
+              <span className="ml-auto font-mono text-label font-semibold px-1.5 py-0.5 rounded border uppercase tracking-[0.08em] text-amber border-amber-border bg-amber-dim">
                 tough
               </span>
             )}
             {!drawState.showMore && !drawState.hard && suggestedHard && (
-              <span className="ml-auto font-mono text-[9px] text-text-dim italic">suggested: tough day</span>
+              <span className="ml-auto font-mono text-label text-text-dim italic">suggested: tough day</span>
             )}
           </>
         ) : drawState.error ? (
-          <span className="font-mono text-[9px] text-text-dim">{drawState.error}</span>
+          <span className="font-mono text-label text-text-dim">{drawState.error}</span>
         ) : null}
       </div>
 
@@ -89,11 +89,11 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
 
       <div className="flex flex-col gap-2">
         <div>
-          <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block">
+          <label className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1 block">
             Segment name
           </label>
           <input
-            className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
+            className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-sm font-mono text-fine text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
             value={drawState.name}
             onChange={e =>
               setDrawState(prev =>
@@ -105,9 +105,9 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
           />
         </div>
         <div>
-          <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block">Notes</label>
+          <label className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1 block">Notes</label>
           <input
-            className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-sm font-mono text-[11px] text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
+            className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-sm font-mono text-fine text-text placeholder:text-text-dim outline-none focus:border-border-mid transition-[border-color]"
             value={drawState.notes}
             onChange={e => set(setDrawState, 'notes', e.target.value)}
             placeholder="Trail conditions, hazards…"
@@ -118,7 +118,7 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
         <button
           type="button"
           onClick={() => set(setDrawState, 'showMore', !drawState.showMore)}
-          className="self-start font-mono text-[9px] text-text-dim hover:text-text transition-colors cursor-pointer bg-transparent border-none px-0 flex items-center gap-1"
+          className="self-start font-mono text-label text-text-dim hover:text-text transition-colors cursor-pointer bg-transparent border-none px-0 flex items-center gap-1"
         >
           {drawState.showMore ? '▴ Less' : '▾ Day details'}
         </button>
@@ -127,9 +127,9 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
           <div className="flex flex-col gap-2 pt-1 border-t border-border">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block">Water</label>
+                <label className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1 block">Water</label>
                 <select
-                  className="w-full px-2 py-1.5 bg-surface border border-border rounded-sm font-mono text-[11px] text-text outline-none focus:border-border-mid transition-[border-color]"
+                  className="w-full px-2 py-1.5 bg-surface border border-border rounded-sm font-mono text-fine text-text outline-none focus:border-border-mid transition-[border-color]"
                   value={drawState.water ?? ''}
                   onChange={e => {
                     const v = e.target.value
@@ -143,9 +143,9 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
                 </select>
               </div>
               <div>
-                <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block">Exposure</label>
+                <label className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1 block">Exposure</label>
                 <select
-                  className="w-full px-2 py-1.5 bg-surface border border-border rounded-sm font-mono text-[11px] text-text outline-none focus:border-border-mid transition-[border-color]"
+                  className="w-full px-2 py-1.5 bg-surface border border-border rounded-sm font-mono text-fine text-text outline-none focus:border-border-mid transition-[border-color]"
                   value={drawState.exposure ?? ''}
                   onChange={e => {
                     const v = e.target.value
@@ -163,17 +163,17 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
             <div className="grid grid-cols-3 gap-2">
               {drawState.sunTimesLoading && (
                 <div className="col-span-3">
-                  <span className="font-mono text-[9px] text-text-dim tracking-widest">Fetching sun times…</span>
+                  <span className="font-mono text-label text-text-dim tracking-widest">Fetching sun times…</span>
                 </div>
               )}
               {(['wakeTime', 'onTrailTime', 'campByTime'] as const).map((field, i) => (
                 <div key={field}>
-                  <label className="font-mono text-[9px] tracking-[0.12em] uppercase text-text-dim mb-1 block">
+                  <label className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1 block">
                     {['Wake', 'On trail', 'Camp by'][i]}
                   </label>
                   <input
                     type="time"
-                    className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-sm font-mono text-[11px] text-text outline-none focus:border-border-mid transition-[border-color] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:[filter:invert(1)_sepia(1)_saturate(4)_hue-rotate(5deg)_brightness(0.85)] [&::-webkit-calendar-picker-indicator]:opacity-50 hover:[&::-webkit-calendar-picker-indicator]:opacity-90"
+                    className="w-full px-2.5 py-1.5 bg-surface border border-border rounded-sm font-mono text-fine text-text outline-none focus:border-border-mid transition-[border-color] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:[filter:invert(1)_sepia(1)_saturate(4)_hue-rotate(5deg)_brightness(0.85)] [&::-webkit-calendar-picker-indicator]:opacity-50 hover:[&::-webkit-calendar-picker-indicator]:opacity-90"
                     value={drawState[field] ?? ''}
                     onChange={e => set(setDrawState, field, e.target.value || undefined)}
                   />
@@ -194,12 +194,12 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
                   </svg>
                 )}
               </span>
-              <span className="font-mono text-[10px] text-text">Tough day</span>
+              <span className="font-mono text-caption text-text">Tough day</span>
               {suggestedHard && !drawState.hard && (
-                <span className="font-mono text-[9px] text-text-dim">(suggested)</span>
+                <span className="font-mono text-label text-text-dim">(suggested)</span>
               )}
               {drawState.exposure && (
-                <span className={`ml-auto font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded border uppercase tracking-[0.08em] ${EXP_CLS[drawState.exposure]}`}>
+                <span className={`ml-auto font-mono text-label font-semibold px-1.5 py-0.5 rounded border uppercase tracking-[0.08em] ${EXP_CLS[drawState.exposure]}`}>
                   {EXP_LABEL[drawState.exposure]}
                 </span>
               )}
@@ -210,14 +210,14 @@ export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }
         <div className="flex gap-2 justify-end mt-1">
           <button
             onClick={onCancel}
-            className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-widest uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
+            className="px-3 py-1.5 font-heading text-caption font-bold tracking-widest uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={!drawState.name.trim() || drawState.loading}
-            className="px-3 py-1.5 font-heading text-[10px] font-bold tracking-widest uppercase rounded border cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 font-heading text-caption font-bold tracking-widest uppercase rounded border cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: 'var(--amber-dim)', borderColor: 'var(--amber-border)', color: 'var(--amber)' }}
           >
             {drawState.editingSeg ? 'Update segment' : 'Add segment'}

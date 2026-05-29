@@ -1,4 +1,4 @@
-import type { DetectedWaterSource } from '../../../lib/waterSources'
+import type { DetectedWaterSource } from '../../../../lib/waterSources'
 
 export type SegRow = {
   n: number

@@ -32,7 +32,7 @@ export function TagInput({
       {tags.map((tag) => (
         <span
           key={tag}
-          className="flex items-center gap-1 bg-surface-2 border border-border rounded-sm px-2 py-0.5 font-mono text-[10px] text-text-mid"
+          className="flex items-center gap-1 bg-surface-2 border border-border rounded-sm px-2 py-0.5 font-mono text-caption text-text-mid"
         >
           {tag}
           <button
@@ -51,7 +51,7 @@ export function TagInput({
         onKeyDown={handleKeyDown}
         onBlur={() => { if (input.trim()) addTag(input) }}
         placeholder={tags.length === 0 ? placeholder : ''}
-        className="flex-1 min-w-24 bg-transparent border-0 outline-none font-mono text-[11px] text-text placeholder:text-text-dim"
+        className="flex-1 min-w-24 bg-transparent border-0 outline-none font-mono text-fine text-text placeholder:text-text-dim"
       />
     </div>
   )

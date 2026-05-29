@@ -1,11 +1,11 @@
-import { ProgressBar } from '../ProgressBar'
-import { CheckItem } from '../CheckItem'
-import { ElevationProfile } from '../../trip/ElevationProfile'
-import { IconFile, IconDownload } from '../../icons'
+import { ProgressBar } from '../../ProgressBar'
+import { CheckItem } from '../../CheckItem'
+import { ElevationProfile } from '../../../trip/ElevationProfile'
+import { IconFile, IconDownload } from '../../../icons'
 import { downloadGpx } from './routeStage.helpers'
 import { PartnersCard } from './PartnersCard'
 import type { CheckRow } from './routeStage.types'
-import type { Trip } from '../../../types'
+import type { Trip } from '../../../../types'
 
 type SourceFile = { name: string; meta: string; coords: [number, number, number][] }
 
@@ -33,7 +33,7 @@ export function RouteRightRail({
 
       {/* Stage checklist */}
       <div className="bg-surface border border-border rounded-lg p-3.5">
-        <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">This stage</div>
+        <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">This stage</div>
         {checklist.map((c, i) => (
           <CheckItem
             key={c.text}
@@ -47,7 +47,7 @@ export function RouteRightRail({
           value={checklist.length > 0 ? (doneCount / checklist.length) * 100 : 0}
           tone={doneCount === checklist.length && checklist.length > 0 ? 'pine' : 'amber'}
         />
-        <div className="font-mono text-[9px] text-text-dim text-center mt-1.5">
+        <div className="font-mono text-label text-text-dim text-center mt-1.5">
           {doneCount} of {checklist.length}
         </div>
       </div>
@@ -63,7 +63,7 @@ export function RouteRightRail({
       {/* Elevation profile */}
       {(trip?.gpxPlanned || (trip?.gpxTracks ?? []).length > 0) && (
         <div className="bg-surface border border-border rounded-lg p-4.5">
-          <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-3">
+          <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-3">
             Elevation Profile
           </div>
           <ElevationProfile planned={trip?.gpxPlanned} gpxTracks={trip?.gpxTracks} />
@@ -72,17 +72,17 @@ export function RouteRightRail({
 
       {/* Source files */}
       <div className="bg-surface border border-border rounded-lg p-3.5">
-        <div className="font-mono text-[9px] tracking-[0.16em] uppercase text-text-dim mb-2.5">Source files</div>
+        <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">Source files</div>
         {sourceFiles.length === 0 ? (
-          <p className="font-mono text-[9px] text-text-dim leading-relaxed">
+          <p className="font-mono text-label text-text-dim leading-relaxed">
             No files yet — import a planned route .gpx above.
           </p>
         ) : sourceFiles.map((f, i) => (
           <div key={f.name} className={`flex items-center gap-2 py-1.5 ${i < sourceFiles.length - 1 ? 'border-b border-border' : ''}`}>
             <span className="text-text-mid shrink-0"><IconFile size={11} /></span>
             <div className="min-w-0 flex-1">
-              <div className="font-mono text-[12px] text-text truncate">{f.name}</div>
-              <div className="font-mono text-[10px] text-text-dim mt-0.5">{f.meta}</div>
+              <div className="font-mono text-body-sm text-text truncate">{f.name}</div>
+              <div className="font-mono text-caption text-text-dim mt-0.5">{f.meta}</div>
             </div>
             <button
               onClick={() => downloadGpx(f.coords, f.name)}
