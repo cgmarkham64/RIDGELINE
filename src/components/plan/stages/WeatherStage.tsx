@@ -23,7 +23,6 @@ const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
 const INITIAL_WEATHER: PlanWeatherData = {
   historicalReviewed: false,
   forecastChecked: false,
-  sunriseReviewed: false,
   gearAdjusted: false,
   departureRisk: null,
   notes: '',
@@ -215,7 +214,6 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
   const checklist = useMemo(() => [
     { text: 'Historical climate reviewed', done: wd.historicalReviewed },
     { text: 'Forecast checked',            done: wd.forecastChecked    },
-    { text: 'Sunrise/sunset noted',        done: wd.sunriseReviewed    },
     { text: 'Departure window assessed',   done: wd.departureRisk !== null },
     { text: 'Gear adjusted for conditions', done: wd.gearAdjusted      },
   ], [wd])
@@ -253,7 +251,7 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
     return idx >= 0 ? Math.floor(idx / DAYS_PER_PAGE) : 0
   }, [wd.cachedForecast, startDate])
 
-  function toggle(field: 'historicalReviewed' | 'forecastChecked' | 'sunriseReviewed' | 'gearAdjusted') {
+  function toggle(field: 'historicalReviewed' | 'forecastChecked' | 'gearAdjusted') {
     if (!canEdit) return
     setWd(prev => ({ ...prev, [field]: !prev[field] }))
   }
@@ -376,17 +374,11 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
             {inWindow && midDaySun && coordsLng != null && (
               <div className="flex items-center gap-3 px-4 py-2 border-b border-border">
                 <IconSun size={12} />
-                <div className="flex items-center gap-4 flex-1">
+                <div className="flex items-center gap-4">
                   <span className="font-mono text-[9px] text-text-dim">↑ {fmtSolarTime(midDaySun.sunrise, coordsLng)}</span>
                   <span className="font-mono text-[9px] text-text-dim">↓ {fmtSolarTime(midDaySun.sunset, coordsLng)}</span>
                   <span className="font-mono text-[9px] text-text-dim">{midDaySun.daylightHours.toFixed(1)} hrs daylight</span>
                 </div>
-                {canEdit && (
-                  <button type="button" onClick={() => toggle('sunriseReviewed')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 font-mono text-[9px] rounded border cursor-pointer transition-colors ${wd.sunriseReviewed ? 'bg-pine-dim border-pine-border text-pine' : 'bg-surface-2 border-border text-text-dim hover:border-border-mid'}`}>
-                    {wd.sunriseReviewed && <IconCheck size={9} />} Noted
-                  </button>
-                )}
               </div>
             )}
             {!inWindow && (

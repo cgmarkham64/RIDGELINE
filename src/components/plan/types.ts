@@ -111,7 +111,7 @@ export interface WeatherForecastDay {
 export interface PlanWeatherData {
   historicalReviewed: boolean
   forecastChecked: boolean
-  sunriseReviewed: boolean
+  sunriseReviewed?: boolean
   gearAdjusted: boolean
   departureRisk: 'low' | 'moderate' | 'high' | null
   departureFactors?: Array<{ date: string; label: string; severity: 'moderate' | 'high' }>
