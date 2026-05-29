@@ -306,7 +306,7 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
 
   return (
     <div className="flex-1 overflow-y-auto p-8 pb-20">
-      <div className="grid gap-7 max-w-[1100px] grid-cols-[1fr_300px]">
+      <div className="grid gap-7 grid-cols-[1fr_360px]">
 
         {/* ── Left column ── */}
         <div className="flex flex-col gap-[18px]">
