@@ -24,9 +24,44 @@ export interface PermitSuggestion {
   zoneId?:    string
 }
 
+export type SourceTier = 'official' | 'partner' | 'community'
+
 export interface PermitSource {
   url:   string
   title: string
+  tier:  SourceTier
+}
+
+// ─── Source ranking ───────────────────────────────────────────────────────────
+
+// Permit booking platforms — always most actionable
+const BOOKING_DOMAINS = new Set(['recreation.gov', 'pay.gov'])
+
+// Trail/wilderness orgs — more specific than generic agency sites
+const PARTNER_DOMAINS = new Set([
+  'coloradotrail.org', 'pcta.org', 'cdtcoalition.org',
+  'bct.org', 'americanhiking.org', 'cmc.org',
+])
+
+// Useful but less authoritative community resources
+const COMMUNITY_HIGH_DOMAINS = new Set([
+  'hikingproject.com', 'alltrails.com',
+  'backpacker.com', 'outsideonline.com', 'rei.com',
+])
+
+const MAX_SOURCES = 8
+
+function scoreSource(url: string): { tier: SourceTier; score: number } {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '')
+    if (BOOKING_DOMAINS.has(hostname))        return { tier: 'official', score: 100 }
+    if (PARTNER_DOMAINS.has(hostname))        return { tier: 'partner',  score: 90  }
+    if (hostname.endsWith('.gov'))            return { tier: 'official', score: 80  }
+    if (COMMUNITY_HIGH_DOMAINS.has(hostname)) return { tier: 'community', score: 25 }
+    return { tier: 'community', score: 10 }
+  } catch {
+    return { tier: 'community', score: 0 }
+  }
 }
 
 // ─── Input type ───────────────────────────────────────────────────────────────
@@ -73,8 +108,27 @@ Rules:
 - "zoneId" should be a stable lowercase slug (e.g. "indian_peaks_thunder_lake_zone").
 - Set "confidence" to "high" if you found authoritative current-year data via search, "medium" if reasonably certain from training data, "low" if speculative or if the requirement may not apply.
 - Include ALL required permit types: overnight wilderness permits, zone quotas, trailhead parking, bear canister requirements (note as "selfissue" type), fishing licenses, and vehicle entry passes.
+- Do NOT include wildlife permits (eagle take, incidental take, etc.) — those are for development projects, not recreational hikers.
 - Prefer specific over generic names (e.g. "Indian Peaks Wilderness Overnight Permit" not "wilderness permit").
 - In the "fields" object, include all key dates found via web search (application opens, application closes, results announced, booking opens, etc.).`
+
+// ─── Trail → authoritative domain hints ───────────────────────────────────────
+
+const TRAIL_HINTS: { pattern: RegExp; domain: string; name: string }[] = [
+  { pattern: /colorado\s*trail|\bct\b|ct\s*segment/i, domain: 'coloradotrail.org',    name: 'Colorado Trail Foundation' },
+  { pattern: /pct|pacific\s*crest/i,                  domain: 'pcta.org',             name: 'Pacific Crest Trail Association' },
+  { pattern: /cdt|continental\s*divide/i,              domain: 'cdtcoalition.org',     name: 'Continental Divide Trail Coalition' },
+  { pattern: /appalachian\s*trail|\bat\b/i,            domain: 'appalachiantrail.org', name: 'Appalachian Trail Conservancy' },
+  { pattern: /john\s*muir\s*trail|\bjmt\b/i,           domain: 'pcta.org',             name: 'Pacific Crest Trail Association' },
+]
+
+function trailDomainHints(title?: string, location?: string): string {
+  const haystack = `${title ?? ''} ${location ?? ''}`
+  const matches  = TRAIL_HINTS.filter(h => h.pattern.test(haystack))
+  if (matches.length === 0) return ''
+  const list = matches.map(m => `- ${m.domain} (${m.name})`).join('\n')
+  return `\nIMPORTANT: This route is on a known long-distance trail. You MUST search the following official trail organization sites and include results from them:\n${list}`
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -88,12 +142,17 @@ function simplifyCoords(
 }
 
 function buildUserMessage(trip: TripPermitInput): string {
-  const lines: string[] = [
+  const hint  = trailDomainHints(trip.title, trip.location)
+  const lines: string[] = []
+
+  if (hint) lines.push(hint)
+
+  lines.push(
     `Trip name: ${trip.title ?? 'Unnamed trip'}`,
     `Location / area: ${trip.location ?? 'Not specified'}`,
     `Dates: ${trip.startDate ?? 'unknown start'} to ${trip.endDate ?? 'unknown end'}`,
     `Party size: ${trip.partySize}`,
-  ]
+  )
 
   if (trip.gpxCoords && trip.gpxCoords.length >= 2) {
     const all        = trip.gpxCoords
@@ -166,18 +225,24 @@ export async function suggestPermits(
 
   // Extract URLs from web_search_tool_result blocks (deduplicated)
   const seen    = new Set<string>()
-  const sources: PermitSource[] = []
+  const rawSources: (PermitSource & { score: number })[] = []
   for (const block of response.content) {
     const b = block as unknown as WebSearchToolResult
     if (b.type === 'web_search_tool_result') {
       for (const r of b.content ?? []) {
         if (r.type === 'web_search_result' && r.url && !seen.has(r.url)) {
           seen.add(r.url)
-          sources.push({ url: r.url, title: r.title ?? r.url })
+          const { tier, score } = scoreSource(r.url)
+          rawSources.push({ url: r.url, title: r.title ?? r.url, tier, score })
         }
       }
     }
   }
+
+  const sources: PermitSource[] = rawSources
+    .sort((a, b) => b.score - a.score)
+    .slice(0, MAX_SOURCES)
+    .map(({ url, title, tier }) => ({ url, title, tier }))
 
   // Find the last text block — it follows any web_search tool use blocks
   const textBlocks = response.content.filter(b => b.type === 'text')

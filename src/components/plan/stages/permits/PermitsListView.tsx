@@ -7,6 +7,28 @@ import type { Permit } from './permitsStage.types'
 import type { PermitTypeName, PermitSource } from '../../types'
 import { JumpChip } from '../../JumpChip'
 
+const TIER_DOT: Record<string, string> = {
+  official:  'bg-pine',
+  partner:   'bg-amber',
+  community: 'bg-border-mid',
+}
+
+const TIER_LABEL: Record<string, string> = {
+  official:  'Official',
+  partner:   'Partner org',
+  community: 'Community',
+}
+
+function TierDot({ tier }: { tier?: string }) {
+  const cls = TIER_DOT[tier ?? 'community'] ?? TIER_DOT.community
+  return (
+    <span
+      className={`inline-block shrink-0 w-1.5 h-1.5 rounded-full mt-px ${cls}`}
+      title={TIER_LABEL[tier ?? 'community']}
+    />
+  )
+}
+
 export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, onReject, onRemove, onViewMap, onAddFreeform, onUpdatePermit, partyConfirmed, onConfirmParty, onJump, canEdit, partySize, scanning, scanError, lastScanned, sources, onRescan }: {
   permits: Permit[]
   suggestions: Permit[]
@@ -111,16 +133,18 @@ export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, o
             <div className="flex flex-col gap-1 pt-1 border-t border-border">
               <span className="tracking-[0.12em] uppercase text-text-dim">Sources consulted</span>
               {sources.map(s => (
-                <a
-                  key={s.url}
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="truncate text-sky hover:underline"
-                  title={s.url}
-                >
-                  {s.title}
-                </a>
+                <div key={s.url} className="flex items-start gap-1.5">
+                  <TierDot tier={s.tier} />
+                  <a
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="truncate text-sky hover:underline"
+                    title={TIER_LABEL[s.tier ?? 'community']}
+                  >
+                    {s.title}
+                  </a>
+                </div>
               ))}
             </div>
           )}
