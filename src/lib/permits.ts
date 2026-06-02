@@ -1,9 +1,8 @@
 import { api } from './api'
-import type { PlanPermitEntry, PermitSource } from '../components/plan/types'
+import type { PermitLink } from '../components/plan/types'
 
 export interface PermitScanResult {
-  permits: PlanPermitEntry[]
-  sources: PermitSource[]
+  links: PermitLink[]
 }
 
 export async function suggestPermits(tripId: string): Promise<PermitScanResult> {

@@ -1,77 +1,62 @@
 import { useState } from 'react'
-import { IconMap, IconCheck, IconSearch, IconPlus, IconAlertTriangle } from '../../../icons'
+import { IconMap, IconCheck, IconSearch, IconPlus, IconAlertTriangle, IconExternalLink } from '../../../icons'
 import { PermitCard } from './PermitCard'
-import { SuggestionRow } from './SuggestionRow'
 import { PERMIT_TYPES } from './permitsStage.constants'
 import type { Permit } from './permitsStage.types'
-import type { PermitTypeName, PermitSource } from '../../types'
+import type { PermitTypeName, PermitLink, SourceTier } from '../../types'
 
-const TIER_DOT: Record<string, string> = {
-  official:  'bg-pine',
-  partner:   'bg-amber',
-  community: 'bg-border-mid',
-}
-
-const TIER_LABEL: Record<string, string> = {
+const TIER_LABEL: Record<SourceTier, string> = {
   official:  'Official',
-  partner:   'Partner org',
+  partner:   'Partner',
   community: 'Community',
 }
 
-function TierDot({ tier }: { tier?: string }) {
-  const cls = TIER_DOT[tier ?? 'community'] ?? TIER_DOT.community
-  return (
-    <span
-      className={`inline-block shrink-0 w-1.5 h-1.5 rounded-full mt-px ${cls}`}
-      title={TIER_LABEL[tier ?? 'community']}
-    />
-  )
+const TIER_CLS: Record<SourceTier, string> = {
+  official:  'bg-pine-dim border-pine-border text-pine',
+  partner:   'bg-amber-dim border-amber-border text-amber',
+  community: 'bg-surface-2 border-border text-text-dim',
 }
 
-export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, onReject, onRemove, onViewMap, onAddFreeform, onUpdatePermit, canEdit, partySize, scanning, scanError, lastScanned, sources, onRescan, permitFree, onMarkPermitFree }: {
-  permits: Permit[]
-  suggestions: Permit[]
-  onAcceptAll: () => void
-  onAccept: (p: Permit) => void
-  onReject: (p: Permit) => void
-  onRemove: (id: string) => void
-  onViewMap: (p: Permit) => void
-  onAddFreeform: () => void
-  onUpdatePermit: (id: string, key: string, value: string) => void
-  canEdit: boolean
-  partySize: number
-  scanning: boolean
-  scanError: string | null
-  lastScanned: string | undefined
-  sources: PermitSource[]
-  onRescan: () => void
-  permitFree: boolean
+export function PermitsListView({
+  permits, links, onRemove, onViewMap, onAddFreeform, onUpdatePermit,
+  canEdit, partySize, scanning, scanError, lastScanned, onRescan,
+  permitFree, onMarkPermitFree,
+}: {
+  permits:          Permit[]
+  links:            PermitLink[]
+  onRemove:         (id: string) => void
+  onViewMap:        (p: Permit) => void
+  onAddFreeform:    () => void
+  onUpdatePermit:   (id: string, key: string, value: string) => void
+  canEdit:          boolean
+  partySize:        number
+  scanning:         boolean
+  scanError:        string | null
+  lastScanned:      string | undefined
+  onRescan:         () => void
+  permitFree:       boolean
   onMarkPermitFree: () => void
 }) {
   const [search, setSearch] = useState('')
 
-  const allPermits        = [...permits, ...suggestions]
-  const uniqueTypeCount   = new Set(allPermits.map(p => p.type)).size
-  const uniqueAgencyCount = new Set(allPermits.map(p => p.agency).filter(Boolean)).size
-
   const bannerHeading = scanning
-    ? 'Scanning your route for permits…'
+    ? 'Searching for permit and booking resources…'
     : scanError
       ? `Scan failed — ${scanError}`
-      : allPermits.length > 0
-        ? `Found ${uniqueTypeCount} permit type${uniqueTypeCount !== 1 ? 's' : ''} across ${uniqueAgencyCount} agenc${uniqueAgencyCount !== 1 ? 'ies' : 'y'}`
+      : links.length > 0
+        ? `Found ${links.length} permit resource${links.length !== 1 ? 's' : ''} for this area`
         : lastScanned
-          ? 'Based on these sources, we do not believe permits are required for this trip'
-          : 'Import a route in Stage 1 to get AI-powered permit suggestions'
+          ? 'No permit resources detected — verify with the land manager before assuming permit-free'
+          : 'Import a route in Stage 1 to find permit resources for your area'
 
   return (
     <div className="flex flex-col gap-[22px]">
 
       {/* Detection banner */}
       <div className={`flex items-center gap-3 px-4 py-3 border rounded-lg ${
-        permitFree   ? 'bg-pine-dim border-pine-border' :
-        scanError    ? 'bg-red-dim border-red-border'   :
-                       'bg-amber-dim border-amber-border'
+        permitFree ? 'bg-pine-dim border-pine-border' :
+        scanError  ? 'bg-red-dim border-red-border'   :
+                     'bg-amber-dim border-amber-border'
       }`}>
         <span className={`shrink-0 ${permitFree ? 'text-pine' : scanError ? 'text-red' : 'text-amber'}`}>
           {permitFree ? <IconCheck size={16} /> : <IconMap size={16} />}
@@ -83,7 +68,7 @@ export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, o
         </div>
         {canEdit && !scanning && !permitFree && (
           <div className="flex items-center gap-1.5 shrink-0">
-            {lastScanned && allPermits.length === 0 && (
+            {lastScanned && links.length === 0 && (
               <button
                 onClick={onMarkPermitFree}
                 className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-pine-border text-pine bg-pine-dim hover:brightness-95 transition-all cursor-pointer"
@@ -104,65 +89,42 @@ export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, o
         )}
       </div>
 
-      {/* AI results disclaimer */}
+      {/* Disclaimer */}
       {lastScanned && !scanning && (
-        <div className="flex flex-col gap-2.5 px-3 py-3 bg-surface border border-border rounded text-caption text-text-dim font-mono">
-          <div className="flex items-start gap-2">
-            <IconAlertTriangle size={13} className="shrink-0 mt-px text-amber" />
-            <span>AI-generated suggestions — always verify before booking. Follow these steps:</span>
-          </div>
-          <ol className="flex flex-col gap-1 pl-5 list-decimal marker:text-text-dim">
-            <li>Open each permit's booking page and confirm it applies to your dates and trailhead.</li>
-            <li>Check availability and quota windows for your travel window.</li>
-            <li>If anything looks off, call or email the issuing agency directly.</li>
-          </ol>
-          {sources.length > 0 && (
-            <div className="flex flex-col gap-1 pt-1 border-t border-border">
-              <span className="tracking-[0.12em] uppercase text-text-dim">Sources consulted</span>
-              {sources.map(s => (
-                <div key={s.url} className="flex items-start gap-1.5">
-                  <TierDot tier={s.tier} />
-                  <a
-                    href={s.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="truncate text-sky hover:underline"
-                    title={TIER_LABEL[s.tier ?? 'community']}
-                  >
-                    {s.title}
-                  </a>
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="flex items-start gap-2 px-3 py-3 bg-surface border border-border rounded text-caption text-text-dim font-mono">
+          <IconAlertTriangle size={13} className="shrink-0 mt-px text-amber" />
+          <span>
+            AI-generated links — open each one and confirm it applies to your specific trailhead,
+            dates, and party size. Call or email the issuing agency if anything is unclear.
+          </span>
         </div>
       )}
 
-      {/* Suggestions */}
-      {suggestions.length > 0 && (
+      {/* Permit resource links */}
+      {links.length > 0 && (
         <section>
-          <div className="flex items-center justify-between mb-2.5">
-            <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">Suggested for your route</div>
-            {canEdit && (
-              <button
-                onClick={onAcceptAll}
-                className="inline-flex items-center gap-1 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
-              >
-                <IconCheck size={10} /> Accept all
-              </button>
-            )}
-          </div>
+          <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">Permit &amp; access resources</div>
           <div className="flex flex-col gap-2">
-            {suggestions.map(s => (
-              <SuggestionRow
-                key={s.id}
-                permit={s}
-                onAccept={() => onAccept(s)}
-                onReject={() => onReject(s)}
-                onViewMap={() => onViewMap(s)}
-                canEdit={canEdit}
-              />
-            ))}
+            {links.map((link, i) => {
+              const tier = link.tier ?? 'community'
+              return (
+                <a
+                  key={i}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center gap-2.5 px-3 py-2 bg-surface border border-border rounded-lg hover:border-border-mid hover:bg-surface-2 transition-colors no-underline"
+                >
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded border font-mono text-label tracking-[0.06em] uppercase font-semibold shrink-0 ${TIER_CLS[tier]}`}>
+                    {TIER_LABEL[tier]}
+                  </span>
+                  <span className="flex-1 min-w-0 font-heading text-body-sm font-bold text-text group-hover:text-amber transition-colors truncate">
+                    {link.title}
+                  </span>
+                  <IconExternalLink size={12} className="shrink-0 text-text-dim group-hover:text-amber transition-colors" />
+                </a>
+              )
+            })}
           </div>
         </section>
       )}
@@ -192,16 +154,29 @@ export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, o
             ))}
           </div>
         ) : (
-          <div className="px-6 py-6 text-center border border-dashed border-border rounded-lg text-body-sm text-text-dim">
-            {canEdit ? 'Accept a suggestion above, or add one manually below.' : 'No permits added yet.'}
+          <div className="border border-dashed border-border rounded-lg overflow-hidden">
+            <div className="px-6 py-5 text-center text-body-sm text-text-dim">
+              {canEdit ? 'Add a permit manually below.' : 'No permits added yet.'}
+            </div>
+            {canEdit && !permitFree && (
+              <div className="flex items-center justify-between px-4 py-2.5 border-t border-dashed border-border bg-pine-dim">
+                <span className="text-fine text-text-mid">Trip is permit-free?</span>
+                <button
+                  onClick={onMarkPermitFree}
+                  className="font-mono text-label tracking-[0.12em] uppercase text-pine hover:text-text transition-colors bg-transparent border-none cursor-pointer p-0"
+                >
+                  Mark as permit-free →
+                </button>
+              </div>
+            )}
           </div>
         )}
       </section>
 
-      {/* Add another — only visible to editors */}
+      {/* Add manually — only visible to editors */}
       {canEdit && (
         <section className="pt-1">
-          <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">Add another</div>
+          <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">Add manually</div>
           <div className="flex gap-2.5 p-1 bg-surface border border-border rounded-lg">
             <div className="flex-1 flex items-center gap-2 px-3 text-text-dim">
               <IconSearch />

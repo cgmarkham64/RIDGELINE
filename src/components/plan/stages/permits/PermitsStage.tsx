@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { IconCheck, IconList, IconLayers } from '../../../icons'
+import { IconList, IconLayers } from '../../../icons'
 import { ProgressBar } from '../../ProgressBar'
 import { CheckItem } from '../../CheckItem'
 import { PermitsListView } from './PermitsListView'
@@ -15,15 +15,14 @@ import type { Permit, ViewMode } from './permitsStage.types'
 import type { StageBodyProps, PlanCriticalDate } from '../../types'
 
 export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit = true }: StageBodyProps) {
-  const [viewMode, setViewMode]         = useState<ViewMode>('list')
-  const [permits, setPermits]           = useState<Permit[]>(() => (plan?.permits?.permits as Permit[] | undefined) ?? (plan !== undefined ? [] : INITIAL_PERMITS))
-  const [suggestions, setSuggestions]   = useState<Permit[]>(() => (plan?.permits?.suggestions as Permit[] | undefined) ?? [])
-  const [sources, setSources]           = useState(() => plan?.permits?.sources ?? [])
-  const [lastScanned, setLastScanned]   = useState<string | undefined>(() => plan?.permits?.lastScanned)
-  const [scanning, setScanning]         = useState(false)
-  const [scanError, setScanError]       = useState<string | null>(null)
-  const [mapModalPermit, setMapModal]   = useState<Permit | null>(null)
-  const [freeformOpen, setFreeformOpen] = useState(false)
+  const [viewMode, setViewMode]             = useState<ViewMode>('list')
+  const [permits, setPermits]               = useState<Permit[]>(() => (plan?.permits?.permits as Permit[] | undefined) ?? (plan !== undefined ? [] : INITIAL_PERMITS))
+  const [links, setLinks]                   = useState(() => plan?.permits?.links ?? [])
+  const [lastScanned, setLastScanned]       = useState<string | undefined>(() => plan?.permits?.lastScanned)
+  const [scanning, setScanning]             = useState(false)
+  const [scanError, setScanError]           = useState<string | null>(null)
+  const [mapModalPermit, setMapModal]       = useState<Permit | null>(null)
+  const [freeformOpen, setFreeformOpen]     = useState(false)
   const [permitFree, setPermitFree]         = useState(() => plan?.permits?.permitFree ?? false)
   const [partyConfirmed, setPartyConfirmed] = useState(false)
   const [criticalDates, setCriticalDates]   = useState<PlanCriticalDate[]>(() => plan?.permits?.criticalDates ?? [])
@@ -32,7 +31,7 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
 
   const scanDates = useMemo(() => extractScanDates(permits), [permits])
 
-  const isMounted    = useRef(false)
+  const isMounted     = useRef(false)
   useEffect(() => () => { isMounted.current = false }, [])
   const onChangeRef   = useRef(onChange)
   const onProgressRef = useRef(onProgress)
@@ -40,17 +39,16 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
   useEffect(() => { onProgressRef.current = onProgress }, [onProgress])
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
-    onChangeRef.current?.({ permits: { permits, permitFree, suggestions, lastScanned, sources, criticalDates } })
-  }, [permits, permitFree, suggestions, lastScanned, sources, criticalDates])
+    onChangeRef.current?.({ permits: { permits, permitFree, links, lastScanned, criticalDates } })
+  }, [permits, permitFree, links, lastScanned, criticalDates])
 
   async function runScan() {
     if (!trip?._id || scanning) return
     setScanning(true)
     setScanError(null)
     try {
-      const { permits: found, sources: foundSources } = await suggestPermits(trip._id)
-      setSuggestions(found as Permit[])
-      setSources(foundSources)
+      const { links: found } = await suggestPermits(trip._id)
+      setLinks(found)
       setLastScanned(new Date().toISOString())
     } catch (err) {
       setScanError(extractApiError(err) ?? 'Scan failed')
@@ -68,15 +66,6 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip?._id])
 
-  function accept(p: Permit) {
-    setPermits(prev => prev.some(x => x.id === p.id) ? prev : [...prev, p])
-    setSuggestions(prev => prev.filter(x => x.id !== p.id))
-  }
-  function acceptAll() {
-    setPermits(prev => [...prev, ...suggestions.filter(s => !prev.some(p => p.id === s.id))])
-    setSuggestions([])
-  }
-  function reject(p: Permit) { setSuggestions(prev => prev.filter(x => x.id !== p.id)) }
   function remove(id: string) { setPermits(prev => prev.filter(p => p.id !== id)) }
   function addCustom(p: Permit) { setPermits(prev => [...prev, p]); setFreeformOpen(false) }
   function updatePermitField(id: string, key: string, value: string) {
@@ -84,18 +73,17 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
   }
 
   const item1 = permits.length > 0
-  const item2 = suggestions.length === 0
-  const item3 = partyConfirmed
-  const item4 = remindersSet
-  const item5 = backupPlanned
-  const doneCount = [item1, item2, item3, item4, item5].filter(Boolean).length
-  const progress  = Math.round((doneCount / 5) * 100)
+  const item2 = partyConfirmed
+  const item3 = remindersSet
+  const item4 = backupPlanned
+  const doneCount = [item1, item2, item3, item4].filter(Boolean).length
+  const progress  = Math.round((doneCount / 4) * 100)
 
   useEffect(() => {
-    onProgressRef.current?.(permitFree ? 2 : doneCount, permitFree ? 2 : 5)
+    onProgressRef.current?.(permitFree ? 2 : doneCount, permitFree ? 2 : 4)
   }, [doneCount, permitFree])
 
-  const partySize    = (trip?.sharedWith?.length ?? 0) + 1
+  const partySize     = (trip?.sharedWith?.length ?? 0) + 1
   const locationLabel = trip?.location ?? trip?.title ?? ''
 
   return (
@@ -109,7 +97,7 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
             {/* Section header + List ⇄ Map toggle */}
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-heading text-body-lg font-extrabold text-text">Permits & access</div>
+                <div className="font-heading text-body-lg font-extrabold text-text">Permits &amp; access</div>
                 {locationLabel && (
                   <div className="font-mono text-label text-text-dim mt-0.5">{locationLabel}</div>
                 )}
@@ -141,10 +129,7 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
             {viewMode === 'list' ? (
               <PermitsListView
                 permits={permits}
-                suggestions={suggestions}
-                onAcceptAll={acceptAll}
-                onAccept={accept}
-                onReject={reject}
+                links={links}
                 onRemove={remove}
                 onViewMap={p => setMapModal(p)}
                 onAddFreeform={() => setFreeformOpen(true)}
@@ -154,7 +139,6 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
                 scanning={scanning}
                 scanError={scanError}
                 lastScanned={lastScanned}
-                sources={sources}
                 onRescan={runScan}
                 permitFree={permitFree}
                 onMarkPermitFree={() => setPermitFree(true)}
@@ -162,8 +146,8 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
             ) : (
               <PermitsMapView
                 permits={permits}
-                suggestions={suggestions}
-                onAccept={accept}
+                suggestions={[]}
+                onAccept={() => {}}
                 onViewMap={p => setMapModal(p)}
                 onJump={onJump}
                 canEdit={canEdit}
@@ -184,16 +168,15 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
               ) : (
                 <>
                   <CheckItem text="At least one permit added"  done={item1} />
-                  <CheckItem text="All suggestions reviewed"   done={item2} />
-                  <CheckItem text="Party size confirmed"       done={item3} />
-                  <CheckItem text="Reminders set"              done={item4} />
-                  <CheckItem text="Walk-up backup planned"     done={item5} />
+                  <CheckItem text="Party size confirmed"       done={item2} />
+                  <CheckItem text="Reminders set"              done={item3} />
+                  <CheckItem text="Walk-up backup planned"     done={item4} />
                 </>
               )}
               <div className="h-px bg-border my-3" />
               <ProgressBar value={permitFree ? 100 : progress} tone={permitFree ? 'pine' : 'amber'} />
               <div className="font-mono text-label text-text-dim text-center mt-1.5">
-                {permitFree ? '2 of 2 · permit-free' : `${doneCount} of 5`}
+                {permitFree ? '2 of 2 · permit-free' : `${doneCount} of 4`}
               </div>
             </div>
 
@@ -214,24 +197,6 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
               onRemove={id => setCriticalDates(prev => prev.filter(d => d.id !== id))}
             />
 
-            {canEdit && !permitFree && (() => {
-              const scanConfirmedPermitFree = !!lastScanned && permits.length === 0 && suggestions.length === 0
-              return !scanConfirmedPermitFree ? (
-                <div className="flex items-start gap-2.5 px-3 py-3 bg-pine-dim border border-pine-border rounded-lg">
-                  <span className="text-pine shrink-0 mt-0.5"><IconCheck size={14} /></span>
-                  <div className="text-fine text-text-mid">
-                    <span className="font-semibold text-text">No permit needed?</span>{' '}
-                    If you've reviewed and your trip is permit-free, mark this stage complete.
-                    <button
-                      onClick={() => setPermitFree(true)}
-                      className="block mt-2 font-mono text-label tracking-[0.12em] uppercase text-pine hover:text-text transition-colors bg-transparent border-none cursor-pointer p-0"
-                    >
-                      Mark as permit-free →
-                    </button>
-                  </div>
-                </div>
-              ) : null
-            })()}
           </aside>
         </div>
       </div>

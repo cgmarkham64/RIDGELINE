@@ -27,10 +27,11 @@ export type ZoneStatus = 'available' | 'limited' | 'sold_out'
 
 export type SourceTier = 'official' | 'partner' | 'community'
 
-export interface PermitSource {
-  url:   string
-  title: string
-  tier?: SourceTier
+export interface PermitLink {
+  url:         string
+  title:       string
+  description: string
+  tier?:       SourceTier
 }
 
 // ─── Per-stage plan data — used to seed state from an existing plan ───────────
@@ -148,9 +149,8 @@ export interface PlanData {
   permits?: {
     permits:        PlanPermitEntry[]
     permitFree:     boolean
-    suggestions?:   PlanPermitEntry[]
+    links?:         PermitLink[]
     lastScanned?:   string
-    sources?:       PermitSource[]
     criticalDates?: PlanCriticalDate[]
   }
   food?: {
