@@ -68,12 +68,16 @@ export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, o
     <div className="flex flex-col gap-[22px]">
 
       {/* Detection banner */}
-      <div className={`flex items-center gap-3 px-4 py-3 border rounded-lg ${scanError ? 'bg-red-dim border-red-border' : 'bg-amber-dim border-amber-border'}`}>
-        <span className={`shrink-0 ${scanError ? 'text-red' : 'text-amber'}`}>
-          <IconMap size={16} />
+      <div className={`flex items-center gap-3 px-4 py-3 border rounded-lg ${
+        permitFree   ? 'bg-pine-dim border-pine-border' :
+        scanError    ? 'bg-red-dim border-red-border'   :
+                       'bg-amber-dim border-amber-border'
+      }`}>
+        <span className={`shrink-0 ${permitFree ? 'text-pine' : scanError ? 'text-red' : 'text-amber'}`}>
+          {permitFree ? <IconCheck size={16} /> : <IconMap size={16} />}
         </span>
         <div className="flex-1 min-w-0">
-          <div className={`font-heading text-body-sm font-bold ${scanError ? 'text-red' : 'text-amber'}`}>
+          <div className={`font-heading text-body-sm font-bold ${permitFree ? 'text-pine' : scanError ? 'text-red' : 'text-amber'}`}>
             {bannerHeading}
           </div>
           {!scanning && !scanError && lastScanned && allPermits.length === 0 && !permitFree && canEdit && (
@@ -85,7 +89,7 @@ export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, o
             </button>
           )}
         </div>
-        {canEdit && !scanning && (
+        {canEdit && !scanning && !permitFree && (
           <button
             onClick={onRescan}
             className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer shrink-0"
