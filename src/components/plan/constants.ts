@@ -2,9 +2,9 @@ import type { Stage, StageId } from './types'
 
 // Static metadata — use for label/length lookups only, never mutate.
 export const STAGES: Stage[] = [
-  { id: 'route',   n: '01', label: 'Route & Partners', sub: 'Where',  done: 0, total: 8 },
-  { id: 'weather', n: '02', label: 'Weather',  sub: 'Forecast',        done: 0, total: 5 },
-  { id: 'permits', n: '03', label: 'Permits', sub: 'Travel & Access', done: 0, total: 7 },
+  { id: 'route',   n: '01', label: 'Route',              sub: 'Where',          done: 0, total: 7 },
+  { id: 'weather', n: '02', label: 'Weather',            sub: 'Forecast',        done: 0, total: 5 },
+  { id: 'permits', n: '03', label: 'Partners & Permits', sub: 'Party & Access', done: 0, total: 7 },
   { id: 'food',    n: '04', label: 'Food',    sub: 'Calories & H₂O',  done: 0, total: 6 },
   { id: 'gear',    n: '05', label: 'Gear',    sub: 'Loadout',         done: 0, total: 5, blocked: true },
   { id: 'depart',  n: '06', label: 'Depart',  sub: 'Take it with',    done: 0, total: 4 },
@@ -19,7 +19,7 @@ export function createStages(): Stage[] {
 export const STAGE_TITLES: Record<StageId, string> = {
   route:   'Pick your route.',
   weather: 'Check the forecast.',
-  permits: 'Permits & travel logistics.',
+  permits: 'Partners & permits.',
   food:    'Food and water.',
   gear:    'Pack the gear.',
   depart:  'Take the plan with you.',
@@ -29,7 +29,7 @@ export const STAGE_TITLES: Record<StageId, string> = {
 export const STAGE_SUBS: Record<StageId, string> = {
   route:   'Define entry, exit, and the line through. Mileage and gain auto-tally.',
   weather: 'Historical climate, sunrise/sunset, live forecast, and departure window.',
-  permits: "Lock down access and how everyone gets to the trailhead. We'll surface critical dates.",
+  permits: "Add your partners, then lock down permits and access for your party size. We'll surface critical dates.",
   food:    'Calorie targets and water. Resupply pulls dates from your day plan.',
   gear:    'Loadout. Bear-can sizing and weight depend on Permits and Food being settled first.',
   depart:  'Day-of essentials: offline maps, emergency contacts, the printable card.',
@@ -37,9 +37,9 @@ export const STAGE_SUBS: Record<StageId, string> = {
 }
 
 export const STAGE_DESCRIPTIONS: Record<StageId, string> = {
-  route:   'Entry and exit trailheads, segments with mileage and elevation gain, trip partners, and GPS source files for the map and elevation profile.',
+  route:   'Entry and exit trailheads, segments with mileage and elevation gain, and GPS source files for the map and elevation profile.',
   weather: 'Historical monthly climate normals, per-day sunrise and sunset, 10-day live forecast within 14 days of departure, and a synthesised go/caution/delay window.',
-  permits: 'Every permit, pass, and access requirement — lottery windows, reservation dates, party sizes, and zone assignments.',
+  permits: 'Invite your trip partners, then handle every permit, pass, and access requirement — lottery windows, reservation dates, party sizes, and zone assignments.',
   food:    'Calorie targets and meal planning for each day, resupply logistics, water source confirmation, and bear canister selection.',
   gear:    'Full loadout by category with item weights. Depends on Permits and Food being confirmed first for accurate bear-can sizing.',
   depart:  'Pre-departure reminders, emergency contacts, offline map downloads, and a printable one-pager to take on trail.',

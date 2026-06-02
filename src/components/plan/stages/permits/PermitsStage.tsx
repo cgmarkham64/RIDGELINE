@@ -142,6 +142,13 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
               </div>
             </div>
 
+            <PartnersCard
+              trip={trip}
+              canEdit={canEdit}
+              onInviteSent={() => {}}
+              onNoPartners={() => setPartyConfirmed(true)}
+            />
+
             {viewMode === 'list' ? (
               <PermitsListView
                 permits={permits}
@@ -201,13 +208,6 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
                 {permitFree ? '2 of 2 · permit-free' : `${doneCount} of 5`}
               </div>
             </div>
-
-            <PartnersCard
-              trip={trip}
-              canEdit={canEdit}
-              onInviteSent={() => {}}
-              onNoPartners={() => {}}
-            />
 
             {!permitFree && (
               <div className="bg-surface border border-border rounded-lg p-3.5">

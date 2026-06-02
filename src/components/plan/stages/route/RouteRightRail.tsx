@@ -3,7 +3,6 @@ import { CheckItem } from '../../CheckItem'
 import { ElevationProfile } from '../../../trip/ElevationProfile'
 import { IconFile, IconDownload } from '../../../icons'
 import { downloadGpx } from './routeStage.helpers'
-import { PartnersCard } from './PartnersCard'
 import type { CheckRow } from './routeStage.types'
 import type { Trip } from '../../../../types'
 
@@ -15,8 +14,6 @@ export function RouteRightRail({
   checklist,
   doneCount,
   onToggleCheck,
-  onInviteSent,
-  onNoPartners,
   sourceFiles,
 }: {
   trip: Trip | undefined
@@ -24,8 +21,6 @@ export function RouteRightRail({
   checklist: CheckRow[]
   doneCount: number
   onToggleCheck: (i: number) => void
-  onInviteSent: () => void
-  onNoPartners: () => void
   sourceFiles: SourceFile[]
 }) {
   return (
@@ -51,14 +46,6 @@ export function RouteRightRail({
           {doneCount} of {checklist.length}
         </div>
       </div>
-
-      {/* Partners */}
-      <PartnersCard
-        trip={trip}
-        canEdit={canEdit}
-        onInviteSent={onInviteSent}
-        onNoPartners={onNoPartners}
-      />
 
       {/* Elevation profile */}
       {(trip?.gpxPlanned || (trip?.gpxTracks ?? []).length > 0) && (

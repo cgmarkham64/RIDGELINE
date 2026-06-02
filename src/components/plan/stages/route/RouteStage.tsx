@@ -4,7 +4,7 @@ import { resolveStartEnd } from '../../../map/constants'
 import { fetchDetectedWaterSources, type DetectedWaterSource } from '../../../../lib/waterSources'
 import {
   toLatLngs, gpxCoordsToMiles, buildMergedRows,
-  DEFAULT_CHECKLIST, PARTNER_ITEMS, fetchRoutePreview, reverseGeocode,
+  DEFAULT_CHECKLIST, fetchRoutePreview, reverseGeocode,
   fetchSunTimes, splitSegmentAt, resolveTimePreference,
 } from './routeStage.helpers'
 import { useAuthStore } from '../../../../store/auth'
@@ -18,7 +18,11 @@ import type { StageBodyProps } from '../../types'
 
 export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }: StageBodyProps) {
   const [segments,      setSegments]      = useState<SegRow[]>(plan?.route?.segments ?? [])
-  const [checklist,     setChecklist]     = useState<CheckRow[]>(plan?.route?.checklist ?? DEFAULT_CHECKLIST)
+  const [checklist,     setChecklist]     = useState<CheckRow[]>(() => {
+    const validTexts = new Set(DEFAULT_CHECKLIST.map(c => c.text))
+    const saved = plan?.route?.checklist?.filter((c: CheckRow) => validTexts.has(c.text))
+    return saved?.length ? saved : DEFAULT_CHECKLIST
+  })
   const [drawState,     setDrawState]     = useState<DrawState>({ phase: 'idle' })
   const [waterResult,   setWaterResult]   = useState<{ sources: DetectedWaterSource[]; error: string | null; key: string | null }>({ sources: [], error: null, key: null })
   const [activeRowId,   setActiveRowId]   = useState<string | null>(null)
@@ -129,14 +133,6 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
 
   function toggleCheck(i: number) {
     setChecklist(prev => prev.map((c, idx) => idx === i ? { ...c, done: !c.done } : c))
-  }
-
-  function confirmNoPartners() {
-    setChecklist(prev => prev.map(c => PARTNER_ITEMS.includes(c.text) ? { ...c, done: true } : c))
-  }
-
-  function handleInviteSent() {
-    setChecklist(prev => prev.map(c => PARTNER_ITEMS.includes(c.text) ? { ...c, done: false } : c))
   }
 
   // ── Sun times ────────────────────────────────────────────────────────────────
@@ -505,8 +501,6 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
           checklist={effectiveChecklist}
           doneCount={doneCount}
           onToggleCheck={toggleCheck}
-          onInviteSent={handleInviteSent}
-          onNoPartners={confirmNoPartners}
           sourceFiles={sourceFiles}
         />
       </div>

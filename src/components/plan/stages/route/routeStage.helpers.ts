@@ -10,8 +10,6 @@ export const DEFAULT_CHECKLIST: CheckRow[] = [
   { text: 'Elevation gain confirmed',      done: false },
   { text: 'Segments reviewed',             done: false },
   { text: 'Exposure & water annotated',    done: false, readonly: true },
-  { text: 'Partners added',                done: false },
-  { text: 'Partners reviewed',             done: false },
 ]
 
 const AMBER = '#f0a030'
@@ -26,7 +24,6 @@ export const EXP_LABEL: Record<string, string> = {
   extreme: 'Extreme Exposure',
 }
 
-export const PARTNER_ITEMS = ['Partners added', 'Partners reviewed']
 export const GRID      = '20px 1fr 60px 72px 72px 40px'
 export const DRAG_GRID = '14px 20px 1fr 60px 72px 72px 40px'
 export const ACTIVE_BG = 'var(--color-amber-dim)'
