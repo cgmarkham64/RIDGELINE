@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { IconList, IconLayers } from '../../../icons'
+import { IconList } from '../../../icons'
 import { ProgressBar } from '../../ProgressBar'
 import { CheckItem } from '../../CheckItem'
 import { PermitsListView } from './PermitsListView'
-import { PermitsMapView, MapModal } from './PermitsMapView'
 import { FreeformDialog } from './FreeformDialog'
 import { PartnersCard } from './PartnersCard'
 import { CriticalDatesCard } from './CriticalDatesCard'
@@ -11,17 +10,15 @@ import { extractScanDates } from './criticalDates.helpers'
 import { INITIAL_PERMITS } from './permitsStage.constants'
 import { suggestPermits } from '../../../../lib/permits'
 import { extractApiError } from '../../../../lib/utils'
-import type { Permit, ViewMode } from './permitsStage.types'
+import type { Permit } from './permitsStage.types'
 import type { StageBodyProps, PlanCriticalDate } from '../../types'
 
-export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit = true }: StageBodyProps) {
-  const [viewMode, setViewMode]             = useState<ViewMode>('list')
+export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true }: StageBodyProps) {
   const [permits, setPermits]               = useState<Permit[]>(() => (plan?.permits?.permits as Permit[] | undefined) ?? (plan !== undefined ? [] : INITIAL_PERMITS))
   const [links, setLinks]                   = useState(() => plan?.permits?.links ?? [])
   const [lastScanned, setLastScanned]       = useState<string | undefined>(() => plan?.permits?.lastScanned)
   const [scanning, setScanning]             = useState(false)
   const [scanError, setScanError]           = useState<string | null>(null)
-  const [mapModalPermit, setMapModal]       = useState<Permit | null>(null)
   const [freeformOpen, setFreeformOpen]     = useState(false)
   const [permitFree, setPermitFree]         = useState(() => plan?.permits?.permitFree ?? false)
   const [partyConfirmed, setPartyConfirmed] = useState(false)
@@ -93,8 +90,6 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
 
           {/* ── Left column ── */}
           <div className="flex flex-col gap-[18px]">
-
-            {/* Section header + List ⇄ Map toggle */}
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-heading text-body-lg font-extrabold text-text">Permits &amp; access</div>
@@ -102,57 +97,26 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
                   <div className="font-mono text-label text-text-dim mt-0.5">{locationLabel}</div>
                 )}
               </div>
-              <div className="flex items-stretch bg-surface-2 border border-border rounded-lg overflow-hidden">
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-heading font-bold tracking-[0.06em] uppercase transition-colors cursor-pointer ${
-                    viewMode === 'list'
-                      ? 'bg-amber-dim text-amber'
-                      : 'bg-transparent text-text-mid hover:text-text hover:bg-surface-3'
-                  }`}
-                >
-                  <IconList /> List
-                </button>
-                <button
-                  onClick={() => setViewMode('map')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-caption font-heading font-bold tracking-[0.06em] uppercase transition-colors cursor-pointer border-l border-border ${
-                    viewMode === 'map'
-                      ? 'bg-amber-dim text-amber'
-                      : 'bg-transparent text-text-mid hover:text-text hover:bg-surface-3'
-                  }`}
-                >
-                  <IconLayers /> Map
-                </button>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-2 border border-border rounded-lg text-caption font-heading font-bold tracking-[0.06em] uppercase text-text-mid">
+                <IconList /> List
               </div>
             </div>
 
-            {viewMode === 'list' ? (
-              <PermitsListView
-                permits={permits}
-                links={links}
-                onRemove={remove}
-                onViewMap={p => setMapModal(p)}
-                onAddFreeform={() => setFreeformOpen(true)}
-                onUpdatePermit={updatePermitField}
-                canEdit={canEdit}
-                partySize={partySize}
-                scanning={scanning}
-                scanError={scanError}
-                lastScanned={lastScanned}
-                onRescan={runScan}
-                permitFree={permitFree}
-                onMarkPermitFree={() => setPermitFree(true)}
-              />
-            ) : (
-              <PermitsMapView
-                permits={permits}
-                suggestions={[]}
-                onAccept={() => {}}
-                onViewMap={p => setMapModal(p)}
-                onJump={onJump}
-                canEdit={canEdit}
-              />
-            )}
+            <PermitsListView
+              permits={permits}
+              links={links}
+              onRemove={remove}
+              onAddFreeform={() => setFreeformOpen(true)}
+              onUpdatePermit={updatePermitField}
+              canEdit={canEdit}
+              partySize={partySize}
+              scanning={scanning}
+              scanError={scanError}
+              lastScanned={lastScanned}
+              onRescan={runScan}
+              permitFree={permitFree}
+              onMarkPermitFree={() => setPermitFree(true)}
+            />
           </div>
 
           {/* ── Right rail ── */}
@@ -196,14 +160,10 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
               onAdd={d => setCriticalDates(prev => [...prev, d])}
               onRemove={id => setCriticalDates(prev => prev.filter(d => d.id !== id))}
             />
-
           </aside>
         </div>
       </div>
 
-      {mapModalPermit && (
-        <MapModal permit={mapModalPermit} onClose={() => setMapModal(null)} />
-      )}
       {freeformOpen && (
         <FreeformDialog onClose={() => setFreeformOpen(false)} onAdd={addCustom} partySize={partySize} />
       )}

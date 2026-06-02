@@ -18,14 +18,13 @@ const TIER_CLS: Record<SourceTier, string> = {
 }
 
 export function PermitsListView({
-  permits, links, onRemove, onViewMap, onAddFreeform, onUpdatePermit,
+  permits, links, onRemove, onAddFreeform, onUpdatePermit,
   canEdit, partySize, scanning, scanError, lastScanned, onRescan,
   permitFree, onMarkPermitFree,
 }: {
   permits:          Permit[]
   links:            PermitLink[]
   onRemove:         (id: string) => void
-  onViewMap:        (p: Permit) => void
   onAddFreeform:    () => void
   onUpdatePermit:   (id: string, key: string, value: string) => void
   canEdit:          boolean
@@ -146,7 +145,6 @@ export function PermitsListView({
                 key={p.id}
                 permit={p}
                 onRemove={() => onRemove(p.id)}
-                onViewMap={() => onViewMap(p)}
                 onUpdatePermit={(key, val) => onUpdatePermit(p.id, key, val)}
                 canEdit={canEdit}
                 partySize={partySize}
