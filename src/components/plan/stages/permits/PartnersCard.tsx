@@ -5,7 +5,7 @@ import { searchUsers, shareTrip, type UserSearchResult } from '../../../../lib/u
 import { unshareTrip } from '../../../../lib/trips'
 import { initials } from '../../../../lib/utils'
 import { useAuthStore } from '../../../../store/auth'
-import { IconPlus, IconMinus, IconX, IconMoreVertical } from '../../../icons'
+import { IconPlus, IconMinus, IconX, IconMoreVertical, IconCheck } from '../../../icons'
 import type { StageBodyProps } from '../../types'
 
 type PartnersCardProps = {
@@ -13,9 +13,11 @@ type PartnersCardProps = {
   canEdit: boolean
   onInviteSent: () => void
   onNoPartners: () => void
+  partyConfirmed?: boolean
+  onConfirmParty?: () => void
 }
 
-export function PartnersCard({ trip, canEdit, onInviteSent, onNoPartners }: PartnersCardProps) {
+export function PartnersCard({ trip, canEdit, onInviteSent, onNoPartners, partyConfirmed = false, onConfirmParty }: PartnersCardProps) {
   const qc = useQueryClient()
   const currentUserSub = useAuthStore(s => s.user?.id)
   const isOwner = !!currentUserSub && currentUserSub === trip?.ownerSub
@@ -171,6 +173,23 @@ export function PartnersCard({ trip, canEdit, onInviteSent, onNoPartners }: Part
           </div>
         )
       })}
+
+      {canEdit && onConfirmParty && !inviteOpen && (
+        <div className="mt-2 pt-2 border-t border-border flex items-center justify-between">
+          {partyConfirmed ? (
+            <span className="font-mono text-label text-pine flex items-center gap-1.5">
+              <IconCheck size={10} /> Party confirmed
+            </span>
+          ) : (
+            <button
+              onClick={onConfirmParty}
+              className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
+            >
+              Confirm party
+            </button>
+          )}
+        </div>
+      )}
 
       {inviteOpen && (
         <div className="pt-2.5">

@@ -5,7 +5,7 @@ import { CheckItem } from '../../CheckItem'
 import { PermitsListView } from './PermitsListView'
 import { PermitsMapView, MapModal } from './PermitsMapView'
 import { FreeformDialog } from './FreeformDialog'
-import { PartnersCard } from '../route/PartnersCard'
+import { PartnersCard } from './PartnersCard'
 import { INITIAL_PERMITS, CRITICAL_DATES, TONE_CLS } from './permitsStage.constants'
 import { suggestPermits } from '../../../../lib/permits'
 import { extractApiError } from '../../../../lib/utils'
@@ -147,6 +147,8 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
               canEdit={canEdit}
               onInviteSent={() => {}}
               onNoPartners={() => setPartyConfirmed(true)}
+              partyConfirmed={partyConfirmed}
+              onConfirmParty={() => setPartyConfirmed(true)}
             />
 
             {viewMode === 'list' ? (
@@ -160,9 +162,6 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
                 onViewMap={p => setMapModal(p)}
                 onAddFreeform={() => setFreeformOpen(true)}
                 onUpdatePermit={updatePermitField}
-                partyConfirmed={partyConfirmed}
-                onConfirmParty={() => setPartyConfirmed(true)}
-                onJump={onJump}
                 canEdit={canEdit}
                 partySize={partySize}
                 scanning={scanning}
@@ -170,6 +169,8 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
                 lastScanned={lastScanned}
                 sources={sources}
                 onRescan={runScan}
+                permitFree={permitFree}
+                onMarkPermitFree={() => setPermitFree(true)}
               />
             ) : (
               <PermitsMapView
@@ -219,19 +220,24 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
             )}
 
             {canEdit && (!permitFree ? (
-              <div className="flex items-start gap-2.5 px-3 py-3 bg-pine-dim border border-pine-border rounded-lg">
-                <span className="text-pine shrink-0 mt-0.5"><IconCheck size={14} /></span>
-                <div className="text-fine text-text-mid">
-                  <span className="font-semibold text-text">No permit needed?</span>{' '}
-                  If you've reviewed and your trip is permit-free, mark this stage complete.
-                  <button
-                    onClick={() => setPermitFree(true)}
-                    className="block mt-2 font-mono text-label tracking-[0.12em] uppercase text-pine hover:text-text transition-colors bg-transparent border-none cursor-pointer p-0"
-                  >
-                    Mark as permit-free →
-                  </button>
-                </div>
-              </div>
+              (() => {
+                const scanConfirmedPermitFree = !!lastScanned && permits.length === 0 && suggestions.length === 0
+                return !scanConfirmedPermitFree ? (
+                  <div className="flex items-start gap-2.5 px-3 py-3 bg-pine-dim border border-pine-border rounded-lg">
+                    <span className="text-pine shrink-0 mt-0.5"><IconCheck size={14} /></span>
+                    <div className="text-fine text-text-mid">
+                      <span className="font-semibold text-text">No permit needed?</span>{' '}
+                      If you've reviewed and your trip is permit-free, mark this stage complete.
+                      <button
+                        onClick={() => setPermitFree(true)}
+                        className="block mt-2 font-mono text-label tracking-[0.12em] uppercase text-pine hover:text-text transition-colors bg-transparent border-none cursor-pointer p-0"
+                      >
+                        Mark as permit-free →
+                      </button>
+                    </div>
+                  </div>
+                ) : null
+              })()
             ) : (
               <div className="flex items-start gap-2.5 px-3 py-3 bg-pine-dim border border-pine-border rounded-lg">
                 <span className="text-pine shrink-0 mt-0.5"><IconCheck size={14} /></span>

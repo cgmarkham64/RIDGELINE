@@ -5,7 +5,6 @@ import { SuggestionRow } from './SuggestionRow'
 import { PERMIT_TYPES } from './permitsStage.constants'
 import type { Permit } from './permitsStage.types'
 import type { PermitTypeName, PermitSource } from '../../types'
-import { JumpChip } from '../../JumpChip'
 
 const TIER_DOT: Record<string, string> = {
   official:  'bg-pine',
@@ -29,7 +28,7 @@ function TierDot({ tier }: { tier?: string }) {
   )
 }
 
-export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, onReject, onRemove, onViewMap, onAddFreeform, onUpdatePermit, partyConfirmed, onConfirmParty, onJump, canEdit, partySize, scanning, scanError, lastScanned, sources, onRescan }: {
+export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, onReject, onRemove, onViewMap, onAddFreeform, onUpdatePermit, canEdit, partySize, scanning, scanError, lastScanned, sources, onRescan, permitFree, onMarkPermitFree }: {
   permits: Permit[]
   suggestions: Permit[]
   onAcceptAll: () => void
@@ -39,9 +38,6 @@ export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, o
   onViewMap: (p: Permit) => void
   onAddFreeform: () => void
   onUpdatePermit: (id: string, key: string, value: string) => void
-  partyConfirmed: boolean
-  onConfirmParty: () => void
-  onJump: (id: string) => void
   canEdit: boolean
   partySize: number
   scanning: boolean
@@ -49,6 +45,8 @@ export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, o
   lastScanned: string | undefined
   sources: PermitSource[]
   onRescan: () => void
+  permitFree: boolean
+  onMarkPermitFree: () => void
 }) {
   const [search, setSearch] = useState('')
 
@@ -66,10 +64,6 @@ export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, o
           ? 'No permits required for this route'
           : 'Import a route in Stage 1 to get AI-powered permit suggestions'
 
-  const scannedAt = lastScanned
-    ? new Date(lastScanned).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-    : null
-
   return (
     <div className="flex flex-col gap-[22px]">
 
@@ -82,27 +76,14 @@ export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, o
           <div className={`font-heading text-body-sm font-bold ${scanError ? 'text-red' : 'text-amber'}`}>
             {bannerHeading}
           </div>
-          <div className="font-mono text-label text-text-mid mt-0.5">
-            {!scanning && !scanError && (
-              <>
-                Party of {partySize} from{' '}
-                <JumpChip to="route" onJump={onJump}>Route</JumpChip>
-                {' · '}
-                {partyConfirmed ? (
-                  <span className="text-pine">confirmed ✓</span>
-                ) : canEdit ? (
-                  <button
-                    onClick={onConfirmParty}
-                    className="text-amber hover:underline bg-transparent border-none cursor-pointer font-mono text-label p-0"
-                  >
-                    confirm party →
-                  </button>
-                ) : null}
-                {scannedAt && <span className="ml-1 text-text-dim">· scanned {scannedAt}</span>}
-              </>
-            )}
-            {scanning && <span className="text-text-dim">Claude is searching for current permit info…</span>}
-          </div>
+          {!scanning && !scanError && lastScanned && allPermits.length === 0 && !permitFree && canEdit && (
+            <button
+              onClick={onMarkPermitFree}
+              className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-pine-border text-pine bg-pine-dim font-heading text-caption font-bold tracking-[0.08em] uppercase hover:brightness-95 transition-all cursor-pointer"
+            >
+              <IconCheck size={10} /> Confirm — no permits needed
+            </button>
+          )}
         </div>
         {canEdit && !scanning && (
           <button
