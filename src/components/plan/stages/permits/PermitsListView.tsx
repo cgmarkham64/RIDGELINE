@@ -61,7 +61,7 @@ export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, o
       : allPermits.length > 0
         ? `Found ${uniqueTypeCount} permit type${uniqueTypeCount !== 1 ? 's' : ''} across ${uniqueAgencyCount} agenc${uniqueAgencyCount !== 1 ? 'ies' : 'y'}`
         : lastScanned
-          ? 'No permits required for this route'
+          ? 'Based on these sources, we do not believe permits are required for this trip'
           : 'Import a route in Stage 1 to get AI-powered permit suggestions'
 
   return (
