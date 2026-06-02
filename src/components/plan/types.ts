@@ -134,15 +134,24 @@ export interface PlanWeatherData {
 
 // ─── PlanData — top-level shape passed from PlanWizard to each stage ──────────
 
+export interface PlanCriticalDate {
+  id:     string
+  date:   string
+  label:  string
+  tone:   'amber' | 'sky' | 'pine'
+  source: 'manual' | 'scan'
+}
+
 export interface PlanData {
   route?: PlanRouteData
   weather?: PlanWeatherData
   permits?: {
-    permits:      PlanPermitEntry[]
-    permitFree:   boolean
-    suggestions?: PlanPermitEntry[]
-    lastScanned?: string
-    sources?:     PermitSource[]
+    permits:        PlanPermitEntry[]
+    permitFree:     boolean
+    suggestions?:   PlanPermitEntry[]
+    lastScanned?:   string
+    sources?:       PermitSource[]
+    criticalDates?: PlanCriticalDate[]
   }
   food?: {
     meals: PlanMealEntry[]

@@ -80,22 +80,24 @@ export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, o
           <div className={`font-heading text-body-sm font-bold ${permitFree ? 'text-pine' : scanError ? 'text-red' : 'text-amber'}`}>
             {bannerHeading}
           </div>
-          {!scanning && !scanError && lastScanned && allPermits.length === 0 && !permitFree && canEdit && (
-            <button
-              onClick={onMarkPermitFree}
-              className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-pine-border text-pine bg-pine-dim font-heading text-caption font-bold tracking-[0.08em] uppercase hover:brightness-95 transition-all cursor-pointer"
-            >
-              <IconCheck size={10} /> Confirm — no permits needed
-            </button>
-          )}
         </div>
         {canEdit && !scanning && !permitFree && (
-          <button
-            onClick={onRescan}
-            className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer shrink-0"
-          >
-            Re-scan
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {lastScanned && allPermits.length === 0 && (
+              <button
+                onClick={onMarkPermitFree}
+                className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-pine-border text-pine bg-pine-dim hover:brightness-95 transition-all cursor-pointer"
+              >
+                <IconCheck size={10} /> Confirm permit-free
+              </button>
+            )}
+            <button
+              onClick={onRescan}
+              className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
+            >
+              Re-scan
+            </button>
+          </div>
         )}
         {scanning && (
           <span className="w-4 h-4 rounded-full border-2 border-amber border-t-transparent animate-spin shrink-0" />

@@ -1,25 +1,18 @@
-import { useState, useEffect, useRef } from 'react'
-import { IconX, IconCheck, IconList, IconLayers } from '../../../icons'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { IconCheck, IconList, IconLayers } from '../../../icons'
 import { ProgressBar } from '../../ProgressBar'
 import { CheckItem } from '../../CheckItem'
 import { PermitsListView } from './PermitsListView'
 import { PermitsMapView, MapModal } from './PermitsMapView'
 import { FreeformDialog } from './FreeformDialog'
 import { PartnersCard } from './PartnersCard'
-import { INITIAL_PERMITS, CRITICAL_DATES, TONE_CLS } from './permitsStage.constants'
+import { CriticalDatesCard } from './CriticalDatesCard'
+import { extractScanDates } from './criticalDates.helpers'
+import { INITIAL_PERMITS } from './permitsStage.constants'
 import { suggestPermits } from '../../../../lib/permits'
 import { extractApiError } from '../../../../lib/utils'
-import type { Permit, PermitTone, ViewMode } from './permitsStage.types'
-import type { StageBodyProps } from '../../types'
-
-function DateRow({ date, label, tone, last }: { date: string; label: string; tone: PermitTone; last?: boolean }) {
-  return (
-    <div className={`flex items-center gap-2.5 py-2 ${last ? '' : 'border-b border-border'}`}>
-      <span className={`font-mono text-caption font-bold px-1.5 py-0.5 rounded border shrink-0 ${TONE_CLS[tone]}`}>{date}</span>
-      <span className="text-fine text-text-mid flex-1">{label}</span>
-    </div>
-  )
-}
+import type { Permit, ViewMode } from './permitsStage.types'
+import type { StageBodyProps, PlanCriticalDate } from '../../types'
 
 export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit = true }: StageBodyProps) {
   const [viewMode, setViewMode]         = useState<ViewMode>('list')
@@ -31,10 +24,13 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
   const [scanError, setScanError]       = useState<string | null>(null)
   const [mapModalPermit, setMapModal]   = useState<Permit | null>(null)
   const [freeformOpen, setFreeformOpen] = useState(false)
-  const [permitFree, setPermitFree]     = useState(() => plan?.permits?.permitFree ?? false)
+  const [permitFree, setPermitFree]         = useState(() => plan?.permits?.permitFree ?? false)
   const [partyConfirmed, setPartyConfirmed] = useState(false)
+  const [criticalDates, setCriticalDates]   = useState<PlanCriticalDate[]>(() => plan?.permits?.criticalDates ?? [])
   const remindersSet  = false
   const backupPlanned = false
+
+  const scanDates = useMemo(() => extractScanDates(permits), [permits])
 
   const isMounted    = useRef(false)
   useEffect(() => () => { isMounted.current = false }, [])
@@ -44,8 +40,8 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
   useEffect(() => { onProgressRef.current = onProgress }, [onProgress])
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
-    onChangeRef.current?.({ permits: { permits, permitFree, suggestions, lastScanned, sources } })
-  }, [permits, permitFree, suggestions, lastScanned, sources])
+    onChangeRef.current?.({ permits: { permits, permitFree, suggestions, lastScanned, sources, criticalDates } })
+  }, [permits, permitFree, suggestions, lastScanned, sources, criticalDates])
 
   async function runScan() {
     if (!trip?._id || scanning) return
@@ -192,7 +188,7 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
               {permitFree ? (
                 <>
                   <CheckItem text="Route reviewed for permits" done />
-                  <CheckItem text="Confirmed — no permits required" done />
+                  <CheckItem text="Confirmed — no permits required" done onToggle={canEdit ? () => setPermitFree(false) : undefined} />
                 </>
               ) : (
                 <>
@@ -210,49 +206,32 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
               </div>
             </div>
 
-            {!permitFree && (
-              <div className="bg-surface border border-border rounded-lg p-3.5">
-                <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-1">Critical dates</div>
-                {CRITICAL_DATES.map((d, i) => (
-                  <DateRow key={d.label} {...d} last={i === CRITICAL_DATES.length - 1} />
-                ))}
-              </div>
-            )}
+            <CriticalDatesCard
+              manualDates={criticalDates}
+              scanDates={scanDates}
+              canEdit={canEdit}
+              onAdd={d => setCriticalDates(prev => [...prev, d])}
+              onRemove={id => setCriticalDates(prev => prev.filter(d => d.id !== id))}
+            />
 
-            {canEdit && (!permitFree ? (
-              (() => {
-                const scanConfirmedPermitFree = !!lastScanned && permits.length === 0 && suggestions.length === 0
-                return !scanConfirmedPermitFree ? (
-                  <div className="flex items-start gap-2.5 px-3 py-3 bg-pine-dim border border-pine-border rounded-lg">
-                    <span className="text-pine shrink-0 mt-0.5"><IconCheck size={14} /></span>
-                    <div className="text-fine text-text-mid">
-                      <span className="font-semibold text-text">No permit needed?</span>{' '}
-                      If you've reviewed and your trip is permit-free, mark this stage complete.
-                      <button
-                        onClick={() => setPermitFree(true)}
-                        className="block mt-2 font-mono text-label tracking-[0.12em] uppercase text-pine hover:text-text transition-colors bg-transparent border-none cursor-pointer p-0"
-                      >
-                        Mark as permit-free →
-                      </button>
-                    </div>
+            {canEdit && !permitFree && (() => {
+              const scanConfirmedPermitFree = !!lastScanned && permits.length === 0 && suggestions.length === 0
+              return !scanConfirmedPermitFree ? (
+                <div className="flex items-start gap-2.5 px-3 py-3 bg-pine-dim border border-pine-border rounded-lg">
+                  <span className="text-pine shrink-0 mt-0.5"><IconCheck size={14} /></span>
+                  <div className="text-fine text-text-mid">
+                    <span className="font-semibold text-text">No permit needed?</span>{' '}
+                    If you've reviewed and your trip is permit-free, mark this stage complete.
+                    <button
+                      onClick={() => setPermitFree(true)}
+                      className="block mt-2 font-mono text-label tracking-[0.12em] uppercase text-pine hover:text-text transition-colors bg-transparent border-none cursor-pointer p-0"
+                    >
+                      Mark as permit-free →
+                    </button>
                   </div>
-                ) : null
-              })()
-            ) : (
-              <div className="flex items-start gap-2.5 px-3 py-3 bg-pine-dim border border-pine-border rounded-lg">
-                <span className="text-pine shrink-0 mt-0.5"><IconCheck size={14} /></span>
-                <div className="flex-1 text-fine text-text-mid">
-                  <span className="font-semibold text-text">Stage complete — permit-free trip.</span>
                 </div>
-                <button
-                  onClick={() => setPermitFree(false)}
-                  className="text-text-dim hover:text-text p-0.5 transition-colors bg-transparent border-none cursor-pointer shrink-0"
-                  title="Undo"
-                >
-                  <IconX size={12} />
-                </button>
-              </div>
-            ))}
+              ) : null
+            })()}
           </aside>
         </div>
       </div>
