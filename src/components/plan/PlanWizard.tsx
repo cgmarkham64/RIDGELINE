@@ -123,8 +123,13 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
     return BASE_STAGES.map((s, i) => {
       let seeded = s
       if (s.id === 'route') {
-        const cl = plan.route?.checklist ?? []
-        seeded = { ...s, done: cl.filter(c => c.done).length }
+        const cl   = plan.route?.checklist ?? []
+        const segs = plan.route?.segments  ?? []
+        const exposureWaterDone = segs.length > 0 && segs.every((seg: { exposure?: string; water?: string }) => !!seg.exposure && !!seg.water)
+        const done = cl.filter((c: { text: string; done: boolean }) =>
+          c.text === 'Exposure & water annotated' ? exposureWaterDone : c.done
+        ).length
+        seeded = { ...s, done }
       }
       if (s.id === 'weather') {
         const w = plan.weather
