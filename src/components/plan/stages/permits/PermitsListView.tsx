@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IconMap, IconCheck, IconSearch, IconPlus } from '../../../icons'
+import { IconMap, IconCheck, IconSearch, IconPlus, IconAlertTriangle } from '../../../icons'
 import { PermitCard } from './PermitCard'
 import { SuggestionRow } from './SuggestionRow'
 import { PERMIT_TYPES } from './permitsStage.constants'
@@ -106,9 +106,9 @@ export function PermitsListView({ permits, suggestions, onAcceptAll, onAccept, o
 
       {/* AI results disclaimer */}
       {lastScanned && !scanning && (
-        <div className="flex flex-col gap-2.5 px-3 py-3 bg-surface border border-border rounded text-label text-text-dim font-mono">
+        <div className="flex flex-col gap-2.5 px-3 py-3 bg-surface border border-border rounded text-caption text-text-dim font-mono">
           <div className="flex items-start gap-2">
-            <span className="shrink-0 mt-px">⚠</span>
+            <IconAlertTriangle size={13} className="shrink-0 mt-px text-amber" />
             <span>AI-generated suggestions — always verify before booking. Follow these steps:</span>
           </div>
           <ol className="flex flex-col gap-1 pl-5 list-decimal marker:text-text-dim">

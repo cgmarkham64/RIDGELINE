@@ -101,7 +101,7 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
   return (
     <>
       <div className="flex-1 overflow-y-auto p-8 pb-20">
-        <div className="grid gap-7 max-w-[1100px] grid-cols-[1fr_320px]">
+        <div className="grid gap-7 grid-cols-[1fr_320px]">
 
           {/* ── Left column ── */}
           <div className="flex flex-col gap-[18px]">
@@ -137,15 +137,6 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
                 </button>
               </div>
             </div>
-
-            <PartnersCard
-              trip={trip}
-              canEdit={canEdit}
-              onInviteSent={() => {}}
-              onNoPartners={() => setPartyConfirmed(true)}
-              partyConfirmed={partyConfirmed}
-              onConfirmParty={() => setPartyConfirmed(true)}
-            />
 
             {viewMode === 'list' ? (
               <PermitsListView
@@ -205,6 +196,15 @@ export function PermitsStage({ onJump, plan, onChange, onProgress, trip, canEdit
                 {permitFree ? '2 of 2 · permit-free' : `${doneCount} of 5`}
               </div>
             </div>
+
+            <PartnersCard
+              trip={trip}
+              canEdit={canEdit}
+              onInviteSent={() => {}}
+              onNoPartners={() => setPartyConfirmed(true)}
+              partyConfirmed={partyConfirmed}
+              onConfirmParty={() => setPartyConfirmed(true)}
+            />
 
             <CriticalDatesCard
               manualDates={criticalDates}
