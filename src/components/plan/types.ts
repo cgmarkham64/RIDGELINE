@@ -152,7 +152,6 @@ export interface PlanData {
     permits:         PlanPermitEntry[]
     permitFree:      boolean
     partyConfirmed?: boolean
-    remindersSet?:   boolean
     backupPlanned?:  boolean
     links?:          PermitLink[]
     lastScanned?:    string

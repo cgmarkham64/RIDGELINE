@@ -22,7 +22,6 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
   const [editingPermit, setEditingPermit]   = useState<Permit | null>(null)
   const [permitFree, setPermitFree]         = useState(() => plan?.permits?.permitFree ?? false)
   const [partyConfirmed, setPartyConfirmed] = useState(() => plan?.permits?.partyConfirmed ?? false)
-  const [remindersSet, setRemindersSet]     = useState(() => plan?.permits?.remindersSet ?? false)
   const [backupPlanned, setBackupPlanned]   = useState(() => plan?.permits?.backupPlanned ?? false)
   const [criticalDates, setCriticalDates]   = useState<PlanCriticalDate[]>(() => plan?.permits?.criticalDates ?? [])
 
@@ -36,8 +35,8 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
   useEffect(() => { onProgressRef.current = onProgress }, [onProgress])
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
-    onChangeRef.current?.({ permits: { permits, permitFree, partyConfirmed, remindersSet, backupPlanned, links, lastScanned, criticalDates } })
-  }, [permits, permitFree, partyConfirmed, remindersSet, backupPlanned, links, lastScanned, criticalDates])
+    onChangeRef.current?.({ permits: { permits, permitFree, partyConfirmed, backupPlanned, links, lastScanned, criticalDates } })
+  }, [permits, permitFree, partyConfirmed, backupPlanned, links, lastScanned, criticalDates])
 
   async function runScan() {
     if (!trip?._id || scanning) return
@@ -86,13 +85,12 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
 
   const item1 = permits.length > 0
   const item2 = partyConfirmed
-  const item3 = remindersSet
-  const item4 = backupPlanned
-  const doneCount = [item1, item2, item3, item4].filter(Boolean).length
-  const progress  = Math.round((doneCount / 4) * 100)
+  const item3 = backupPlanned
+  const doneCount = [item1, item2, item3].filter(Boolean).length
+  const progress  = Math.round((doneCount / 3) * 100)
 
   useEffect(() => {
-    onProgressRef.current?.(permitFree ? 2 : doneCount, permitFree ? 2 : 4)
+    onProgressRef.current?.(permitFree ? 2 : doneCount, permitFree ? 2 : 3)
   }, [doneCount, permitFree])
 
   const partySize     = (trip?.sharedWith?.length ?? 0) + 1
@@ -146,14 +144,13 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
                 <>
                   <CheckItem text="At least one permit added"  done={item1} />
                   <CheckItem text="Party size confirmed"       done={item2} onToggle={canEdit ? () => setPartyConfirmed(v => !v) : undefined} />
-                  <CheckItem text="Reminders set"              done={item3} onToggle={canEdit ? () => setRemindersSet(v => !v) : undefined} />
-                  <CheckItem text="Walk-up backup planned"     done={item4} onToggle={canEdit ? () => setBackupPlanned(v => !v) : undefined} />
+                  <CheckItem text="Walk-up backup planned"     done={item3} onToggle={canEdit ? () => setBackupPlanned(v => !v) : undefined} />
                 </>
               )}
               <div className="h-px bg-border my-3" />
               <ProgressBar value={permitFree ? 100 : progress} tone={permitFree ? 'pine' : 'amber'} />
               <div className="font-mono text-label text-text-dim text-center mt-1.5">
-                {permitFree ? '2 of 2 · permit-free' : `${doneCount} of 4`}
+                {permitFree ? '2 of 2 · permit-free' : `${doneCount} of 3`}
               </div>
             </div>
 
