@@ -1,4 +1,4 @@
-import { IconX, IconCheck, IconPencil } from '../../../icons'
+import { IconX, IconCheck, IconPencil, IconExternalLink } from '../../../icons'
 import { PermitTypeIcon, TypeChip, Field } from './PermitAtoms'
 import { PERMIT_TYPES, TONE_CLS, ZONE_STATUS_CLS } from './permitsStage.constants'
 import type { Permit } from './permitsStage.types'
@@ -27,18 +27,18 @@ export function PermitCard({ permit, onRemove, onEdit, onUpdatePermit, canEdit, 
           </div>
           <div className="font-heading text-body-sm font-extrabold text-text leading-snug">{permit.name}</div>
           <div className="font-mono text-label text-text-dim mt-0.5">{permit.agency}</div>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
           {permit.url && (
             <a
               href={permit.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-mono text-label tracking-[0.08em] uppercase text-text-dim hover:text-amber px-2 py-1 border border-transparent hover:border-amber-border hover:bg-amber-dim rounded transition-colors"
+              className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase mt-2 px-2.5 py-1.5 rounded border border-amber-border text-amber bg-amber-dim hover:bg-amber transition-colors"
             >
-              Book
+              Book <IconExternalLink size={10} />
             </a>
           )}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
           {canEdit && (
             <button onClick={onEdit} className="text-text-dim hover:text-text p-1 transition-colors" title="Edit">
               <IconPencil size={13} />

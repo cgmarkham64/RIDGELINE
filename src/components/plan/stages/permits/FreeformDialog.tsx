@@ -71,13 +71,14 @@ const INPUT_CLS = 'px-2.5 py-1.5 bg-surface-2 border border-border rounded font-
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function FreeformDialog({ onClose, onSave, partySize, initialPermit }: {
+export function FreeformDialog({ onClose, onSave, partySize, initialPermit, aiPrefill }: {
   onClose:        () => void
   onSave:         (permit: Permit) => void
   partySize:      number
   initialPermit?: Permit
+  aiPrefill?:     { confidence: 'high' | 'medium' | 'low'; verificationNote: string }
 }) {
-  const isEditing = !!initialPermit
+  const isEditing = !!initialPermit && !aiPrefill
 
   const [step, setStep]                 = useState<'type' | 'details'>(isEditing ? 'details' : 'type')
   const [selectedType, setSelectedType] = useState<PermitTypeName | null>(initialPermit?.type ?? null)
@@ -143,13 +144,12 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit }: {
     })
   }
 
-  const presetRows  = draftDates.filter(d => d.isPreset)
-  const customRows  = draftDates.filter(d => !d.isPreset)
-  const hasDateRows = presetRows.length > 0 || customRows.length > 0 || addingCustom
+  const presetRows = draftDates.filter(d => d.isPreset)
+  const customRows = draftDates.filter(d => !d.isPreset)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[rgba(10,9,8,0.78)]">
-      <div className="bg-surface border border-border rounded-xl w-full max-w-[520px] shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="bg-surface border border-border rounded-xl w-full max-w-160 shadow-2xl flex flex-col max-h-[90vh]">
 
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border shrink-0">
@@ -210,6 +210,22 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit }: {
             {/* Step: Details */}
             {step === 'details' && selectedType && (
               <>
+                {aiPrefill && (
+                  <div className={`flex items-start gap-2.5 px-3 py-2.5 rounded border mb-4 ${
+                    aiPrefill.confidence === 'high'
+                      ? 'bg-pine-dim border-pine-border'
+                      : aiPrefill.confidence === 'medium'
+                        ? 'bg-amber-dim border-amber-border'
+                        : 'bg-red-dim border-red-border'
+                  }`}>
+                    <span className={`font-mono text-label font-bold tracking-widest uppercase shrink-0 mt-0.5 ${
+                      aiPrefill.confidence === 'high' ? 'text-pine' : aiPrefill.confidence === 'medium' ? 'text-amber' : 'text-red'
+                    }`}>
+                      {aiPrefill.confidence === 'high' ? 'Verify' : aiPrefill.confidence === 'medium' ? 'Review carefully' : 'Low confidence'}
+                    </span>
+                    <span className="text-caption text-text-mid leading-relaxed">{aiPrefill.verificationNote}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2 mb-4">
                   <TypeChip type={selectedType} />
                   {!isEditing && (
@@ -255,17 +271,33 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit }: {
                 </div>
 
                 {/* Critical dates section */}
-                {hasDateRows && (
-                  <div className="mt-5">
-                    <div className="h-px bg-border mb-4" />
-                    <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-3">Critical dates</div>
-                    <div className="flex flex-col gap-3.5">
+                <div className="mt-5">
+                  <div className="h-px bg-border mb-4" />
+                  <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-3">Critical dates</div>
+
+                  {(presetRows.length > 0 || customRows.length > 0 || addingCustom) && (
+                    <div className="border border-border rounded-lg overflow-hidden divide-y divide-border mb-2.5">
 
                       {/* Preset rows */}
                       {presetRows.map(d => (
-                        <div key={d.key} className="flex flex-col gap-1.5">
+                        <div key={d.key} className="flex flex-col gap-2 px-3.5 py-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="font-mono text-label text-text-dim leading-tight">{d.label}</span>
+                            <div className="flex gap-1 shrink-0">
+                              {TONE_BTNS.map(tb => (
+                                <button
+                                  key={tb.value}
+                                  onClick={() => updateDraftDate(d.key, { tone: tb.value })}
+                                  className={`px-2 py-0.5 rounded border font-mono text-label font-bold tracking-[0.06em] uppercase transition-colors cursor-pointer ${
+                                    d.tone === tb.value ? tb.cls : 'bg-transparent border-border text-text-dim hover:border-border-mid'
+                                  }`}
+                                >
+                                  {tb.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-label text-text-dim w-[136px] shrink-0 truncate" title={d.label}>{d.label}</span>
                             <input
                               type="date"
                               value={d.dateStr}
@@ -276,48 +308,36 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit }: {
                               type="time"
                               value={d.timeStr}
                               onChange={e => updateDraftDate(d.key, { timeStr: e.target.value })}
-                              className={`w-[104px] shrink-0 ${INPUT_CLS}`}
+                              className={`w-28 shrink-0 ${INPUT_CLS}`}
                             />
-                          </div>
-                          <div className="flex gap-1.5">
-                            {TONE_BTNS.map(tb => (
-                              <button
-                                key={tb.value}
-                                onClick={() => updateDraftDate(d.key, { tone: tb.value })}
-                                className={`flex-1 px-2 py-1 rounded border font-mono text-label font-bold tracking-[0.08em] uppercase transition-colors cursor-pointer ${
-                                  d.tone === tb.value ? tb.cls : 'bg-transparent border-border text-text-dim hover:border-border-mid'
-                                }`}
-                              >
-                                {tb.label}
-                              </button>
-                            ))}
                           </div>
                         </div>
                       ))}
 
                       {/* Custom rows */}
                       {customRows.map(d => (
-                        <div key={d.key} className="flex flex-col gap-1.5">
-                          <input
-                            type="text"
-                            value={d.label}
-                            onChange={e => updateDraftDate(d.key, { label: e.target.value })}
-                            placeholder="Label"
-                            className={`w-full ${INPUT_CLS}`}
-                          />
+                        <div key={d.key} className="flex flex-col gap-2 px-3.5 py-3">
                           <div className="flex items-center gap-2">
                             <input
-                              type="date"
-                              value={d.dateStr}
-                              onChange={e => updateDraftDate(d.key, { dateStr: e.target.value })}
+                              type="text"
+                              value={d.label}
+                              onChange={e => updateDraftDate(d.key, { label: e.target.value })}
+                              placeholder="Label"
                               className={`flex-1 ${INPUT_CLS}`}
                             />
-                            <input
-                              type="time"
-                              value={d.timeStr}
-                              onChange={e => updateDraftDate(d.key, { timeStr: e.target.value })}
-                              className={`w-[104px] shrink-0 ${INPUT_CLS}`}
-                            />
+                            <div className="flex gap-1 shrink-0">
+                              {TONE_BTNS.map(tb => (
+                                <button
+                                  key={tb.value}
+                                  onClick={() => updateDraftDate(d.key, { tone: tb.value })}
+                                  className={`px-2 py-0.5 rounded border font-mono text-label font-bold tracking-[0.06em] uppercase transition-colors cursor-pointer ${
+                                    d.tone === tb.value ? tb.cls : 'bg-transparent border-border text-text-dim hover:border-border-mid'
+                                  }`}
+                                >
+                                  {tb.label}
+                                </button>
+                              ))}
+                            </div>
                             <button
                               onClick={() => removeDraftDate(d.key)}
                               className="text-text-dim hover:text-red transition-colors p-0.5 bg-transparent border-none cursor-pointer shrink-0"
@@ -326,33 +346,49 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit }: {
                               <IconX size={12} />
                             </button>
                           </div>
-                          <div className="flex gap-1.5">
-                            {TONE_BTNS.map(tb => (
-                              <button
-                                key={tb.value}
-                                onClick={() => updateDraftDate(d.key, { tone: tb.value })}
-                                className={`flex-1 px-2 py-1 rounded border font-mono text-label font-bold tracking-[0.08em] uppercase transition-colors cursor-pointer ${
-                                  d.tone === tb.value ? tb.cls : 'bg-transparent border-border text-text-dim hover:border-border-mid'
-                                }`}
-                              >
-                                {tb.label}
-                              </button>
-                            ))}
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="date"
+                              value={d.dateStr}
+                              onChange={e => updateDraftDate(d.key, { dateStr: e.target.value })}
+                              className={`flex-1 ${INPUT_CLS}`}
+                            />
+                            <input
+                              type="time"
+                              value={d.timeStr}
+                              onChange={e => updateDraftDate(d.key, { timeStr: e.target.value })}
+                              className={`w-28 shrink-0 ${INPUT_CLS}`}
+                            />
                           </div>
                         </div>
                       ))}
 
                       {/* Inline custom date form */}
                       {addingCustom && (
-                        <div className="flex flex-col gap-1.5">
-                          <input
-                            type="text"
-                            value={customLabel}
-                            onChange={e => setCustomLabel(e.target.value)}
-                            placeholder="Label"
-                            autoFocus
-                            className={`w-full ${INPUT_CLS}`}
-                          />
+                        <div className="flex flex-col gap-2 px-3.5 py-3 bg-surface-2">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={customLabel}
+                              onChange={e => setCustomLabel(e.target.value)}
+                              placeholder="Label"
+                              autoFocus
+                              className={`flex-1 ${INPUT_CLS}`}
+                            />
+                            <div className="flex gap-1 shrink-0">
+                              {TONE_BTNS.map(tb => (
+                                <button
+                                  key={tb.value}
+                                  onClick={() => setCustomTone(tb.value)}
+                                  className={`px-2 py-0.5 rounded border font-mono text-label font-bold tracking-[0.06em] uppercase transition-colors cursor-pointer ${
+                                    customTone === tb.value ? tb.cls : 'bg-transparent border-border text-text-dim hover:border-border-mid'
+                                  }`}
+                                >
+                                  {tb.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                           <div className="flex items-center gap-2">
                             <input
                               type="date"
@@ -364,21 +400,8 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit }: {
                               type="time"
                               value={customTime}
                               onChange={e => setCustomTime(e.target.value)}
-                              className={`w-[104px] shrink-0 ${INPUT_CLS}`}
+                              className={`w-28 shrink-0 ${INPUT_CLS}`}
                             />
-                          </div>
-                          <div className="flex gap-1.5">
-                            {TONE_BTNS.map(tb => (
-                              <button
-                                key={tb.value}
-                                onClick={() => setCustomTone(tb.value)}
-                                className={`flex-1 px-2 py-1 rounded border font-mono text-label font-bold tracking-[0.08em] uppercase transition-colors cursor-pointer ${
-                                  customTone === tb.value ? tb.cls : 'bg-transparent border-border text-text-dim hover:border-border-mid'
-                                }`}
-                              >
-                                {tb.label}
-                              </button>
-                            ))}
                           </div>
                           <div className="flex gap-2 pt-0.5">
                             <button
@@ -398,21 +421,17 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit }: {
                         </div>
                       )}
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Add custom date trigger */}
-                {!addingCustom && (
-                  <div className={hasDateRows ? 'mt-2.5' : 'mt-5'}>
-                    {!hasDateRows && <div className="h-px bg-border mb-4" />}
+                  {!addingCustom && (
                     <button
                       onClick={() => setAddingCustom(true)}
                       className="inline-flex items-center gap-1 font-mono text-label text-text-dim hover:text-text transition-colors bg-transparent border-none cursor-pointer p-0"
                     >
                       <IconPlus size={9} /> Add critical date
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </>
             )}
           </div>

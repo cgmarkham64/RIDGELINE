@@ -7,8 +7,10 @@ import { PartnersCard } from './PartnersCard'
 import { CriticalDatesCard } from './CriticalDatesCard'
 import { extractScanDates } from './criticalDates.helpers'
 import { INITIAL_PERMITS } from './permitsStage.constants'
-import { suggestPermits } from '../../../../lib/permits'
+import { suggestPermits, lookupPermit } from '../../../../lib/permits'
+import type { PermitLookupResult } from '../../../../lib/permits'
 import { extractApiError } from '../../../../lib/utils'
+import { toDateMs } from './criticalDates.helpers'
 import type { Permit } from './permitsStage.types'
 import type { StageBodyProps, PlanCriticalDate } from '../../types'
 
@@ -20,6 +22,9 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
   const [scanError, setScanError]           = useState<string | null>(null)
   const [freeformOpen, setFreeformOpen]     = useState(false)
   const [editingPermit, setEditingPermit]   = useState<Permit | null>(null)
+  const [aiPrefill, setAiPrefill]           = useState<{ confidence: PermitLookupResult['confidence']; verificationNote: string } | null>(null)
+  const [lookupLoading, setLookupLoading]   = useState(false)
+  const [lookupError, setLookupError]       = useState<string | null>(null)
   const [permitFree, setPermitFree]         = useState(() => plan?.permits?.permitFree ?? false)
   const [partyConfirmed, setPartyConfirmed] = useState(() => plan?.permits?.partyConfirmed ?? false)
   const [backupPlanned, setBackupPlanned]   = useState(() => plan?.permits?.backupPlanned ?? false)
@@ -65,22 +70,71 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
   function remove(id: string) { setPermits(prev => prev.filter(p => p.id !== id)) }
 
   function handleDialogSave(p: Permit) {
-    if (editingPermit) {
+    const isExisting = permits.some(existing => existing.id === p.id)
+    if (isExisting) {
       setPermits(prev => prev.map(existing => existing.id === p.id ? p : existing))
     } else {
       setPermits(prev => [...prev, p])
     }
     setEditingPermit(null)
+    setAiPrefill(null)
     setFreeformOpen(false)
   }
 
   function openEdit(id: string) {
     const permit = permits.find(p => p.id === id)
-    if (permit) { setEditingPermit(permit); setFreeformOpen(true) }
+    if (permit) { setEditingPermit(permit); setAiPrefill(null); setFreeformOpen(true) }
+  }
+
+  async function handleSearch(permitName: string) {
+    if (!trip?._id || lookupLoading) return
+    setLookupLoading(true)
+    setLookupError(null)
+    try {
+      const result = await lookupPermit(trip._id, permitName, links)
+      const permitId = `lookup_${Date.now()}`
+      const prefilled: Permit = {
+        id:            permitId,
+        type:          result.type,
+        name:          result.name,
+        agency:        result.agency,
+        why:           result.why,
+        url:           result.url,
+        fields:        {},
+        party:         partySize,
+        confidence:    result.confidence,
+        criticalDates: result.criticalDates
+          .filter(d => !!d.dateStr)
+          .map((d, i) => ({
+            id:      `pcd_${permitId}_${i}`,
+            dateMs:  toDateMs(d.dateStr!, d.timeStr),
+            hasTime: !!d.timeStr,
+            label:   d.label,
+            tone:    d.tone,
+            source:  'permit' as const,
+          })),
+      }
+      setEditingPermit(prefilled)
+      setAiPrefill({ confidence: result.confidence, verificationNote: result.verificationNote })
+      setFreeformOpen(true)
+    } catch (err) {
+      setLookupError(extractApiError(err) ?? 'Lookup failed — try a different name or add manually')
+    } finally {
+      setLookupLoading(false)
+    }
   }
 
   function updatePermitField(id: string, key: string, value: string) {
     setPermits(prev => prev.map(p => p.id === id ? { ...p, fields: { ...p.fields, [key]: value } } : p))
+  }
+
+  // scanDateId format from extractScanDates: permit__${permitId}__${cdId}
+  function removeScanDate(scanDateId: string) {
+    const [, permitId, cdId] = scanDateId.split('__')
+    if (!permitId || !cdId) return
+    setPermits(prev => prev.map(p =>
+      p.id !== permitId ? p : { ...p, criticalDates: p.criticalDates?.filter(cd => cd.id !== cdId) ?? [] }
+    ))
   }
 
   const item1 = permits.length > 0
@@ -99,7 +153,7 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
   return (
     <>
       <div className="flex-1 overflow-y-auto p-8 pb-20">
-        <div className="grid gap-7 grid-cols-[1fr_320px]">
+        <div className="grid gap-7 grid-cols-[1fr_360px]">
 
           {/* ── Left column ── */}
           <div className="flex flex-col gap-[18px]">
@@ -117,7 +171,7 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
               links={links}
               onRemove={remove}
               onEditPermit={openEdit}
-              onAddFreeform={() => { setEditingPermit(null); setFreeformOpen(true) }}
+              onAddFreeform={() => { setEditingPermit(null); setAiPrefill(null); setFreeformOpen(true) }}
               onUpdatePermit={updatePermitField}
               canEdit={canEdit}
               partySize={partySize}
@@ -127,6 +181,10 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
               onRescan={runScan}
               permitFree={permitFree}
               onMarkPermitFree={() => setPermitFree(true)}
+              onSearch={handleSearch}
+              lookupLoading={lookupLoading}
+              lookupError={lookupError}
+              canLookup={!!trip?._id}
             />
           </div>
 
@@ -168,7 +226,10 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
               scanDates={scanDates}
               canEdit={canEdit}
               onAdd={d => setCriticalDates(prev => [...prev, d])}
-              onRemove={id => setCriticalDates(prev => prev.filter(d => d.id !== id))}
+              onRemove={id => {
+                if (id.startsWith('permit__')) removeScanDate(id)
+                else setCriticalDates(prev => prev.filter(d => d.id !== id))
+              }}
             />
           </aside>
         </div>
@@ -176,10 +237,11 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
 
       {freeformOpen && (
         <FreeformDialog
-          onClose={() => { setFreeformOpen(false); setEditingPermit(null) }}
+          onClose={() => { setFreeformOpen(false); setEditingPermit(null); setAiPrefill(null) }}
           onSave={handleDialogSave}
           partySize={partySize}
           initialPermit={editingPermit ?? undefined}
+          aiPrefill={aiPrefill ?? undefined}
         />
       )}
     </>

@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { IconMap, IconCheck, IconSearch, IconPlus, IconAlertTriangle, IconExternalLink } from '../../../icons'
 import { PermitCard } from './PermitCard'
-import { PERMIT_TYPES } from './permitsStage.constants'
 import type { Permit } from './permitsStage.types'
-import type { PermitTypeName, PermitLink, SourceTier } from '../../types'
+import type { PermitLink, SourceTier } from '../../types'
 
 const TIER_LABEL: Record<SourceTier, string> = {
   official:  'Official',
@@ -21,6 +20,7 @@ export function PermitsListView({
   permits, links, onRemove, onEditPermit, onAddFreeform, onUpdatePermit,
   canEdit, partySize, scanning, scanError, lastScanned, onRescan,
   permitFree, onMarkPermitFree,
+  onSearch, lookupLoading, lookupError, canLookup,
 }: {
   permits:          Permit[]
   links:            PermitLink[]
@@ -36,8 +36,17 @@ export function PermitsListView({
   onRescan:         () => void
   permitFree:       boolean
   onMarkPermitFree: () => void
+  onSearch:         (name: string) => void
+  lookupLoading:    boolean
+  lookupError:      string | null
+  canLookup:        boolean
 }) {
   const [search, setSearch] = useState('')
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (search.trim() && canLookup && !lookupLoading) onSearch(search.trim())
+  }
 
   const bannerHeading = scanning
     ? 'Searching for permit and booking resources…'
@@ -176,36 +185,41 @@ export function PermitsListView({
       {/* Add manually — only visible to editors */}
       {canEdit && (
         <section className="pt-1">
-          <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">Add manually</div>
-          <div className="flex gap-2.5 p-1 bg-surface border border-border rounded-lg">
+          <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">Add a permit</div>
+          <form onSubmit={handleSearchSubmit} className="flex gap-2.5 p-1 bg-surface border border-border rounded-lg">
             <div className="flex-1 flex items-center gap-2 px-3 text-text-dim">
-              <IconSearch />
+              {lookupLoading
+                ? <span className="w-3.5 h-3.5 rounded-full border-2 border-amber border-t-transparent animate-spin shrink-0" />
+                : <IconSearch />
+              }
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search agencies, units, or trailheads…"
-                className="flex-1 bg-transparent border-none text-body-sm text-text outline-none py-2.5 placeholder:text-text-dim"
+                placeholder="Permit name (e.g. Whitney overnight permit)…"
+                disabled={lookupLoading}
+                className="flex-1 bg-transparent border-none text-body-sm text-text outline-none py-2.5 placeholder:text-text-dim disabled:opacity-50"
               />
             </div>
             <button
-              onClick={onAddFreeform}
-              className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-3.5 py-2 border-l border-border text-text-mid bg-transparent hover:text-text hover:bg-surface-2 transition-colors cursor-pointer rounded-r"
+              type="submit"
+              disabled={!search.trim() || lookupLoading || !canLookup}
+              className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-3.5 py-2 border-l border-border text-amber bg-transparent hover:bg-amber-dim transition-colors cursor-pointer rounded-r disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              <IconPlus size={10} /> Free-form
+              {lookupLoading ? 'Searching…' : 'Look up'}
             </button>
-          </div>
-          <div className="flex gap-1.5 mt-2.5 flex-wrap">
-            {(Object.entries(PERMIT_TYPES) as [PermitTypeName, typeof PERMIT_TYPES[PermitTypeName]][]).map(([key, t]) => (
-              <button
-                key={key}
-                onClick={onAddFreeform}
-                title={t.hint}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-border text-text-mid text-caption font-medium bg-transparent hover:border-border-mid hover:text-text transition-colors cursor-pointer"
-              >
-                <IconPlus size={9} /> {t.label}
-              </button>
-            ))}
-          </div>
+          </form>
+          {lookupError && (
+            <div className="mt-1.5 font-mono text-label text-red">{lookupError}</div>
+          )}
+          {!canLookup && (
+            <div className="mt-1.5 font-mono text-label text-text-dim">Link a trip in Stage 1 to enable AI permit lookup.</div>
+          )}
+          <button
+            onClick={onAddFreeform}
+            className="mt-2 inline-flex items-center gap-1 font-mono text-label text-text-dim hover:text-text transition-colors bg-transparent border-none cursor-pointer p-0"
+          >
+            <IconPlus size={9} /> Add without AI lookup
+          </button>
         </section>
       )}
     </div>

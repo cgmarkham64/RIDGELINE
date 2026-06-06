@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { IconPlus, IconX, IconCheck } from '../../../icons'
-import { formatCriticalDate, toDateMs } from './criticalDates.helpers'
+import { formatDateOnly, toDateMs } from './criticalDates.helpers'
 import type { PermitTone } from './permitsStage.types'
 import type { PlanCriticalDate } from '../../types'
 
@@ -33,7 +33,17 @@ export function CriticalDatesCard({ manualDates, scanDates, canEdit, onAdd, onRe
   const [draftLabel, setDraftLabel] = useState('')
   const [draftTone,  setDraftTone]  = useState<PermitTone>('amber')
 
-  const allDates = [...scanDates, ...manualDates].sort((a, b) => a.dateMs - b.dateMs)
+  // Strip " — Permit Name" suffix added by extractScanDates before comparing labels
+  const baseLabel = (s: string) => s.replace(/\s*—\s*.+$/, '').trim().toLowerCase()
+  const seen = new Set<string>()
+  const allDates = [...scanDates, ...manualDates]
+    .sort((a, b) => a.dateMs - b.dateMs)
+    .filter(d => {
+      const key = `${d.dateMs}|${baseLabel(d.label)}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
 
   function handleAdd() {
     if (!draftDate || !draftLabel.trim()) return
@@ -84,16 +94,16 @@ export function CriticalDatesCard({ manualDates, scanDates, canEdit, onAdd, onRe
       {allDates.map((d, i) => (
         <div
           key={d.id}
-          className={`flex items-center gap-2.5 py-2 ${i < allDates.length - 1 || formOpen ? 'border-b border-border' : ''}`}
+          className={`flex items-start gap-2.5 py-2 ${i < allDates.length - 1 || formOpen ? 'border-b border-border' : ''}`}
         >
-          <span className={`font-mono text-caption font-bold px-1.5 py-0.5 rounded border shrink-0 ${TONE_DATE_CLS[d.tone]}`}>
-            {formatCriticalDate(d)}
+          <span className={`font-mono text-caption font-bold px-1.5 py-0.5 rounded border shrink-0 mt-px ${TONE_DATE_CLS[d.tone]}`}>
+            {formatDateOnly(d.dateMs)}
           </span>
-          <span className="text-fine text-text-mid flex-1 min-w-0 truncate">{d.label}</span>
-          {d.source === 'manual' && canEdit && (
+          <span className="text-fine text-text-mid flex-1 min-w-0 break-words">{d.label}</span>
+          {canEdit && (
             <button
               onClick={() => onRemove(d.id)}
-              className="p-0.5 rounded text-text-dim hover:text-red transition-colors cursor-pointer bg-transparent border-none shrink-0"
+              className="p-0.5 rounded text-text-dim hover:text-red transition-colors cursor-pointer bg-transparent border-none shrink-0 mt-px"
               title="Remove"
             >
               <IconX size={10} />

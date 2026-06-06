@@ -5,7 +5,8 @@ import { JournalDay } from '../models/JournalDay'
 import { Notification } from '../models/Notification'
 import { asyncRoute, requireOwner, HttpError } from '../utils/routeHelpers'
 import { normalizeShared, canRead, populateTripUsers, TripLean, SharedEntry } from '../services/tripService'
-import { suggestPermits } from '../services/permitService'
+import { suggestPermits, lookupPermit } from '../services/permitService'
+import type { PermitLink } from '../services/permitService'
 
 const router = Router()
 
@@ -155,6 +156,28 @@ router.post('/:id/permits/suggest', asyncRoute(async (req, res) => {
     partySize,
     gpxCoords: gpxPlanned?.coordinates,
   })
+
+  res.json(result)
+}))
+
+router.post('/:id/permits/lookup', asyncRoute(async (req, res) => {
+  const trip = await Trip.findById(req.params.id).lean()
+  if (!trip) throw new HttpError(404, 'Not found')
+  if (!canRead(trip as TripLean, req.user.sub)) throw new HttpError(403, 'Forbidden')
+
+  const { permitName, links = [] } = req.body as { permitName?: string; links?: PermitLink[] }
+  if (!permitName?.trim()) throw new HttpError(400, 'permitName is required')
+
+  const shared    = normalizeShared((trip as TripLean).sharedWith)
+  const partySize = shared.length + 1
+
+  const result = await lookupPermit(permitName.trim(), {
+    title:     trip.title as string | undefined,
+    location:  trip.location as string | undefined,
+    startDate: trip.startDate?.toString(),
+    endDate:   trip.endDate?.toString(),
+    partySize,
+  }, links)
 
   res.json(result)
 }))

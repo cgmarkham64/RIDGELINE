@@ -31,6 +31,11 @@ export function formatCriticalDate(d: PlanCriticalDate): string {
   return new Intl.DateTimeFormat(undefined, d.hasTime ? DATETIME_FMT : DATE_FMT).format(d.dateMs)
 }
 
+export function formatDateOnly(ms: number): string {
+  if (!ms || isNaN(ms)) return '—'
+  return new Intl.DateTimeFormat(undefined, DATE_FMT).format(ms)
+}
+
 // ── Roll up per-permit critical dates for the right rail ──────────────────────
 
 export function extractScanDates(permits: PlanPermitEntry[]): PlanCriticalDate[] {
