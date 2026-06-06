@@ -26,32 +26,33 @@ All seven stages render with internal state. The items below are UI stubs, disco
 
 *Hardcoded / mock data that needs replacing*
 - ✅ Section header subtitle reads from `trip.location` (falling back to `trip.title`); renders nothing when both are absent.
-- ✅ Detection banner type-count and agency-count computed from the live `permits + suggestions` lists; shows a helpful fallback when both are empty.
-- ⚠ `CRITICAL_DATES` in the right rail always renders Sierra High Route–specific Whitney/Inyo dates; they are never derived from the actual permits added to the plan. Replace with dates computed from `permit.fields` across all added permits.
-- ⚠ `MAP_ZONES`, `MAP_ROUTE`, and `ZONE_PERMIT_MAP` in `permitsStage.constants.ts` are hardcoded SHR SVG geometry. The map view is entirely decorative for non-demo plans. Long-term: derive zone overlays from GPX + permit data. Short-term: hide the map view toggle or show an empty-state when no GPX is present.
-- ⚠ `MapModal` zone-highlight lookup uses hardcoded permit IDs (`sgt_whitney`, `sgt_inyo`, `sgt_canister`) — zones are never highlighted for user-added permits. Fix: store a `zoneId` on `PlanPermitEntry` so the modal can match by that field instead.
+- ✅ Detection banner resource count computed from the live `links` list; shows appropriate fallbacks when empty, un-scanned, or scan failed.
+- ✅ `CRITICAL_DATES` replaced — right rail renders only dates derived from permit `criticalDates` arrays plus manually-added entries; no hardcoded SHR data.
 - ✅ `PermitCard` walkup branch now reads from `permit.fields['Window opens']` and `permit.fields['Arrive by']` (editable, persisted) instead of hardcoded times.
 - ✅ `FreeformDialog` now accepts `partySize` prop and uses it instead of hardcoded `4`.
 
 *Broken stubs*
-- ⚠ "Re-scan" button on the detection banner has no `onClick` — needs a handler (at minimum, clear suggestions and re-run whatever detection logic exists; long-term, call the AI permit suggestion service).
-- ✅ Party "override" concept removed. Party size is always derived from `trip.sharedWith.length + 1` (all collaborators + owner). If the count is wrong, the user manages it through the partners list. The override button is gone from `PermitCard`.
-- ⚠ `partyConfirmed` state is tracked but produces no persistent visual feedback once confirmed (the inline banner text is easy to miss). After confirmation, show a green indicator or a locked party-size chip somewhere.
-- ✅ `onProgress` wired — fires `onProgressRef.current(doneCount, 5)` (or `(2, 2)` when permit-free) via `useEffect` on `doneCount` / `permitFree` changes; stage rail now reflects Permits progress.
-- ✅ `canEdit` prop read and enforced throughout: all mutation buttons (`Add`, `Not needed`, `Accept all`, `Remove`, `Mark as permit-free` / undo, `Add to trip` in map view, entire "Add another" section) hidden for read-only collaborators.
-- ⚠ Search input in "Add another" → `search` state is tracked but never used to filter anything; the permit-type quick-add buttons all route to `onAddFreeform` ignoring the selected type. The search should filter a real dataset (or a curated static list of common permits); the type chips should pre-select the type in `FreeformDialog`.
-- ✅ `Field` component in `PermitAtoms.tsx` is now controlled when an `onChange` handler is provided — edits to permit field values are persisted back through `updatePermitField` → `setPermits` in `PermitsStage`. Read-only (modal) usage is unchanged.
+- ✅ "Re-scan" button is wired to `onRescan` → `runScan()` in `PermitsStage`.
+- ✅ Party "override" concept removed. Party size is always derived from `trip.sharedWith.length + 1` (all collaborators + owner).
+- ✅ `partyConfirmed` visual feedback: `PartnersCard` shows a "Party confirmed" chip (green check + text) below the partners list; right-rail `CheckItem` reflects the same state.
+- ✅ `onProgress` wired — fires `onProgressRef.current(doneCount, 3)` (or `(2, 2)` when permit-free) via `useEffect` on `doneCount` / `permitFree` changes.
+- ✅ `canEdit` prop enforced throughout — all mutation buttons hidden for read-only collaborators.
+- ✅ `Field` component in `PermitAtoms.tsx` is controlled — edits persisted via `updatePermitField` → `setPermits` in `PermitsStage`.
+- ✅ Permit editing implemented — edit button on `PermitCard` reopens `FreeformDialog` pre-populated; `isEditing` flag skips the type-select step.
 
 *Missing UX flows*
-- ✅ Party size derived from partners list (`trip.sharedWith.length + 1`); shown live in the detection banner and on each `PermitCard`. `PartnersCard` (same component as Route stage) embedded in the Permits right rail so users can add/remove partners without leaving the stage. `FreeformDialog` inherits current party size. Policy: everyone going on the trip must be a Ridgeline collaborator — if the party count is wrong, add or remove partners here or in Stage 1.
-- ⚠ No URL / booking link field on `PlanPermitEntry` or in `FreeformDialog` — recreation.gov, permit.nps.gov, etc. links are critical for lottery/reservation permits. Add a `url` field to the type and render it as a link on `PermitCard`.
-- ⚠ No way to record a confirmation number after booking a lottery or reservation permit — the `fields` map can hold it but `FreeformDialog` has no dedicated input for it. Add a "Confirmation #" field for relevant permit types.
-- ⚠ `FreeformDialog` step 2 shows the same name/agency/notes form regardless of type. Type-specific fields would reduce friction: lottery → open/close/results dates; reservation → booking date + confirmation #; walkup → window-opens time + arrive-by time; zonenights → zone-per-night builder; selfissue → trailhead name.
-- ⚠ No permit editing after creation — only remove + re-add. An edit action should reopen a pre-populated version of `FreeformDialog` (or an inline expand).
-- ⚠ Rejected suggestions disappear with no recovery path. Store dismissed suggestion IDs and add a "Show dismissed (n)" toggle below the suggestions section.
-- ⚠ Critical Dates should drive proactive notifications — when a critical date (lottery opens, reservation window, permit close) is approaching, send the user an email or SMS reminder. This replaces the removed "Reminders set" checklist item. Implementation: store a `notifyDaysBefore` preference per critical date entry; a scheduled job queries upcoming dates and dispatches via Sendgrid/Twilio (or similar). Frontend: add a notification-opt-in control to `CriticalDatesCard`.
-- ⚠ `hut`, `fishing`, and `vehicle` permit types in `PermitCard` render no type-specific content (no field layout, no action row). Add appropriate layouts: hut → booking date + nights; fishing → license number + expiry; vehicle → pass type + pass number.
-- ⚠ `PermitsMapView` zone navigation uses only `MAP_ZONES` (three hardcoded SHR zones) — zone count in the panel subtitle is always 3 regardless of the actual plan. This view is non-functional for real plans until zone data is derived from plan data.
+- ✅ Party size derived from partners list; `PartnersCard` embedded in Permits right rail. Policy: everyone on the trip must be a Ridgeline collaborator.
+- ✅ AI permit lookup — search bar calls `lookupPermit` (Claude-backed); results pre-fill `FreeformDialog` with name, agency, URL, critical dates, and a confidence/verification banner. Blocking `HikerOverlay` shown during lookup.
+- ⚠ No URL / booking link field for **manually-added** permits in `FreeformDialog` — AI lookup fills `permit.url` automatically, but the details form has no URL input. Add a link field to the details step so manual permits can carry a booking URL; `PermitCard` already renders `permit.url` as a "Book" button when present.
+- ⚠ No dedicated confirmation number field — the `fields` map can hold one but `FreeformDialog` has no labelled input for it. Add a "Confirmation #" field for `lottery` and `reservation` permit types.
+- ⚠ `FreeformDialog` details step shows the same name/agency/notes form regardless of type. Type-specific fields would reduce friction: lottery → apply-open/close/draw/accept dates; reservation → booking date + confirmation #; walkup → window-opens + arrive-by; zonenights → zone-per-night builder; selfissue → trailhead name.
+- ⚠ Critical Dates should drive proactive notifications — store a `notifyDaysBefore` preference per date entry; scheduled job dispatches reminders via Sendgrid/Twilio. Add notification-opt-in control to `CriticalDatesCard`.
+- ⚠ `hut`, `fishing`, and `vehicle` permit types in `PermitCard` render no type-specific content. Add layouts: hut → booking date + nights; fishing → license number + expiry; vehicle → pass type + pass number.
+
+*Dead code to clean up*
+- ⚠ `SuggestionRow.tsx` is unused — the suggestion system was replaced by AI lookup + permit resource links. Delete the file.
+- ⚠ `permitsStage.constants.ts` exports `MAP_ZONES`, `MAP_ROUTE`, `ZONE_PERMIT_MAP`, `INITIAL_SUGGESTIONS`, and `CRITICAL_DATES` — all dead code since the map view was removed. Remove them.
+- ⚠ `FreeformDialog` step 1 shows a stale "AI-assisted fill coming soon" notice — AI lookup is live via the search bar before the dialog opens. Remove the banner.
 
 **Stage 4 — Food**
 - ⚠ "Bulk edit" button is a stub. Per-meal granularity (more fields than just Breakfast / Lunch / Dinner) and the ability to recover cleared cell content are also needed here.
@@ -125,7 +126,7 @@ Add a tooltip to each day button in DaySelector showing the entry title if one e
 
 ### AI Features (Claude API)
 
-**Permit fill** — wire the Free-form dialog Step 2 to Claude. When the user types a permit name, call Claude to look up key dates, agency info, confirmation steps, and booking links, then show a diff for the user to accept/edit before adding. User can always fill all fields manually — AI is an accelerator, not a gate. Endpoint: new route in `server/src/routes/` + `src/lib/permits.ts`.
+**Permit fill** *(done)* — search bar in the Permits stage calls `POST /api/trips/:id/permit-lookup` (Claude-backed via `src/lib/permits.ts`). Results pre-fill `FreeformDialog` with name, agency, URL, critical dates, and a confidence/verification banner. `HikerOverlay` shown during lookup. Remaining gaps logged under Stage 3 above.
 
 **Food suggestions** — (1) autopopulate per-day kcal from food selections entered in the meal grid; (2) recommend foods for each meal slot based on expected calorie needs (mileage, elevation gain, tough-day flags from Route segments). Endpoint: `POST /api/plan/food-suggest`.
 

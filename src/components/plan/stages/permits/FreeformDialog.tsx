@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IconX, IconSparkle, IconPlus, IconChevronLeft, IconChevronRight } from '../../../icons'
+import { IconX, IconPlus, IconChevronLeft, IconChevronRight } from '../../../icons'
 import { TypeChip } from './PermitAtoms'
 import { PERMIT_TYPES, TONE_CLS, PERMIT_DATE_PRESETS } from './permitsStage.constants'
 import { toDateInputValue, toTimeInputValue, toDateMs } from './criticalDates.helpers'
@@ -196,13 +196,6 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit, aiPr
                       <span className="text-caption text-text-dim leading-snug">{t.hint}</span>
                     </button>
                   ))}
-                </div>
-                <div className="mt-4 flex items-start gap-2.5 px-3 py-2.5 bg-amber-dim border border-amber-border rounded text-fine text-text-mid">
-                  <span className="text-amber shrink-0 mt-0.5"><IconSparkle /></span>
-                  <div>
-                    <span className="font-semibold text-text">AI-assisted fill coming soon.</span>{' '}
-                    Enter a permit name and Claude will look up key dates, agency info, and booking links for you.
-                  </div>
                 </div>
               </>
             )}

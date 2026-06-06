@@ -27,18 +27,6 @@ export const ZONE_STATUS_CLS: Record<ZoneStatus, string> = {
 
 export const INITIAL_PERMITS: Permit[] = []
 
-export const INITIAL_SUGGESTIONS: Permit[] = []
-
-export const CRITICAL_DATES: { date: string; label: string; tone: PermitTone }[] = []
-
-export const MAP_ZONES = [
-  { id: 'inyo',    name: 'Inyo wilderness', color: '#5aa478', poly: '50,60 200,50 220,180 80,200',                    status: 'available' as ZoneStatus, night: 1 },
-  { id: 'seki',    name: 'SEKI',            color: '#5ab4dc', poly: '200,50 360,80 340,220 220,180',                  status: 'available' as ZoneStatus, night: 3 },
-  { id: 'whitney', name: 'Whitney zone',    color: '#f0a030', poly: '340,220 360,80 410,180 380,290 280,300 220,180', status: 'limited'   as ZoneStatus, night: 7 },
-]
-
-export const MAP_ROUTE = '70,180 130,140 190,110 250,90 310,110 350,150 380,200 360,260 310,280'
-
 export const PERMIT_DATE_PRESETS: Record<PermitTypeName, { key: string; label: string; tone: PermitTone }[]> = {
   lottery:     [
     { key: 'apply_opens',  label: 'Application opens',   tone: 'amber' },
@@ -71,8 +59,3 @@ export const PERMIT_DATE_PRESETS: Record<PermitTypeName, { key: string; label: s
   ],
 }
 
-export const ZONE_PERMIT_MAP: Record<string, string> = {
-  whitney: 'sgt_whitney',
-  inyo:    'sgt_inyo',
-  seki:    'sgt_canister',
-}
