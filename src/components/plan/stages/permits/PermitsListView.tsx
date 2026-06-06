@@ -138,50 +138,6 @@ export function PermitsListView({
         </section>
       )}
 
-      {/* Added permits */}
-      <section>
-        <div className="flex items-center justify-between mb-2.5">
-          <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">
-            On this trip{permits.length > 0 ? ` (${permits.length})` : ''}
-          </div>
-          {permits.length === 0 && (
-            <span className="font-mono text-label text-text-dim">nothing added yet</span>
-          )}
-        </div>
-        {permits.length > 0 ? (
-          <div className="flex flex-col gap-3">
-            {permits.map(p => (
-              <PermitCard
-                key={p.id}
-                permit={p}
-                onRemove={() => onRemove(p.id)}
-                onEdit={() => onEditPermit(p.id)}
-                onUpdatePermit={(key, val) => onUpdatePermit(p.id, key, val)}
-                canEdit={canEdit}
-                partySize={partySize}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="border border-dashed border-border rounded-lg overflow-hidden">
-            <div className="px-6 py-5 text-center text-body-sm text-text-dim">
-              {canEdit ? 'Add a permit manually below.' : 'No permits added yet.'}
-            </div>
-            {canEdit && !permitFree && (
-              <div className="flex items-center justify-between px-4 py-2.5 border-t border-dashed border-border bg-pine-dim">
-                <span className="text-fine text-text-mid">Trip is permit-free?</span>
-                <button
-                  onClick={onMarkPermitFree}
-                  className="font-mono text-label tracking-[0.12em] uppercase text-pine hover:text-text transition-colors bg-transparent border-none cursor-pointer p-0"
-                >
-                  Mark as permit-free →
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </section>
-
       {/* Add manually — only visible to editors */}
       {canEdit && (
         <section className="pt-1">
@@ -222,6 +178,50 @@ export function PermitsListView({
           </button>
         </section>
       )}
+
+      {/* Added permits */}
+      <section>
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">
+            On this trip{permits.length > 0 ? ` (${permits.length})` : ''}
+          </div>
+          {permits.length === 0 && (
+            <span className="font-mono text-label text-text-dim">nothing added yet</span>
+          )}
+        </div>
+        {permits.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            {permits.map(p => (
+              <PermitCard
+                key={p.id}
+                permit={p}
+                onRemove={() => onRemove(p.id)}
+                onEdit={() => onEditPermit(p.id)}
+                onUpdatePermit={(key, val) => onUpdatePermit(p.id, key, val)}
+                canEdit={canEdit}
+                partySize={partySize}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="border border-dashed border-border rounded-lg overflow-hidden">
+            <div className="px-6 py-5 text-center text-body-sm text-text-dim">
+              No permits added yet.
+            </div>
+            {canEdit && !permitFree && (
+              <div className="flex items-center justify-between px-4 py-2.5 border-t border-dashed border-border bg-pine-dim">
+                <span className="text-fine text-text-mid">Trip is permit-free?</span>
+                <button
+                  onClick={onMarkPermitFree}
+                  className="font-mono text-label tracking-[0.12em] uppercase text-pine hover:text-text transition-colors bg-transparent border-none cursor-pointer p-0"
+                >
+                  Mark as permit-free →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
     </div>
   )
 }
