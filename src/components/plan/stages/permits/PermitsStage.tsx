@@ -21,10 +21,10 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
   const [freeformOpen, setFreeformOpen]     = useState(false)
   const [editingPermit, setEditingPermit]   = useState<Permit | null>(null)
   const [permitFree, setPermitFree]         = useState(() => plan?.permits?.permitFree ?? false)
-  const [partyConfirmed, setPartyConfirmed] = useState(false)
+  const [partyConfirmed, setPartyConfirmed] = useState(() => plan?.permits?.partyConfirmed ?? false)
+  const [remindersSet, setRemindersSet]     = useState(() => plan?.permits?.remindersSet ?? false)
+  const [backupPlanned, setBackupPlanned]   = useState(() => plan?.permits?.backupPlanned ?? false)
   const [criticalDates, setCriticalDates]   = useState<PlanCriticalDate[]>(() => plan?.permits?.criticalDates ?? [])
-  const remindersSet  = false
-  const backupPlanned = false
 
   const scanDates = useMemo(() => extractScanDates(permits), [permits])
 
@@ -36,8 +36,8 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
   useEffect(() => { onProgressRef.current = onProgress }, [onProgress])
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
-    onChangeRef.current?.({ permits: { permits, permitFree, links, lastScanned, criticalDates } })
-  }, [permits, permitFree, links, lastScanned, criticalDates])
+    onChangeRef.current?.({ permits: { permits, permitFree, partyConfirmed, remindersSet, backupPlanned, links, lastScanned, criticalDates } })
+  }, [permits, permitFree, partyConfirmed, remindersSet, backupPlanned, links, lastScanned, criticalDates])
 
   async function runScan() {
     if (!trip?._id || scanning) return
@@ -145,9 +145,9 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
               ) : (
                 <>
                   <CheckItem text="At least one permit added"  done={item1} />
-                  <CheckItem text="Party size confirmed"       done={item2} />
-                  <CheckItem text="Reminders set"              done={item3} />
-                  <CheckItem text="Walk-up backup planned"     done={item4} />
+                  <CheckItem text="Party size confirmed"       done={item2} onToggle={canEdit ? () => setPartyConfirmed(v => !v) : undefined} />
+                  <CheckItem text="Reminders set"              done={item3} onToggle={canEdit ? () => setRemindersSet(v => !v) : undefined} />
+                  <CheckItem text="Walk-up backup planned"     done={item4} onToggle={canEdit ? () => setBackupPlanned(v => !v) : undefined} />
                 </>
               )}
               <div className="h-px bg-border my-3" />

@@ -149,11 +149,14 @@ export interface PlanData {
   route?: PlanRouteData
   weather?: PlanWeatherData
   permits?: {
-    permits:        PlanPermitEntry[]
-    permitFree:     boolean
-    links?:         PermitLink[]
-    lastScanned?:   string
-    criticalDates?: PlanCriticalDate[]
+    permits:         PlanPermitEntry[]
+    permitFree:      boolean
+    partyConfirmed?: boolean
+    remindersSet?:   boolean
+    backupPlanned?:  boolean
+    links?:          PermitLink[]
+    lastScanned?:    string
+    criticalDates?:  PlanCriticalDate[]
   }
   food?: {
     meals: PlanMealEntry[]
