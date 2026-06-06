@@ -62,6 +62,7 @@ export interface PlanPermitEntry {
   url?: string
   zoneId?: string
   confidence?: 'high' | 'medium' | 'low'
+  criticalDates?: PlanCriticalDate[]
 }
 
 export interface PlanMealEntry {
@@ -136,11 +137,12 @@ export interface PlanWeatherData {
 // ─── PlanData — top-level shape passed from PlanWizard to each stage ──────────
 
 export interface PlanCriticalDate {
-  id:     string
-  date:   string
-  label:  string
-  tone:   'amber' | 'sky' | 'pine'
-  source: 'manual' | 'scan'
+  id:      string
+  dateMs:  number
+  hasTime: boolean
+  label:   string
+  tone:    'amber' | 'sky' | 'pine'
+  source:  'manual' | 'permit'
 }
 
 export interface PlanData {

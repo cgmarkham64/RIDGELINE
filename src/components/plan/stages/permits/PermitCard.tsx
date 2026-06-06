@@ -1,11 +1,12 @@
-import { IconX, IconCheck } from '../../../icons'
+import { IconX, IconCheck, IconPencil } from '../../../icons'
 import { PermitTypeIcon, TypeChip, Field } from './PermitAtoms'
 import { PERMIT_TYPES, TONE_CLS, ZONE_STATUS_CLS } from './permitsStage.constants'
 import type { Permit } from './permitsStage.types'
 
-export function PermitCard({ permit, onRemove, onUpdatePermit, canEdit, partySize }: {
+export function PermitCard({ permit, onRemove, onEdit, onUpdatePermit, canEdit, partySize }: {
   permit: Permit
   onRemove: () => void
+  onEdit: () => void
   onUpdatePermit: (key: string, value: string) => void
   canEdit: boolean
   partySize: number
@@ -37,6 +38,11 @@ export function PermitCard({ permit, onRemove, onUpdatePermit, canEdit, partySiz
             >
               Book
             </a>
+          )}
+          {canEdit && (
+            <button onClick={onEdit} className="text-text-dim hover:text-text p-1 transition-colors" title="Edit">
+              <IconPencil size={13} />
+            </button>
           )}
           {canEdit && (
             <button onClick={onRemove} className="text-text-dim hover:text-red p-1 transition-colors" title="Remove">

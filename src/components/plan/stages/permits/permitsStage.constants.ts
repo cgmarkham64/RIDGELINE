@@ -39,6 +39,38 @@ export const MAP_ZONES = [
 
 export const MAP_ROUTE = '70,180 130,140 190,110 250,90 310,110 350,150 380,200 360,260 310,280'
 
+export const PERMIT_DATE_PRESETS: Record<PermitTypeName, { key: string; label: string; tone: PermitTone }[]> = {
+  lottery:     [
+    { key: 'apply_opens',  label: 'Application opens',   tone: 'amber' },
+    { key: 'apply_closes', label: 'Application closes',  tone: 'amber' },
+    { key: 'draw_date',    label: 'Draw date',           tone: 'amber' },
+    { key: 'accept_by',    label: 'Acceptance deadline', tone: 'amber' },
+  ],
+  reservation: [
+    { key: 'booking_opens', label: 'Booking opens',           tone: 'sky'   },
+    { key: 'cancel_by',     label: 'Cancellation deadline',   tone: 'amber' },
+  ],
+  walkup:      [
+    { key: 'window_opens', label: 'Window opens',  tone: 'amber' },
+    { key: 'arrive_by',    label: 'Arrive by',     tone: 'amber' },
+  ],
+  selfissue:   [],
+  zonenights:  [
+    { key: 'booking_opens', label: 'Booking opens', tone: 'sky' },
+  ],
+  hut:         [
+    { key: 'booking_opens', label: 'Booking opens',         tone: 'sky'   },
+    { key: 'cancel_by',     label: 'Cancellation deadline', tone: 'amber' },
+  ],
+  parking:     [
+    { key: 'booking_opens', label: 'Booking opens', tone: 'sky' },
+  ],
+  fishing:     [],
+  vehicle:     [
+    { key: 'booking_opens', label: 'Booking opens', tone: 'sky' },
+  ],
+}
+
 export const ZONE_PERMIT_MAP: Record<string, string> = {
   whitney: 'sgt_whitney',
   inyo:    'sgt_inyo',

@@ -1,42 +1,48 @@
-import type { PermitTone } from './permitsStage.types'
 import type { PlanCriticalDate, PlanPermitEntry } from '../../types'
 
-const MONTH_RE = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\w*\s+\d{1,2}(,\s*\d{4})?/i
-const ISO_RE   = /^\d{4}-\d{2}-\d{2}/
-const MONTH_IDX: Record<string, number> = {
-  jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11,
+// ── Epoch ↔ input value helpers ───────────────────────────────────────────────
+
+export function toDateInputValue(ms: number): string {
+  const d = new Date(ms)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
-export function looksLikeDate(v: string) {
-  return MONTH_RE.test(v.trim()) || ISO_RE.test(v.trim())
+export function toTimeInputValue(ms: number): string {
+  const d = new Date(ms)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
-export function parseDateMs(dateStr: string): number {
-  const iso = Date.parse(dateStr)
-  if (!isNaN(iso)) return iso
-  const m = dateStr.match(/^(\w{3})\w*\s+(\d{1,2})(?:,\s*(\d{4}))?/i)
-  if (m) {
-    const idx = MONTH_IDX[m[1].toLowerCase()]
-    if (idx !== undefined)
-      return new Date(parseInt(m[3] ?? String(new Date().getFullYear())), idx, parseInt(m[2])).getTime()
-  }
-  return Infinity
+export function toDateMs(dateStr: string, timeStr?: string): number {
+  return new Date(`${dateStr}T${timeStr ?? '00:00'}`).getTime()
 }
+
+// ── Display formatting ────────────────────────────────────────────────────────
+
+const DATE_FMT: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' }
+const DATETIME_FMT: Intl.DateTimeFormatOptions = {
+  month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
+}
+
+export function formatCriticalDate(d: PlanCriticalDate): string {
+  if (!d.dateMs || isNaN(d.dateMs)) return '—'
+  return new Intl.DateTimeFormat(undefined, d.hasTime ? DATETIME_FMT : DATE_FMT).format(d.dateMs)
+}
+
+// ── Roll up per-permit critical dates for the right rail ──────────────────────
 
 export function extractScanDates(permits: PlanPermitEntry[]): PlanCriticalDate[] {
   const dates: PlanCriticalDate[] = []
   for (const permit of permits) {
-    for (const [key, value] of Object.entries(permit.fields)) {
-      if (!looksLikeDate(value)) continue
-      const tone: PermitTone =
-        permit.type === 'lottery'                               ? 'amber' :
-        permit.type === 'reservation' || permit.type === 'hut'  ? 'sky'   : 'pine'
+    for (const cd of permit.criticalDates ?? []) {
+      if (!cd.dateMs) continue
       dates.push({
-        id:     `scan__${permit.id}__${key}`,
-        date:   value,
-        label:  `${key} — ${permit.name}`,
-        tone,
-        source: 'scan',
+        ...cd,
+        id:     `permit__${permit.id}__${cd.id}`,
+        label:  `${cd.label} — ${permit.name}`,
+        source: 'permit',
       })
     }
   }

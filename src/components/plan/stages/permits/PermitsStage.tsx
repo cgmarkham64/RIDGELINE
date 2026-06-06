@@ -20,6 +20,7 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
   const [scanning, setScanning]             = useState(false)
   const [scanError, setScanError]           = useState<string | null>(null)
   const [freeformOpen, setFreeformOpen]     = useState(false)
+  const [editingPermit, setEditingPermit]   = useState<Permit | null>(null)
   const [permitFree, setPermitFree]         = useState(() => plan?.permits?.permitFree ?? false)
   const [partyConfirmed, setPartyConfirmed] = useState(false)
   const [criticalDates, setCriticalDates]   = useState<PlanCriticalDate[]>(() => plan?.permits?.criticalDates ?? [])
@@ -64,7 +65,22 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
   }, [trip?._id])
 
   function remove(id: string) { setPermits(prev => prev.filter(p => p.id !== id)) }
-  function addCustom(p: Permit) { setPermits(prev => [...prev, p]); setFreeformOpen(false) }
+
+  function handleDialogSave(p: Permit) {
+    if (editingPermit) {
+      setPermits(prev => prev.map(existing => existing.id === p.id ? p : existing))
+    } else {
+      setPermits(prev => [...prev, p])
+    }
+    setEditingPermit(null)
+    setFreeformOpen(false)
+  }
+
+  function openEdit(id: string) {
+    const permit = permits.find(p => p.id === id)
+    if (permit) { setEditingPermit(permit); setFreeformOpen(true) }
+  }
+
   function updatePermitField(id: string, key: string, value: string) {
     setPermits(prev => prev.map(p => p.id === id ? { ...p, fields: { ...p.fields, [key]: value } } : p))
   }
@@ -106,7 +122,8 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
               permits={permits}
               links={links}
               onRemove={remove}
-              onAddFreeform={() => setFreeformOpen(true)}
+              onEditPermit={openEdit}
+              onAddFreeform={() => { setEditingPermit(null); setFreeformOpen(true) }}
               onUpdatePermit={updatePermitField}
               canEdit={canEdit}
               partySize={partySize}
@@ -165,7 +182,12 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
       </div>
 
       {freeformOpen && (
-        <FreeformDialog onClose={() => setFreeformOpen(false)} onAdd={addCustom} partySize={partySize} />
+        <FreeformDialog
+          onClose={() => { setFreeformOpen(false); setEditingPermit(null) }}
+          onSave={handleDialogSave}
+          partySize={partySize}
+          initialPermit={editingPermit ?? undefined}
+        />
       )}
     </>
   )
