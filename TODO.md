@@ -24,35 +24,12 @@ All seven stages render with internal state. The items below are UI stubs, disco
 
 **Stage 3 — Permits**
 
-*Hardcoded / mock data that needs replacing*
-- ✅ Section header subtitle reads from `trip.location` (falling back to `trip.title`); renders nothing when both are absent.
-- ✅ Detection banner resource count computed from the live `links` list; shows appropriate fallbacks when empty, un-scanned, or scan failed.
-- ✅ `CRITICAL_DATES` replaced — right rail renders only dates derived from permit `criticalDates` arrays plus manually-added entries; no hardcoded SHR data.
-- ✅ `PermitCard` walkup branch now reads from `permit.fields['Window opens']` and `permit.fields['Arrive by']` (editable, persisted) instead of hardcoded times.
-- ✅ `FreeformDialog` now accepts `partySize` prop and uses it instead of hardcoded `4`.
-
-*Broken stubs*
-- ✅ "Re-scan" button is wired to `onRescan` → `runScan()` in `PermitsStage`.
-- ✅ Party "override" concept removed. Party size is always derived from `trip.sharedWith.length + 1` (all collaborators + owner).
-- ✅ `partyConfirmed` visual feedback: `PartnersCard` shows a "Party confirmed" chip (green check + text) below the partners list; right-rail `CheckItem` reflects the same state.
-- ✅ `onProgress` wired — fires `onProgressRef.current(doneCount, 3)` (or `(2, 2)` when permit-free) via `useEffect` on `doneCount` / `permitFree` changes.
-- ✅ `canEdit` prop enforced throughout — all mutation buttons hidden for read-only collaborators.
-- ✅ `Field` component in `PermitAtoms.tsx` is controlled — edits persisted via `updatePermitField` → `setPermits` in `PermitsStage`.
-- ✅ Permit editing implemented — edit button on `PermitCard` reopens `FreeformDialog` pre-populated; `isEditing` flag skips the type-select step.
-
-*Missing UX flows*
-- ✅ Party size derived from partners list; `PartnersCard` embedded in Permits right rail. Policy: everyone on the trip must be a Ridgeline collaborator.
-- ✅ AI permit lookup — search bar calls `lookupPermit` (Claude-backed); results pre-fill `FreeformDialog` with name, agency, URL, critical dates, and a confidence/verification banner. Blocking `HikerOverlay` shown during lookup.
 - ⚠ No URL / booking link field for **manually-added** permits in `FreeformDialog` — AI lookup fills `permit.url` automatically, but the details form has no URL input. Add a link field to the details step so manual permits can carry a booking URL; `PermitCard` already renders `permit.url` as a "Book" button when present.
 - ⚠ No dedicated confirmation number field — the `fields` map can hold one but `FreeformDialog` has no labelled input for it. Add a "Confirmation #" field for `lottery` and `reservation` permit types.
 - ⚠ `FreeformDialog` details step shows the same name/agency/notes form regardless of type. Type-specific fields would reduce friction: lottery → apply-open/close/draw/accept dates; reservation → booking date + confirmation #; walkup → window-opens + arrive-by; zonenights → zone-per-night builder; selfissue → trailhead name.
 - ⚠ Critical Dates should drive proactive notifications — store a `notifyDaysBefore` preference per date entry; scheduled job dispatches reminders via Sendgrid/Twilio. Add notification-opt-in control to `CriticalDatesCard`.
 - ⚠ `hut`, `fishing`, and `vehicle` permit types in `PermitCard` render no type-specific content. Add layouts: hut → booking date + nights; fishing → license number + expiry; vehicle → pass type + pass number.
-
-*Dead code to clean up*
-- ⚠ `SuggestionRow.tsx` is unused — the suggestion system was replaced by AI lookup + permit resource links. Delete the file.
-- ⚠ `permitsStage.constants.ts` exports `MAP_ZONES`, `MAP_ROUTE`, `ZONE_PERMIT_MAP`, `INITIAL_SUGGESTIONS`, and `CRITICAL_DATES` — all dead code since the map view was removed. Remove them.
-- ⚠ `FreeformDialog` step 1 shows a stale "AI-assisted fill coming soon" notice — AI lookup is live via the search bar before the dialog opens. Remove the banner.
+- ⚠ "Add this permit" option for the permit links from the scan. Triggers the AI search, same as the search bar, with the name from the link.
 
 **Stage 4 — Food**
 - ⚠ "Bulk edit" button is a stub. Per-meal granularity (more fields than just Breakfast / Lunch / Dinner) and the ability to recover cleared cell content are also needed here.
@@ -126,8 +103,6 @@ Add a tooltip to each day button in DaySelector showing the entry title if one e
 
 ### AI Features (Claude API)
 
-**Permit fill** *(done)* — search bar in the Permits stage calls `POST /api/trips/:id/permit-lookup` (Claude-backed via `src/lib/permits.ts`). Results pre-fill `FreeformDialog` with name, agency, URL, critical dates, and a confidence/verification banner. `HikerOverlay` shown during lookup. Remaining gaps logged under Stage 3 above.
-
 **Food suggestions** — (1) autopopulate per-day kcal from food selections entered in the meal grid; (2) recommend foods for each meal slot based on expected calorie needs (mileage, elevation gain, tough-day flags from Route segments). Endpoint: `POST /api/plan/food-suggest`.
 
 ### Bear Canister Improvements
@@ -185,7 +160,7 @@ Full gear inventory system:
 - **Shared icons** — `src/components/icons.tsx` consolidates all SVG icon functions app-wide; duplicate inline icons removed from stages, layout, journal, and map components.
 - **Stage 1 — Route** — MapTopo SVG, ElevationProfile chart, segments table with JumpChip to Days, locked banner, right rail (checklist + partners + source files).
 - **Stage 2 — Days** *(superseded)* — original stat strip, day list with exposure pills, selected-day detail, and empty-state built; `onChange` + `onProgress` wired. Stage is being replaced by Weather: exposure / water / tough-day / pass metadata moves to Route segments; time targets defer to the Depart one-pager; `DaysStage.tsx` and the `days` slice in `PlanData` to be removed once Weather is in place.
-- **Stage 3 — Permits** — list view + map view toggle + per-row map modal + free-form two-step dialog + permit-free state + SVG zone map.
+- **Stage 3 — Permits** — list view, two-step `FreeformDialog`, permit-free state, `canEdit` enforced, `onProgress` wired. All hardcoded SHR demo data removed; critical dates, detection banner, and party size derived from live data. Permit editing via pre-populated dialog. `PartnersCard` embedded in right rail with confirm-party flow. AI permit lookup (Claude-backed `lookupPermit`): pre-fills name, agency, URL, critical dates, and confidence/verification banner; `HikerOverlay` with permit-specific sayings shown during lookup. Dead code removed: map view, `SuggestionRow.tsx`, unused constants.
 - **Stage 4 — Food** — daily targets, click-to-edit meal grid with ref-guarded blur (stale-closure fix), resupply card, water plan toggles, bear canister picker with custom entry.
 - **Stage 5 — Gear** — hold banner, four interactive category cards (Shelter / Kitchen / Worn / Safety+Nav), live weight stats, unlock checklist.
 - **Stage 6 — Depart** — reminders, emergency contacts, offline maps cards, one-pager preview (pulls day rows from plan data), take-it-with-you checklist.
