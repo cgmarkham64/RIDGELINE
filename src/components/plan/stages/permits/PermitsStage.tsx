@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { IconList } from '../../../icons'
 import { ProgressBar } from '../../ProgressBar'
 import { CheckItem } from '../../CheckItem'
 import { PermitsListView } from './PermitsListView'
@@ -112,9 +111,6 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
                 {locationLabel && (
                   <div className="font-mono text-label text-text-dim mt-0.5">{locationLabel}</div>
                 )}
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-2 border border-border rounded-lg text-caption font-heading font-bold tracking-[0.06em] uppercase text-text-mid">
-                <IconList /> List
               </div>
             </div>
 
