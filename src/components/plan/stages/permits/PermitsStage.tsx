@@ -11,10 +11,14 @@ import { suggestPermits, lookupPermit } from '../../../../lib/permits'
 import type { PermitLookupResult } from '../../../../lib/permits'
 import { extractApiError } from '../../../../lib/utils'
 import { toDateMs } from './criticalDates.helpers'
+import { HikerOverlay } from '../../../ui/HikerOverlay'
+import { randomPermitSaying } from '../../../ui/sayings'
 import type { Permit } from './permitsStage.types'
 import type { StageBodyProps, PlanCriticalDate } from '../../types'
 
 export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true }: StageBodyProps) {
+  const permitSaying = useMemo(() => randomPermitSaying(), [])
+
   const [permits, setPermits]               = useState<Permit[]>(() => (plan?.permits?.permits as Permit[] | undefined) ?? (plan !== undefined ? [] : INITIAL_PERMITS))
   const [links, setLinks]                   = useState(() => plan?.permits?.links ?? [])
   const [lastScanned, setLastScanned]       = useState<string | undefined>(() => plan?.permits?.lastScanned)
@@ -234,6 +238,10 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
           </aside>
         </div>
       </div>
+
+      {lookupLoading && (
+        <HikerOverlay label="Looking up permit details…" saying={permitSaying} />
+      )}
 
       {freeformOpen && (
         <FreeformDialog

@@ -1,8 +1,9 @@
 import { useMemo } from 'react'
-import { randomSaying } from './sayings'
+import { randomSaying, type Saying } from './sayings'
 
 interface Props {
   label?: string
+  saying?: Saying
 }
 
 const STARS = [
@@ -16,8 +17,9 @@ const STARS = [
   { cx: 195, cy: 22, r: 1.2, delay: '1.5s' },
 ]
 
-export function HikerOverlay({ label = 'Processing…' }: Props) {
-  const saying = useMemo(() => randomSaying(), [])
+export function HikerOverlay({ label = 'Processing…', saying: sayingProp }: Props) {
+  const fallbackSaying = useMemo(() => randomSaying(), [])
+  const saying = sayingProp ?? fallbackSaying
 
   return (
     <div className="hiker-overlay">

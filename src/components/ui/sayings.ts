@@ -130,3 +130,38 @@ export const SAYINGS: Saying[] = [
 export function randomSaying(): Saying {
   return SAYINGS[Math.floor(Math.random() * SAYINGS.length)]
 }
+
+export const PERMIT_LOOKUP_SAYINGS: Saying[] = [
+  {
+    text: 'Ridgeline is reading every sign on the trail — even the ones half-covered in lichen.',
+    tag: 'looking for the needle in the haystack',
+  },
+  {
+    text: 'Bushwhacking through bureaucracy, one regulation at a time.',
+    tag: 'looking for the needle in the haystack',
+  },
+  {
+    text: 'Cross-referencing trailheads, ranger districts, and probably a few overgrown bulletin boards.',
+    tag: 'looking for the needle in the haystack',
+  },
+  {
+    text: 'Ridgeline found the ranger station. Now checking if they have WiFi.',
+    tag: 'looking for the needle in the haystack',
+  },
+  {
+    text: 'Navigating the permit wilderness so you can focus on the actual wilderness.',
+    tag: 'looking for the needle in the haystack',
+  },
+  {
+    text: "There's no permit for curiosity — but Ridgeline looked it up just to be sure.",
+    tag: 'looking for the needle in the haystack',
+  },
+  {
+    text: 'Following the paper trail deeper into the backcountry of federal bureaucracy.',
+    tag: 'looking for the needle in the haystack',
+  },
+]
+
+export function randomPermitSaying(): Saying {
+  return PERMIT_LOOKUP_SAYINGS[Math.floor(Math.random() * PERMIT_LOOKUP_SAYINGS.length)]
+}
