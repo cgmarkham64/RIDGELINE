@@ -121,6 +121,48 @@ export function PermitCard({ permit, onRemove, onEdit, onUpdatePermit, canEdit, 
           ))}
         </div>
       )}
+      {permit.type === 'hut' && (
+        <div className="grid grid-cols-2 gap-2.5">
+          <Field
+            label="Check-in date"
+            value={permit.fields['Check-in date'] ?? ''}
+            onChange={canEdit ? val => onUpdatePermit('Check-in date', val) : undefined}
+          />
+          <Field
+            label="Nights"
+            value={permit.fields['Nights'] ?? ''}
+            onChange={canEdit ? val => onUpdatePermit('Nights', val) : undefined}
+          />
+        </div>
+      )}
+      {permit.type === 'fishing' && (
+        <div className="grid grid-cols-2 gap-2.5">
+          <Field
+            label="License #"
+            value={permit.fields['License #'] ?? ''}
+            onChange={canEdit ? val => onUpdatePermit('License #', val) : undefined}
+          />
+          <Field
+            label="Expiry"
+            value={permit.fields['Expiry'] ?? ''}
+            onChange={canEdit ? val => onUpdatePermit('Expiry', val) : undefined}
+          />
+        </div>
+      )}
+      {permit.type === 'vehicle' && (
+        <div className="grid grid-cols-2 gap-2.5">
+          <Field
+            label="Pass type"
+            value={permit.fields['Pass type'] ?? ''}
+            onChange={canEdit ? val => onUpdatePermit('Pass type', val) : undefined}
+          />
+          <Field
+            label="Pass #"
+            value={permit.fields['Pass #'] ?? ''}
+            onChange={canEdit ? val => onUpdatePermit('Pass #', val) : undefined}
+          />
+        </div>
+      )}
     </div>
   )
 }
