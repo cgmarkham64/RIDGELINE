@@ -22,14 +22,6 @@ All seven stages render with internal state. The items below are UI stubs, disco
 
 - ℹ Sunrise/sunset times computed here should eventually feed the Depart one-pager's per-day schedule column.
 
-**Stage 3 — Permits**
-
-- ✅ URL / booking link field added to `FreeformDialog` details step — manual permits can now carry a booking URL; `PermitCard` renders it as a "Book" button.
-- ✅ Confirmation # field added to `FreeformDialog` for `lottery` and `reservation` types — stored in `fields` and rendered by `PermitCard`.
-- ✅ Type-specific fields added to `FreeformDialog`: selfissue → Trailhead input; zonenights → zone-per-night builder (night badge + zone name + avail/limited/full status). Lottery/reservation/walkup already covered by critical date presets.
-- ✅ `hut`, `fishing`, and `vehicle` layouts added to `PermitCard`: hut → check-in date + nights; fishing → license # + expiry; vehicle → pass type + pass #. All fields are inline-editable.
-- ✅ "Add" button on each scanned permit link — triggers AI lookup with the link title, same flow as the search bar, opening the pre-filled FreeformDialog.
-
 **Stage 4 — Food**
 - ⚠ "Bulk edit" button is a stub. Per-meal granularity (more fields than just Breakfast / Lunch / Dinner) and the ability to recover cleared cell content are also needed here.
 - ⚠ "Generate label" and "Swap location" buttons on `ResupplyCard` are stubs.
@@ -159,7 +151,7 @@ Full gear inventory system:
 - **Shared icons** — `src/components/icons.tsx` consolidates all SVG icon functions app-wide; duplicate inline icons removed from stages, layout, journal, and map components.
 - **Stage 1 — Route** — MapTopo SVG, ElevationProfile chart, segments table with JumpChip to Days, locked banner, right rail (checklist + partners + source files).
 - **Stage 2 — Days** *(superseded)* — original stat strip, day list with exposure pills, selected-day detail, and empty-state built; `onChange` + `onProgress` wired. Stage is being replaced by Weather: exposure / water / tough-day / pass metadata moves to Route segments; time targets defer to the Depart one-pager; `DaysStage.tsx` and the `days` slice in `PlanData` to be removed once Weather is in place.
-- **Stage 3 — Permits** — list view, two-step `FreeformDialog`, permit-free state, `canEdit` enforced, `onProgress` wired. All hardcoded SHR demo data removed; critical dates, detection banner, and party size derived from live data. Permit editing via pre-populated dialog. `PartnersCard` embedded in right rail with confirm-party flow. AI permit lookup (Claude-backed `lookupPermit`): pre-fills name, agency, URL, critical dates, and confidence/verification banner; `HikerOverlay` with permit-specific sayings shown during lookup. Dead code removed: map view, `SuggestionRow.tsx`, unused constants.
+- **Stage 3 — Permits** — list view, two-step `FreeformDialog`, permit-free state, `canEdit` enforced, `onProgress` wired. All hardcoded SHR demo data removed; critical dates, detection banner, and party size derived from live data. Permit editing via pre-populated dialog. `PartnersCard` embedded in right rail with confirm-party flow. AI permit lookup (Claude-backed `lookupPermit`): pre-fills name, agency, URL, critical dates, and confidence/verification banner; `HikerOverlay` with permit-specific sayings shown during lookup. Dead code removed: map view, `SuggestionRow.tsx`, unused constants. `FreeformDialog` type-specific fields: booking URL, confirmation # (lottery/reservation), trailhead (selfissue), zone-per-night builder (zonenights). `PermitCard` layouts for hut (check-in date + nights), fishing (license # + expiry), vehicle (pass type + pass #). Scanned permit links: domain badge replaces tier label; recreation.gov links get an Add button (AI lookup flow); other agencies dimmed with no Add button. AI disclaimer consolidated into detection banner.
 - **Stage 4 — Food** — daily targets, click-to-edit meal grid with ref-guarded blur (stale-closure fix), resupply card, water plan toggles, bear canister picker with custom entry.
 - **Stage 5 — Gear** — hold banner, four interactive category cards (Shelter / Kitchen / Worn / Safety+Nav), live weight stats, unlock checklist.
 - **Stage 6 — Depart** — reminders, emergency contacts, offline maps cards, one-pager preview (pulls day rows from plan data), take-it-with-you checklist.
