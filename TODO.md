@@ -26,7 +26,7 @@ All seven stages render with internal state. The items below are UI stubs, disco
 
 - ✅ URL / booking link field added to `FreeformDialog` details step — manual permits can now carry a booking URL; `PermitCard` renders it as a "Book" button.
 - ✅ Confirmation # field added to `FreeformDialog` for `lottery` and `reservation` types — stored in `fields` and rendered by `PermitCard`.
-- ⚠ `FreeformDialog` details step shows the same name/agency/notes form regardless of type. Type-specific fields would reduce friction: lottery → apply-open/close/draw/accept dates; reservation → booking date + confirmation #; walkup → window-opens + arrive-by; zonenights → zone-per-night builder; selfissue → trailhead name.
+- ✅ Type-specific fields added to `FreeformDialog`: selfissue → Trailhead input; zonenights → zone-per-night builder (night badge + zone name + avail/limited/full status). Lottery/reservation/walkup already covered by critical date presets.
 - ⚠ Critical Dates should drive proactive notifications — store a `notifyDaysBefore` preference per date entry; scheduled job dispatches reminders via Sendgrid/Twilio. Add notification-opt-in control to `CriticalDatesCard`.
 - ⚠ `hut`, `fishing`, and `vehicle` permit types in `PermitCard` render no type-specific content. Add layouts: hut → booking date + nights; fishing → license number + expiry; vehicle → pass type + pass number.
 - ⚠ "Add this permit" option for the permit links from the scan. Triggers the AI search, same as the search bar, with the name from the link.

@@ -4,7 +4,7 @@ import { TypeChip } from './PermitAtoms'
 import { PERMIT_TYPES, TONE_CLS, PERMIT_DATE_PRESETS } from './permitsStage.constants'
 import { toDateInputValue, toTimeInputValue, toDateMs } from './criticalDates.helpers'
 import type { Permit, PermitTone } from './permitsStage.types'
-import type { PermitTypeName, PlanCriticalDate } from '../../types'
+import type { PermitTypeName, PlanCriticalDate, ZoneStatus } from '../../types'
 
 // ── Draft date shape used only inside this dialog ─────────────────────────────
 
@@ -61,6 +61,12 @@ function toCriticalDates(permitId: string, rows: DraftDate[]): PlanCriticalDate[
     }))
 }
 
+const ZONE_STATUS_BTNS: { value: ZoneStatus; label: string; cls: string }[] = [
+  { value: 'available', label: 'Avail',   cls: 'bg-pine-dim border-pine-border text-pine'   },
+  { value: 'limited',   label: 'Limited', cls: 'bg-amber-dim border-amber-border text-amber' },
+  { value: 'sold_out',  label: 'Full',    cls: 'bg-red-dim border-red-border text-red'       },
+]
+
 const TONE_BTNS: { value: PermitTone; label: string; cls: string }[] = [
   { value: 'amber', label: 'Deadline', cls: 'bg-amber-dim border-amber-border text-amber' },
   { value: 'sky',   label: 'Booking',  cls: 'bg-sky-dim border-sky-border text-sky'       },
@@ -86,6 +92,10 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit, aiPr
   const [agency, setAgency]             = useState(initialPermit?.agency ?? '')
   const [url, setUrl]                   = useState(initialPermit?.url ?? '')
   const [confirmNum, setConfirmNum]     = useState(initialPermit?.fields?.['Confirmation #'] ?? '')
+  const [trailhead, setTrailhead]       = useState(initialPermit?.fields?.['Trailhead'] ?? '')
+  const [draftZones, setDraftZones]     = useState<{ zone: string; status: ZoneStatus }[]>(() =>
+    initialPermit?.zones?.map(z => ({ zone: z.zone, status: z.status })) ?? []
+  )
   const [notes, setNotes]               = useState(initialPermit?.why ?? '')
   const [draftDates, setDraftDates]     = useState<DraftDate[]>(() =>
     initialPermit ? buildDraftDates(initialPermit.type, initialPermit.criticalDates ?? []) : []
@@ -99,6 +109,18 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit, aiPr
   function handleTypeSelect(type: PermitTypeName) {
     setSelectedType(type)
     setDraftDates(buildDraftDates(type, initialPermit?.criticalDates ?? []))
+  }
+
+  function addZone() {
+    setDraftZones(prev => [...prev, { zone: '', status: 'available' }])
+  }
+
+  function updateZone(i: number, patch: Partial<{ zone: string; status: ZoneStatus }>) {
+    setDraftZones(prev => prev.map((z, idx) => idx === i ? { ...z, ...patch } : z))
+  }
+
+  function removeZone(i: number) {
+    setDraftZones(prev => prev.filter((_, idx) => idx !== i))
   }
 
   function updateDraftDate(key: string, patch: Partial<DraftDate>) {
@@ -139,9 +161,12 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit, aiPr
       fields:        {
         ...(initialPermit?.fields ?? {}),
         ...(confirmNum.trim() ? { 'Confirmation #': confirmNum.trim() } : {}),
+        ...(trailhead.trim() ? { 'Trailhead': trailhead.trim() } : {}),
       },
       party:         partySize,
-      zones:         initialPermit?.zones,
+      zones:         selectedType === 'zonenights'
+        ? draftZones.filter(z => z.zone.trim()).map((z, i) => ({ night: i + 1, zone: z.zone.trim(), status: z.status }))
+        : initialPermit?.zones,
       url:           url.trim() || undefined,
       zoneId:        initialPermit?.zoneId,
       confidence:    initialPermit?.confidence,
@@ -275,6 +300,64 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit, aiPr
                         value={confirmNum}
                         onChange={e => setConfirmNum(e.target.value)}
                       />
+                    </div>
+                  )}
+                  {selectedType === 'selfissue' && (
+                    <div>
+                      <label className="font-mono text-label tracking-[0.14em] uppercase text-text-dim mb-1.5 block">Trailhead</label>
+                      <input
+                        className="w-full px-3 py-2 border border-border rounded text-body bg-surface-2 text-text outline-none focus:border-border-mid transition-colors"
+                        placeholder="e.g. North Lake Trailhead"
+                        value={trailhead}
+                        onChange={e => setTrailhead(e.target.value)}
+                      />
+                    </div>
+                  )}
+                  {selectedType === 'zonenights' && (
+                    <div>
+                      <label className="font-mono text-label tracking-[0.14em] uppercase text-text-dim mb-1.5 block">Zones × nights</label>
+                      {draftZones.length > 0 && (
+                        <div className="border border-border rounded-lg overflow-hidden divide-y divide-border mb-2">
+                          {draftZones.map((z, i) => (
+                            <div key={i} className="flex items-center gap-2 px-3 py-2">
+                              <span className="font-mono text-caption font-bold text-amber text-center py-0.5 px-1.5 bg-amber-dim border border-amber-border rounded shrink-0">
+                                N{i + 1}
+                              </span>
+                              <input
+                                className={`flex-1 ${INPUT_CLS}`}
+                                placeholder="Zone name"
+                                value={z.zone}
+                                onChange={e => updateZone(i, { zone: e.target.value })}
+                              />
+                              <div className="flex gap-1 shrink-0">
+                                {ZONE_STATUS_BTNS.map(sb => (
+                                  <button
+                                    key={sb.value}
+                                    onClick={() => updateZone(i, { status: sb.value })}
+                                    className={`px-2 py-0.5 rounded border font-mono text-label font-bold tracking-[0.06em] uppercase transition-colors cursor-pointer ${
+                                      z.status === sb.value ? sb.cls : 'bg-transparent border-border text-text-dim hover:border-border-mid'
+                                    }`}
+                                  >
+                                    {sb.label}
+                                  </button>
+                                ))}
+                              </div>
+                              <button
+                                onClick={() => removeZone(i)}
+                                className="text-text-dim hover:text-red transition-colors p-0.5 bg-transparent border-none cursor-pointer shrink-0"
+                              >
+                                <IconX size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <button
+                        onClick={addZone}
+                        className="inline-flex items-center gap-1 font-mono text-label text-text-dim hover:text-text transition-colors bg-transparent border-none cursor-pointer p-0"
+                      >
+                        <IconPlus size={9} /> Add night
+                      </button>
                     </div>
                   )}
                   <div>
