@@ -1,6 +1,6 @@
 # Ridgeline
 
-An outdoor and hiking trip tracking app. Log trips, write journal entries, import GPX tracks, manage gear loadouts, and browse photos — all in one place.
+An outdoor and hiking trip planning and logging app. Plan trips through a seven-stage wizard (route, weather, permits, food, gear, departure, journal), log completed trips, import GPX tracks, manage gear loadouts, and browse photos — all in one place.
 
 ---
 
@@ -114,14 +114,14 @@ ridgeline/
 │   │   ├── map/                # MapTab, WaypointForm, WaypointChip, leafletIcons
 │   │   ├── plan/               # PlanWizard, StageRail, StageHeader, PlanOverview,
 │   │   │                       #   Ring, Pill, JumpChip, ProgressBar, CheckItem
-│   │   │   └── stages/         # RouteStage ✅, DaysStage ✅,
-│   │   │                       #   PermitsStage, FoodStage, GearStage, DepartStage (stubs)
-│   │   ├── trip/               # TripSidebar, TripModal, ShareDialog, ConfirmDialog
+│   │   │   └── stages/         # RouteStage ✅, WeatherStage ✅, PermitsStage ✅,
+│   │   │                       #   FoodStage ✅, GearStage ✅, DepartStage ✅, JournalStage ✅
+│   │   ├── trip/               # TripSidebar, TripDetail, ShareDialog, ConfirmDialog
 │   │   └── ui/                 # HikerOverlay, MoonLoader
-│   ├── hooks/                  # useTrips, useJournalDays, useNotifications, useDebounce
-│   ├── lib/                    # api.ts (axios), auth.ts, trips.ts, users.ts, notifications.ts, utils.ts
+│   ├── hooks/                  # useTrips, useJournalDays, useNotifications, useDebounce, usePlans
+│   ├── lib/                    # api.ts (axios), auth.ts, trips.ts, plans.ts, users.ts, notifications.ts, permits.ts, utils.ts
 │   ├── pages/                  # HomePage, MapPage, PhotosPage, GearPage, PlanPage, LoginPage, RegisterPage
-│   ├── routes/                 # TanStack Router route definitions (/plan now live)
+│   ├── routes/                 # TanStack Router route definitions
 │   ├── store/                  # auth.ts (Zustand)
 │   └── types/                  # Trip, JournalDay, GearItem, Loadout, Photo, Notification
 │
@@ -130,8 +130,8 @@ ridgeline/
 │   ├── .env.example
 │   └── src/
 │       ├── middleware/         # requireAuth (JWT → Keycloak-ready)
-│       ├── models/             # Trip, JournalDay, User, Loadout, GearItem, Notification
-│       └── routes/             # trips, journalDays, loadouts, gearItems, users, notifications, auth
+│       ├── models/             # Trip (+ planStages), JournalDay, UserProfile, Loadout, GearItem, Notification
+│       └── routes/             # trips (+ permit suggest/lookup), journalDays, loadouts, gearItems, users, notifications, auth
 │
 ├── Dockerfile                  # Frontend — Node build → nginx
 ├── docker compose.yml          # Full stack: frontend, API, MongoDB, Keycloak
@@ -148,10 +148,13 @@ ridgeline/
 | POST | `/api/auth/login` | Verify credentials, return JWT |
 | GET / PUT | `/api/auth/me` | Get or update current user profile |
 | PUT / DELETE | `/api/auth/me/avatar` | Upload or remove avatar |
+| PUT | `/api/auth/me/preferences` | Update user preferences (weather tolerances, default times, units) |
 | GET / POST | `/api/trips` | List owned+shared trips / create trip |
 | GET / PUT / DELETE | `/api/trips/:id` | Read / update / delete trip |
 | POST | `/api/trips/:id/share` | Send collaboration invite |
 | DELETE | `/api/trips/:id/share/:sub` | Remove collaborator |
+| POST | `/api/trips/:id/permits/suggest` | AI scan — returns permit resource links for the trip area |
+| POST | `/api/trips/:id/permits/lookup` | AI lookup — returns pre-filled permit fields by name |
 | GET / POST | `/api/journal-days?tripId=` | List / create journal entries for a trip |
 | PUT / DELETE | `/api/journal-days/:id` | Update / delete a journal entry |
 | GET / POST | `/api/loadouts` | List / create loadouts |
@@ -164,4 +167,4 @@ ridgeline/
 | POST | `/api/notifications/:id/decline` | Decline a trip invite |
 | DELETE | `/api/notifications/:id` | Dismiss a notification |
 | PATCH | `/api/notifications/read-all` | Mark all non-pending notifications as read |
-| POST | `/api/journal-scan` | AI scan of a journal image → structured JSON |
+| POST | `/api/journal-scan` | AI scan of a journal image → structured JSON (title, body, mileage, elevation, temps, weather) |

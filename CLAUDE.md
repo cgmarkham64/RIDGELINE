@@ -79,7 +79,7 @@ src/
                   #   gpx.ts, exif.ts, journalDays.ts, trips.ts (+ unshareTrip, leaveTrip),
                   #   users.ts (searchUsers by name/email, shareTrip),
                   #   notifications.ts (fetchNotifications, acceptInvite, declineInvite, markAllRead, dismissNotification),
-                  #   plans.ts (fetchPlans, fetchPlan, createPlan, updatePlan, deletePlan; PlanRecord type),
+                  #   plans.ts (createPlan, updatePlan, deletePlan — targets /api/trips; PlanRecord retired, uses Trip type),
                   #   utils.ts (initials, extractApiError — shared across components)
   routes/         # TanStack Router — __root.tsx, _authenticated.tsx, index.tsx, login.tsx, register.tsx,
                   #   map.tsx, photos.tsx, gear.tsx,
@@ -111,8 +111,17 @@ src/
                   #   Ring.tsx, Pill.tsx, JumpChip.tsx, ProgressBar.tsx, CheckItem.tsx (shared atoms),
                   #   types.ts (PlanMeta, PlanData + per-stage slices, StageBodyProps with plan/onChange),
                   #   constants.ts (STAGES metadata, createStages(), stageState()),
-                  #   stages/ RouteStage.tsx ✅, DaysStage.tsx ✅, PermitsStage.tsx ✅,
-                  #           FoodStage.tsx ✅, GearStage.tsx ✅, DepartStage.tsx ✅
+                  #   stages/ RouteStage.tsx ✅, WeatherStage.tsx ✅ (+ WmoConditionIcon.tsx; geocoding, climate normals,
+                  #             10-day forecast, departure risk, 4-item checklist),
+                  #           PermitsStage.tsx ✅, FoodStage.tsx ✅, GearStage.tsx ✅,
+                  #           DepartStage.tsx ✅, JournalStage.tsx ✅
+                  #   stages/permits/ — CriticalDatesCard.tsx, FreeformDialog.tsx (2-step type→details;
+                  #     type-specific fields: URL, confirmation #, trailhead, zone builder per type),
+                  #     PartnersCard.tsx, PermitAtoms.tsx (PermitTypeIcon, TypeChip, Field),
+                  #     PermitCard.tsx (full layouts for all 9 types incl. hut/fishing/vehicle),
+                  #     PermitsListView.tsx (scan banner + AI disclaimer consolidated; recreation.gov-only
+                  #     Add button; domain badges replacing tier labels; non-bookable links dimmed),
+                  #     permitsStage.constants.ts, permitsStage.types.ts, criticalDates.helpers.ts
     trip/         # TripDetail.tsx, TripHero.tsx (owner-gated Share/Delete; "Shared trip" badge for non-owners),
                   #   TripSidebar.tsx (search + filter popover: ownership, miles range, elev range, date range),
                   #   TripModal.tsx, TripRightPanel.tsx, ElevationProfile.tsx, GpxMapSection.tsx,
@@ -123,7 +132,7 @@ src/
   hooks/          # useTrips.ts (+ useUnshareTrip, useLeaveTrip), useJournalDays.ts,
                   #   useNotifications.ts (useNotifications polls 30s, useAcceptInvite, useDeclineInvite, useMarkAllRead, useDismissNotification),
                   #   useDebounce.ts (generic debounce hook used in search inputs),
-                  #   usePlans.ts (usePlans, usePlan, useCreatePlan, useUpdatePlan, useDeletePlan)
+                  #   usePlans.ts (usePlans, usePlan, useCreatePlan, useUpdatePlan, useDeletePlan — all target /api/trips)
   router.tsx      # TanStack Router instance
 ```
 
@@ -133,15 +142,16 @@ server/
   src/
     middleware/   # auth.ts (requireAuth — extracts Bearer JWT, populates req.user.sub/email/name;
                   #           verifyToken() uses JWKS/RS256 when KEYCLOAK_JWKS_URI is set, else JWT_SECRET/HS256)
-    models/       # UserProfile.ts (sub, name, email, avatarUrl — upserted from JWT on every login),
-                  #   Trip.ts (+ ownerSub, sharedWith[]), Loadout.ts (+ ownerSub),
+    models/       # UserProfile.ts (sub, name, email, avatarUrl, preferences — upserted from JWT on every login),
+                  #   Trip.ts (+ ownerSub, sharedWith[], status, planStages: Mixed), Loadout.ts (+ ownerSub),
                   #   GearItem.ts (+ ownerSub), JournalDay.ts (+ wildlife[], companions[]),
                   #   Notification.ts (toSub, fromSub, fromName, type, tripId, tripTitle, read, status),
-                  #   Plan.ts (ownerSub, meta: PlanMeta, stages: Mixed, timestamps)
-    routes/       # auth.ts (register + login local-dev only; GET /me, PUT/DELETE /me/avatar),
-                  #   trips.ts, loadouts.ts, gearItems.ts, journalDays.ts, journalScan.ts,
+                  #   Plan.ts (superseded — plan data now lives in Trip.planStages; route kept for migration)
+    routes/       # auth.ts (register + login local-dev only; GET /me, PUT/DELETE /me/avatar, PUT /me/preferences),
+                  #   trips.ts (+ POST /:id/permits/suggest, POST /:id/permits/lookup),
+                  #   loadouts.ts, gearItems.ts, journalDays.ts, journalScan.ts,
                   #   users.ts (GET /search?q=), notifications.ts (GET, POST accept/decline, DELETE, PATCH read-all),
-                  #   plans.ts (GET list, POST create, GET/:id, PUT/:id, DELETE/:id — owner-scoped; ObjectId validated)
+                  #   plans.ts (superseded by trips.ts; kept until migration verified)
     index.ts      # Express app, MongoDB connect; /api/auth public, all other routes behind requireAuth
   .env            # PORT=8000, MONGODB_URI, ANTHROPIC_API_KEY, JWT_SECRET, CORS_ORIGIN
   .env.example    # committed template — copy to .env and fill in secrets
@@ -168,8 +178,9 @@ docker compose.yml  # Four services on ridgeline-net:
 | POST       | `/api/auth/register`    | **Local dev only.** Create account — hashes password, stores UserProfile, returns signed 7-day JWT |
 | POST       | `/api/auth/login`       | **Local dev only.** Verify credentials, return JWT + user (including `avatarUrl`)            |
 | GET        | `/api/auth/me`          | Return current UserProfile (requires JWT); upserts name/email from token on each call        |
-| PUT        | `/api/auth/me/avatar`   | Upload avatar as base64 data URL (max 5 MB); stores on UserProfile (requires JWT)            |
-| DELETE     | `/api/auth/me/avatar`   | Remove avatar from UserProfile (requires JWT)                                                |
+| PUT        | `/api/auth/me/avatar`       | Upload avatar as base64 data URL (max 5 MB); stores on UserProfile (requires JWT)        |
+| DELETE     | `/api/auth/me/avatar`       | Remove avatar from UserProfile (requires JWT)                                             |
+| PUT        | `/api/auth/me/preferences`  | Update user preferences (weatherTolerances, default times, units); lazily migrated on GET /me |
 
 **Trips (all require JWT; scoped to ownerSub or sharedWith)**
 | Method         | Path             | Description                                                                                                                                                                                                                                                                                                       |
@@ -178,6 +189,8 @@ docker compose.yml  # Four services on ridgeline-net:
 | GET/PUT/DELETE | `/api/trips/:id` | Read (owner or shared) / update (owner or shared) / delete (owner only). GET and PUT responses populate `sharedWith` as `{ sub, name }[]`. PUT accepts `gpxPlanned` and `gpxTracks`; non-owners cannot overwrite `sharedWith`. |
 | POST           | `/api/trips/:id/share` | Send a collaboration invite notification to a user by `sub` (owner only); idempotent; does not add to `sharedWith` directly. |
 | DELETE         | `/api/trips/:id/share/:sub` | Remove a collaborator (owner only); also cancels any pending invite notification for that user. |
+| POST           | `/api/trips/:id/permits/suggest` | AI-powered permit resource scan — returns `{ links: PermitLink[] }` (url, title, description, tier) for the trip's route area. |
+| POST           | `/api/trips/:id/permits/lookup`  | AI permit lookup by name — returns pre-filled permit fields (type, name, agency, url, criticalDates, confidence, verificationNote). |
 
 **Journal days (all require JWT; read gated by trip access, writes owner-only)**
 | Method         | Path                        | Description                                           |
@@ -207,11 +220,11 @@ docker compose.yml  # Four services on ridgeline-net:
 | DELETE | `/api/notifications/:id`        | Dismiss (delete) a notification                                                                                |
 | PATCH  | `/api/notifications/read-all`   | Mark all non-pending notifications as read (called on panel open)                                              |
 
-**Plans (all require JWT; scoped to ownerSub)**
+**Plans — superseded; plan data now lives in `Trip.planStages` via `/api/trips`**
 | Method         | Path             | Description                                                                                               |
 |----------------|------------------|-----------------------------------------------------------------------------------------------------------|
-| GET/POST       | `/api/plans`     | List user's plans (newest first) / create plan (`{ meta, stages }`)                                       |
-| GET/PUT/DELETE | `/api/plans/:id` | Read / update (`meta` and/or `stages` patched separately, `markModified` called) / delete. 400 on invalid ObjectId, 403 if not owner. |
+| GET/POST       | `/api/plans`     | *(deprecated)* List / create plans — kept live until migration verified; frontend now uses `/api/trips`.  |
+| GET/PUT/DELETE | `/api/plans/:id` | *(deprecated)* Read / update / delete. 400 on invalid ObjectId, 403 if not owner.                        |
 
 **Other**
 | Method | Path                | Description                                                                                                                   |
@@ -224,7 +237,7 @@ docker compose.yml  # Four services on ridgeline-net:
 See `TODO.md` for detailed task breakdowns. Feature direction:
 
 - **Tests** — Vitest unit tests (`utils.ts`, filter predicates, `useDebounce`) + Playwright E2E golden paths (register → trip → share → journal).
-- **Trip planning** *(all six stages complete + persistence)* — Six-stage wizard (`Route → Days → Permits → Food → Gear → Depart`) fully built at `/plan` (`src/components/plan/`). Plans are persisted to MongoDB via `/api/plans` and autosaved (debounced 800 ms) on any stage change. `PlanPage` auto-creates a plan on first visit and stores the ID in `?id=` search param. `StageHeader` shows live save state. Shared atoms: `Ring`, `Pill`, `JumpChip`, `ProgressBar`, `CheckItem`. Icons centralized in `src/components/icons.tsx`. Design handoff: `inspiration/design_handoff_plan_a_trip/`. Stage specs and known gaps in `TODO.md`. Flow: plan → execution → post-trip journal.
+- **Trip planning** *(all seven stages complete + persistence)* — Seven-stage wizard (`Route → Weather → Permits → Food → Gear → Depart → Journal`) fully built at `/plan` (`src/components/plan/`). Plans are persisted as `planStages` on the Trip model via `/api/trips` and autosaved (debounced 800 ms) on any stage change. `PlanPage` auto-creates a planning Trip on first visit and stores the ID in `?id=` search param. `StageHeader` shows live save state. Shared atoms: `Ring`, `Pill`, `JumpChip`, `ProgressBar`, `CheckItem`. Icons centralized in `src/components/icons.tsx`. Stage specs and known gaps in `TODO.md`. Flow: plan → execution → post-trip journal.
 - **PDF export** — Trip report from Share dialog: hero stats, journal entries, GPX map, gear summary, photos. Dark amber/mono aesthetic via `@react-pdf/renderer` or print stylesheet.
 - **Photo EXIF** — Parse EXIF client-side on upload (exifr): GPS coords, camera settings, timestamp. Store alongside photo in MongoDB.
 - **Gear loadouts** — CRUD gear inventory; weight calculations in Zustand; link loadouts to trips.
