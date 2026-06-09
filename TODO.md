@@ -23,10 +23,18 @@ All seven stages render with internal state. The items below are UI stubs, disco
 - ℹ Sunrise/sunset times computed here should eventually feed the Depart one-pager's per-day schedule column.
 
 **Stage 4 — Food**
-- ⚠ "Bulk edit" button is a stub. Per-meal granularity (more fields than just Breakfast / Lunch / Dinner) and the ability to recover cleared cell content are also needed here.
+- ⚠ Content section needs layout adjustment the same as stages 1-3; make it fill the window without the gap on the right of the screen.
+- ⚠ `onProgress` is never called — the 6-item checklist is computed but never reported to `PlanWizard`. Overview always shows 0/6 for Food.
+- ⚠ `ResupplyCard` is entirely hardcoded (name, location, days, address). Needs full add/edit/remove support for dynamic resupply points, each pinned to a trip day. Resupply stops should also appear as waypoint markers on the Route stage map alongside water and camp waypoints.
+- ⚠ `WaterPlanCard` is entirely hardcoded — day labels and dry-stretch warning are SHR-specific strings, not derived from route or plan data.
+- ⚠ Meal rows don't seed from trip duration — real plans start empty with no mechanism to initialize the correct number of rows from trip start/end dates.
+- ⚠ The "Heads up" advisory in the right rail is hardcoded SHR copy — needs to be dynamic or removed.
+- ⚠ "Bulk edit" button is a stub. Per-meal granularity beyond Breakfast / Lunch / Dinner / Snacks and the ability to recover cleared cell content are also needed.
 - ⚠ "Generate label" and "Swap location" buttons on `ResupplyCard` are stubs.
 - ⚠ "Add cache" button on `WaterPlanCard` is a stub.
-- ⚠ Right-rail totals for food weight, protein, and water are hardcoded strings — not derived from meal state.
+- ⚠ Right-rail totals for food weight and protein are hardcoded — not derived from meal state. Water total should derive from daily target × trip days.
+- ⚠ Add a per-meal weight column (oz) to the meal grid so food weight derives from the grid rather than being hardcoded. Feed total food weight into the Gear stage right-rail stats.
+- ⚠ Calorie target derivation from tough-day flags — Route stage already marks segments as tough; `TargetsCard` references "adjusted for tough days" but it's hardcoded. Wire it: sum daily mileage + elevation from route segments, apply the tough-day multiplier to auto-suggest a per-day kcal target and flag which days need higher kcal in the meal grid.
 
 **Stage 5 — Gear**
 - ⚠ "Add item" button in each `CategoryCard` footer is a stub — no dialog or inline input.
@@ -138,7 +146,7 @@ Full gear inventory system:
 - **User Profile** — Investigate Garmin API integration — Vo2 max as a metric to inform trip difficulty rating / user readiness.
 - **User Preferences** Badass mode for User settings. Button that overrides all weather warnings/tolerances with a warning message that it's doing so. Also let people know to tag the app on Instagram with whatever pictures they take if they enter full badass mode.
 - The src/components/plan/stages folder has gotten rather unruly. Clean it up based on which stage the file is used in by putting them in relevant directories. The /src/components/plan directory files might make sense in a 'commons' folder under the same parent directory.
-- **Proactive notifications** — Text/email reminders when key dates are approaching (permit apply-open, booking opens, weather window), weather becomes available, or final steps need completion before departure. Permit critical dates would need a `notifyDaysBefore` field and a notification-opt-in on `CriticalDatesCard`; scheduled backend job dispatches via Sendgrid (email) or Twilio (SMS).
+- **Proactive notifications for Permit stage** — Text/email reminders when key dates are approaching (permit apply-open, booking opens, weather window), weather becomes available, or final steps need completion before departure. Permit critical dates would need a `notifyDaysBefore` field and a notification-opt-in on `CriticalDatesCard`; scheduled backend job dispatches via Sendgrid (email) or Twilio (SMS).
 - **Route stage** — Stop flood of requests for water info!! We will get flagged for this eventually and its generally not professional
 - **Route stage** Polish annotate checkbox step so it's clear that you must add that info to each segment on the trip. It's not clear right now.
 
