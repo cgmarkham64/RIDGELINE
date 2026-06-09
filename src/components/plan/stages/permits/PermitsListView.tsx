@@ -2,19 +2,13 @@ import { useState } from 'react'
 import { IconMap, IconCheck, IconSearch, IconPlus, IconAlertTriangle, IconExternalLink } from '../../../icons'
 import { PermitCard } from './PermitCard'
 import type { Permit } from './permitsStage.types'
-import type { PermitLink, SourceTier } from '../../types'
+import type { PermitLink } from '../../types'
 
-const TIER_LABEL: Record<SourceTier, string> = {
-  official:  'Official',
-  partner:   'Partner',
-  community: 'Community',
+function linkDomain(url: string): string {
+  try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
 }
 
-const TIER_CLS: Record<SourceTier, string> = {
-  official:  'bg-pine-dim border-pine-border text-pine',
-  partner:   'bg-amber-dim border-amber-border text-amber',
-  community: 'bg-surface-2 border-border text-text-dim',
-}
+const isBookable = (url: string) => linkDomain(url) === 'recreation.gov'
 
 export function PermitsListView({
   permits, links, onRemove, onEditPermit, onAddFreeform, onUpdatePermit,
@@ -115,23 +109,49 @@ export function PermitsListView({
           <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">Permit &amp; access resources</div>
           <div className="flex flex-col gap-2">
             {links.map((link, i) => {
-              const tier = link.tier ?? 'community'
+              const bookable = isBookable(link.url)
+              const domain   = linkDomain(link.url)
               return (
-                <a
+                <div
                   key={i}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-center gap-2.5 px-3 py-2 bg-surface border border-border rounded-lg hover:border-border-mid hover:bg-surface-2 transition-colors no-underline"
+                  className={`flex items-center gap-2.5 px-3 py-2 border rounded-lg transition-colors ${
+                    bookable
+                      ? 'bg-surface border-border hover:border-border-mid hover:bg-surface-2'
+                      : 'bg-surface-2 border-border opacity-70 hover:opacity-100'
+                  }`}
                 >
-                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded border font-mono text-label tracking-[0.06em] uppercase font-semibold shrink-0 ${TIER_CLS[tier]}`}>
-                    {TIER_LABEL[tier]}
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded border font-mono text-label tracking-[0.06em] uppercase font-semibold shrink-0 ${
+                    bookable ? 'bg-pine-dim border-pine-border text-pine' : 'bg-transparent border-border text-text-dim'
+                  }`}>
+                    {domain}
                   </span>
-                  <span className="flex-1 min-w-0 font-heading text-body-sm font-bold text-text group-hover:text-amber transition-colors truncate">
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 min-w-0 font-heading text-body-sm font-bold text-text hover:text-amber transition-colors truncate no-underline"
+                  >
                     {link.title}
-                  </span>
-                  <IconExternalLink size={12} className="shrink-0 text-text-dim group-hover:text-amber transition-colors" />
-                </a>
+                  </a>
+                  {bookable && canEdit && canLookup && (
+                    <button
+                      onClick={() => onSearch(link.title)}
+                      disabled={lookupLoading}
+                      title="Look up and add this permit"
+                      className="inline-flex items-center gap-1 font-mono text-label tracking-[0.06em] uppercase text-text-dim hover:text-amber transition-colors bg-transparent border-none cursor-pointer shrink-0 px-1 py-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <IconPlus size={9} /> Add
+                    </button>
+                  )}
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 text-text-dim hover:text-amber transition-colors"
+                  >
+                    <IconExternalLink size={12} />
+                  </a>
+                </div>
               )
             })}
           </div>

@@ -28,7 +28,7 @@ All seven stages render with internal state. The items below are UI stubs, disco
 - ✅ Confirmation # field added to `FreeformDialog` for `lottery` and `reservation` types — stored in `fields` and rendered by `PermitCard`.
 - ✅ Type-specific fields added to `FreeformDialog`: selfissue → Trailhead input; zonenights → zone-per-night builder (night badge + zone name + avail/limited/full status). Lottery/reservation/walkup already covered by critical date presets.
 - ✅ `hut`, `fishing`, and `vehicle` layouts added to `PermitCard`: hut → check-in date + nights; fishing → license # + expiry; vehicle → pass type + pass #. All fields are inline-editable.
-- ⚠ "Add this permit" option for the permit links from the scan. Triggers the AI search, same as the search bar, with the name from the link.
+- ✅ "Add" button on each scanned permit link — triggers AI lookup with the link title, same flow as the search bar, opening the pre-filled FreeformDialog.
 
 **Stage 4 — Food**
 - ⚠ "Bulk edit" button is a stub. Per-meal granularity (more fields than just Breakfast / Lunch / Dinner) and the ability to recover cleared cell content are also needed here.
