@@ -85,6 +85,7 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit, aiPr
   const [name, setName]                 = useState(initialPermit?.name ?? '')
   const [agency, setAgency]             = useState(initialPermit?.agency ?? '')
   const [url, setUrl]                   = useState(initialPermit?.url ?? '')
+  const [confirmNum, setConfirmNum]     = useState(initialPermit?.fields?.['Confirmation #'] ?? '')
   const [notes, setNotes]               = useState(initialPermit?.why ?? '')
   const [draftDates, setDraftDates]     = useState<DraftDate[]>(() =>
     initialPermit ? buildDraftDates(initialPermit.type, initialPermit.criticalDates ?? []) : []
@@ -135,7 +136,10 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit, aiPr
       name:          name.trim(),
       agency:        agency.trim(),
       why:           notes.trim(),
-      fields:        initialPermit?.fields ?? {},
+      fields:        {
+        ...(initialPermit?.fields ?? {}),
+        ...(confirmNum.trim() ? { 'Confirmation #': confirmNum.trim() } : {}),
+      },
       party:         partySize,
       zones:         initialPermit?.zones,
       url:           url.trim() || undefined,
@@ -262,6 +266,17 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit, aiPr
                       onChange={e => setUrl(e.target.value)}
                     />
                   </div>
+                  {(selectedType === 'lottery' || selectedType === 'reservation') && (
+                    <div>
+                      <label className="font-mono text-label tracking-[0.14em] uppercase text-text-dim mb-1.5 block">Confirmation #</label>
+                      <input
+                        className="w-full px-3 py-2 border border-border rounded text-body bg-surface-2 text-text outline-none focus:border-border-mid transition-colors"
+                        placeholder="e.g. 4829-XKPZ"
+                        value={confirmNum}
+                        onChange={e => setConfirmNum(e.target.value)}
+                      />
+                    </div>
+                  )}
                   <div>
                     <label className="font-mono text-label tracking-[0.14em] uppercase text-text-dim mb-1.5 block">Notes</label>
                     <textarea
