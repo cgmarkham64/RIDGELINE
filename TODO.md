@@ -27,7 +27,6 @@ All seven stages render with internal state. The items below are UI stubs, disco
 - ✅ URL / booking link field added to `FreeformDialog` details step — manual permits can now carry a booking URL; `PermitCard` renders it as a "Book" button.
 - ✅ Confirmation # field added to `FreeformDialog` for `lottery` and `reservation` types — stored in `fields` and rendered by `PermitCard`.
 - ✅ Type-specific fields added to `FreeformDialog`: selfissue → Trailhead input; zonenights → zone-per-night builder (night badge + zone name + avail/limited/full status). Lottery/reservation/walkup already covered by critical date presets.
-- ⚠ Critical Dates should drive proactive notifications — store a `notifyDaysBefore` preference per date entry; scheduled job dispatches reminders via Sendgrid/Twilio. Add notification-opt-in control to `CriticalDatesCard`.
 - ⚠ `hut`, `fishing`, and `vehicle` permit types in `PermitCard` render no type-specific content. Add layouts: hut → booking date + nights; fishing → license number + expiry; vehicle → pass type + pass number.
 - ⚠ "Add this permit" option for the permit links from the scan. Triggers the AI search, same as the search bar, with the name from the link.
 
@@ -147,7 +146,7 @@ Full gear inventory system:
 - **User Profile** — Investigate Garmin API integration — Vo2 max as a metric to inform trip difficulty rating / user readiness.
 - **User Preferences** Badass mode for User settings. Button that overrides all weather warnings/tolerances with a warning message that it's doing so. Also let people know to tag the app on Instagram with whatever pictures they take if they enter full badass mode.
 - The src/components/plan/stages folder has gotten rather unruly. Clean it up based on which stage the file is used in by putting them in relevant directories. The /src/components/plan directory files might make sense in a 'commons' folder under the same parent directory.
-- Notifications via text/email when key dates are coming up, weather becomes available for checking, final steps need completion prior to trip
+- **Proactive notifications** — Text/email reminders when key dates are approaching (permit apply-open, booking opens, weather window), weather becomes available, or final steps need completion before departure. Permit critical dates would need a `notifyDaysBefore` field and a notification-opt-in on `CriticalDatesCard`; scheduled backend job dispatches via Sendgrid (email) or Twilio (SMS).
 - **Route stage** — Stop flood of requests for water info!! We will get flagged for this eventually and its generally not professional
 - **Route stage** Polish annotate checkbox step so it's clear that you must add that info to each segment on the trip. It's not clear right now.
 
