@@ -56,52 +56,54 @@ export function PermitsListView({
     <div className="flex flex-col gap-[22px]">
 
       {/* Detection banner */}
-      <div className={`flex items-center gap-3 px-4 py-3 border rounded-lg ${
+      <div className={`px-4 py-3 border rounded-lg ${
         permitFree ? 'bg-pine-dim border-pine-border' :
         scanError  ? 'bg-red-dim border-red-border'   :
                      'bg-amber-dim border-amber-border'
       }`}>
-        <span className={`shrink-0 ${permitFree ? 'text-pine' : scanError ? 'text-red' : 'text-amber'}`}>
-          {permitFree ? <IconCheck size={16} /> : <IconMap size={16} />}
-        </span>
-        <div className="flex-1 min-w-0">
-          <div className={`font-heading text-body-sm font-bold ${permitFree ? 'text-pine' : scanError ? 'text-red' : 'text-amber'}`}>
-            {bannerHeading}
+        <div className="flex items-center gap-3">
+          <span className={`shrink-0 ${permitFree ? 'text-pine' : scanError ? 'text-red' : 'text-amber'}`}>
+            {permitFree ? <IconCheck size={16} /> : <IconMap size={16} />}
+          </span>
+          <div className="flex-1 min-w-0">
+            <div className={`font-heading text-body-sm font-bold ${permitFree ? 'text-pine' : scanError ? 'text-red' : 'text-amber'}`}>
+              {bannerHeading}
+            </div>
           </div>
-        </div>
-        {canEdit && !scanning && !permitFree && (
-          <div className="flex items-center gap-1.5 shrink-0">
-            {lastScanned && links.length === 0 && (
+          {canEdit && !scanning && !permitFree && (
+            <div className="flex items-center gap-1.5 shrink-0">
+              {lastScanned && links.length === 0 && (
+                <button
+                  onClick={onMarkPermitFree}
+                  className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-pine-border text-pine bg-pine-dim hover:brightness-95 transition-all cursor-pointer"
+                >
+                  <IconCheck size={10} /> Confirm permit-free
+                </button>
+              )}
               <button
-                onClick={onMarkPermitFree}
-                className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-pine-border text-pine bg-pine-dim hover:brightness-95 transition-all cursor-pointer"
+                onClick={onRescan}
+                className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
               >
-                <IconCheck size={10} /> Confirm permit-free
+                Re-scan
               </button>
-            )}
-            <button
-              onClick={onRescan}
-              className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
-            >
-              Re-scan
-            </button>
+            </div>
+          )}
+          {scanning && (
+            <span className="w-4 h-4 rounded-full border-2 border-amber border-t-transparent animate-spin shrink-0" />
+          )}
+        </div>
+        {lastScanned && !scanning && (
+          <div className={`flex items-start gap-2 mt-2.5 pt-2.5 border-t text-caption text-text-mid font-mono ${
+            permitFree ? 'border-pine-border' : scanError ? 'border-red-border' : 'border-amber-border'
+          }`}>
+            <IconAlertTriangle size={13} className="shrink-0 mt-px text-amber" />
+            <span>
+              AI-generated links — open each one and confirm it applies to your specific trailhead,
+              dates, and party size. Call or email the issuing agency if anything is unclear.
+            </span>
           </div>
-        )}
-        {scanning && (
-          <span className="w-4 h-4 rounded-full border-2 border-amber border-t-transparent animate-spin shrink-0" />
         )}
       </div>
-
-      {/* Disclaimer */}
-      {lastScanned && !scanning && (
-        <div className="flex items-start gap-2 px-3 py-3 bg-surface border border-border rounded text-caption text-text-dim font-mono">
-          <IconAlertTriangle size={13} className="shrink-0 mt-px text-amber" />
-          <span>
-            AI-generated links — open each one and confirm it applies to your specific trailhead,
-            dates, and party size. Call or email the issuing agency if anything is unclear.
-          </span>
-        </div>
-      )}
 
       {/* Permit resource links */}
       {links.length > 0 && (
