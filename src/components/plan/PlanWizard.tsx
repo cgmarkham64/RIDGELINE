@@ -133,8 +133,17 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
       }
       if (s.id === 'weather') {
         const w = plan.weather
-        const checks = w ? [w.historicalReviewed, w.sunriseReviewed, w.forecastChecked, w.gearAdjusted, w.departureRisk !== null] : []
+        const checks = w ? [w.historicalReviewed, w.forecastChecked, w.gearAdjusted, w.departureRisk !== null] : []
         seeded = { ...s, done: checks.filter(Boolean).length }
+      }
+      if (s.id === 'permits') {
+        const p = plan.permits
+        if (p) {
+          const permitFree = p.permitFree ?? false
+          const done  = permitFree ? 2 : [(p.permits?.length ?? 0) > 0, p.partyConfirmed ?? false, p.backupPlanned ?? false].filter(Boolean).length
+          const total = permitFree ? 2 : 3
+          seeded = { ...s, done, total }
+        }
       }
       const override = progressOverrides[i]
       return override ? { ...seeded, ...override } : seeded
