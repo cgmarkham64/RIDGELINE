@@ -18,8 +18,10 @@ All seven stages render with internal state. The items below are UI stubs, disco
 **All stages**
 - ⚠ `Stage.done / Stage.total` are wired for Stage 1 (Route) — other stages still need their checklists connected to `onProgress` as they are built out.
 
-**Stage 2 — Weather** *(replaces Days; full stage to be built)*
+**Stage 1 - Route** 
+- On an out and back trip, the list of waypoints and water sources is a little off. I'd expect the water sources to appear twice in this case, in the order of encounter.
 
+**Stage 2 — Weather** *(replaces Days; full stage to be built)*
 - ℹ Sunrise/sunset times computed here should eventually feed the Depart one-pager's per-day schedule column.
 
 **Stage 4 — Food**
