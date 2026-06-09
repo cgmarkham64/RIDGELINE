@@ -84,6 +84,7 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit, aiPr
   const [selectedType, setSelectedType] = useState<PermitTypeName | null>(initialPermit?.type ?? null)
   const [name, setName]                 = useState(initialPermit?.name ?? '')
   const [agency, setAgency]             = useState(initialPermit?.agency ?? '')
+  const [url, setUrl]                   = useState(initialPermit?.url ?? '')
   const [notes, setNotes]               = useState(initialPermit?.why ?? '')
   const [draftDates, setDraftDates]     = useState<DraftDate[]>(() =>
     initialPermit ? buildDraftDates(initialPermit.type, initialPermit.criticalDates ?? []) : []
@@ -137,7 +138,7 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit, aiPr
       fields:        initialPermit?.fields ?? {},
       party:         partySize,
       zones:         initialPermit?.zones,
-      url:           initialPermit?.url,
+      url:           url.trim() || undefined,
       zoneId:        initialPermit?.zoneId,
       confidence:    initialPermit?.confidence,
       criticalDates: toCriticalDates(permitId, draftDates),
@@ -249,6 +250,16 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit, aiPr
                       placeholder="e.g. Inyo NF · recreation.gov"
                       value={agency}
                       onChange={e => setAgency(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="font-mono text-label tracking-[0.14em] uppercase text-text-dim mb-1.5 block">Booking URL</label>
+                    <input
+                      type="url"
+                      className="w-full px-3 py-2 border border-border rounded text-body bg-surface-2 text-text outline-none focus:border-border-mid transition-colors"
+                      placeholder="https://www.recreation.gov/…"
+                      value={url}
+                      onChange={e => setUrl(e.target.value)}
                     />
                   </div>
                   <div>
