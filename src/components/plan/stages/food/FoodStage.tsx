@@ -1,5 +1,4 @@
 import { useState, useRef, useId, useEffect } from 'react'
-import { JumpChip } from '../../JumpChip'
 import { Pill } from '../../Pill'
 import { ProgressBar } from '../../ProgressBar'
 import { CheckItem } from '../../CheckItem'
@@ -94,18 +93,11 @@ function blankMeals(startDate?: string, endDate?: string): MealRow[] {
 
 // ─── TargetsCard ──────────────────────────────────────────────────────────────
 
-function TargetsCard({ targets, onTargetChange, days, toughDays, onJump }: {
+function TargetsCard({ targets, onTargetChange }: {
   targets: Record<TargetField, string>
   onTargetChange: (field: TargetField, value: string) => void
-  days: number
-  toughDays: number[]
-  onJump: (id: string) => void
 }) {
   const uid = useId()
-  const toughNote = toughDays.length > 0
-    ? `D${toughDays.join(', D')} flagged tough — aim for 4,000+ kcal`
-    : null
-
   return (
     <div className="bg-surface border border-border rounded-lg p-[18px]">
       <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-3">Daily targets</div>
@@ -127,11 +119,6 @@ function TargetsCard({ targets, onTargetChange, days, toughDays, onJump }: {
             />
           </div>
         ))}
-      </div>
-      <div className="font-mono text-label text-text-mid mt-2.5">
-        Pulled from{' '}
-        <JumpChip to="weather" onJump={onJump}>{days > 0 ? `${days} days` : '— days'}</JumpChip>
-        {toughNote && <>{' · '}{toughNote}</>}
       </div>
     </div>
   )
@@ -578,7 +565,7 @@ function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
 
 // ─── FoodStage ────────────────────────────────────────────────────────────────
 
-export function FoodStage({ onJump, plan, onChange, onProgress, trip }: StageBodyProps) {
+export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) {
   const f = plan?.food
 
   // Backward compat: migrate old single-stop resupply data saved before this field existed.
@@ -670,9 +657,6 @@ export function FoodStage({ onJump, plan, onChange, onProgress, trip }: StageBod
           <TargetsCard
             targets={targets}
             onTargetChange={(field, value) => setTargets(prev => ({ ...prev, [field]: value }))}
-            days={meals.length}
-            toughDays={toughDays}
-            onJump={onJump}
           />
           <MealGrid
             meals={meals}
