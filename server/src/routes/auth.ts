@@ -54,7 +54,7 @@ function validateWeatherTolerances(t: unknown): void {
 function validatePreferences(prefs: unknown): asserts prefs is UserPreferences {
   if (!prefs || typeof prefs !== 'object') throw new HttpError(400, 'preferences must be an object')
   const p = prefs as Record<string, unknown>
-  const allowed = new Set(['wakeTime', 'onTrailTime', 'campByTime', 'weatherTolerances', 'unitSystem'])
+  const allowed = new Set(['wakeTime', 'onTrailTime', 'campByTime', 'weatherTolerances', 'unitSystem', 'macroTargets'])
   for (const k of Object.keys(p)) {
     if (!allowed.has(k)) throw new HttpError(400, `preferences: unknown key '${k}'`)
   }
@@ -64,6 +64,17 @@ function validatePreferences(prefs: unknown): asserts prefs is UserPreferences {
   validateWeatherTolerances(p.weatherTolerances)
   if (p.unitSystem !== undefined && p.unitSystem !== 'imperial' && p.unitSystem !== 'metric') {
     throw new HttpError(400, "unitSystem: must be 'imperial' or 'metric'")
+  }
+  if (p.macroTargets !== undefined) {
+    if (typeof p.macroTargets !== 'object' || p.macroTargets === null) {
+      throw new HttpError(400, 'macroTargets: must be an object')
+    }
+    const mt = p.macroTargets as Record<string, unknown>
+    const macroKeys = new Set(['calories', 'protein', 'fat', 'carbs'])
+    for (const k of Object.keys(mt)) {
+      if (!macroKeys.has(k)) throw new HttpError(400, `macroTargets: unknown key '${k}'`)
+      if (mt[k] !== undefined && typeof mt[k] !== 'string') throw new HttpError(400, `macroTargets.${k}: must be a string`)
+    }
   }
 }
 

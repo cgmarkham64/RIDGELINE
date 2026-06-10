@@ -271,7 +271,7 @@ export function AccountDialog({ onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="bg-surface border border-border-mid rounded-lg w-full max-w-95 mx-4 overflow-hidden max-h-[90vh] overflow-y-auto"
+        className="bg-surface border border-border-mid rounded-lg w-full max-w-lg mx-4 overflow-hidden max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Sticky header + tab strip ────────────────────────────────────── */}
@@ -448,6 +448,34 @@ export function AccountDialog({ onClose }: Props) {
                       </>
                     )
                   })}
+                </div>
+              </div>
+
+              <div className="border-t border-border pt-4 flex flex-col gap-3">
+                <div className="flex items-center gap-1.5">
+                  <label className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">Daily macro targets</label>
+                  <InfoTooltip text="Pre-fills the Food stage on new trips. Override per-trip any time." />
+                </div>
+                <div className="grid grid-cols-4 gap-2.5">
+                  {([
+                    { key: 'calories', label: 'Calories', placeholder: 'e.g. 3,800' },
+                    { key: 'protein',  label: 'Protein',  placeholder: 'e.g. 120 g'  },
+                    { key: 'fat',      label: 'Fat',      placeholder: 'e.g. 80 g'   },
+                    { key: 'carbs',    label: 'Carbs',    placeholder: 'e.g. 400 g'  },
+                  ] as const).map(f => (
+                    <div key={f.key}>
+                      <label className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1 block">{f.label}</label>
+                      <input
+                        className="w-full px-2.5 py-2 border border-border rounded-sm text-body-sm bg-surface-2 text-text outline-none font-mono focus:border-border-mid transition-colors placeholder:text-text-dim"
+                        placeholder={f.placeholder}
+                        value={prefs.macroTargets?.[f.key] ?? ''}
+                        onChange={e => {
+                          setPrefs(prev => ({ ...prev, macroTargets: { ...prev.macroTargets, [f.key]: e.target.value } }))
+                          setPrefsSaved(false)
+                        }}
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
 

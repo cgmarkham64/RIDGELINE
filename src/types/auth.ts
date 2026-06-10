@@ -25,12 +25,20 @@ export const DEFAULT_WEATHER_TOLERANCES: WeatherTolerances = {
   windDelayMph:    45,
 }
 
+export interface MacroTargets {
+  calories?: string
+  protein?: string
+  fat?: string
+  carbs?: string
+}
+
 export interface UserPreferences {
   wakeTime: TimePreference
   onTrailTime: TimePreference
   campByTime: TimePreference
   weatherTolerances: WeatherTolerances
   unitSystem: 'imperial' | 'metric'
+  macroTargets?: MacroTargets
 }
 
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {

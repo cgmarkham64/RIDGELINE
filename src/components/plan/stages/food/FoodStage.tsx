@@ -4,6 +4,7 @@ import { ProgressBar } from '../../ProgressBar'
 import { CheckItem } from '../../CheckItem'
 import { IconCheck, IconPlus, IconX, IconPackage, IconDroplets, IconPencil, IconLock } from '../../../icons'
 import type { StageBodyProps, ResupplyStop } from '../../types'
+import { useAuthStore } from '../../../../store/auth'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -566,6 +567,7 @@ function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
 // ─── FoodStage ────────────────────────────────────────────────────────────────
 
 export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) {
+  const macroDefaults = useAuthStore(s => s.user?.preferences?.macroTargets)
   const f = plan?.food
 
   // Backward compat: migrate old single-stop resupply data saved before this field existed.
@@ -595,7 +597,13 @@ export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) 
   const [customCanName, setCustomCan]     = useState(() => f?.customCanName ?? '')
   const [targets, setTargets]             = useState<Record<TargetField, string>>(() => {
     const t = f?.targets as Record<string, string> | undefined
-    return { calories: t?.calories ?? '', protein: t?.protein ?? '', fat: t?.fat ?? '', carbs: t?.carbs ?? '' }
+    if (t) return { calories: t.calories ?? '', protein: t.protein ?? '', fat: t.fat ?? '', carbs: t.carbs ?? '' }
+    return {
+      calories: macroDefaults?.calories ?? '',
+      protein:  macroDefaults?.protein  ?? '',
+      fat:      macroDefaults?.fat      ?? '',
+      carbs:    macroDefaults?.carbs    ?? '',
+    }
   })
 
   // Derive tough days from route annotations for the calorie advisory
