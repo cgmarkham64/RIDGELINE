@@ -72,6 +72,17 @@ export interface PlanMealEntry {
   dinner: string
   snacks: string
   kcal: number
+  weightOz?: number
+}
+
+export interface ResupplyStop {
+  id: string
+  name: string
+  resupplyDay: string
+  shipBy: string
+  daysInBox: string
+  holdAddress: string
+  status: 'unconfirmed' | 'shipped'
 }
 
 export interface PlanGearItemEntry {
@@ -160,12 +171,11 @@ export interface PlanData {
   food?: {
     meals: PlanMealEntry[]
     mealsLocked: boolean
-    resupplyStatus: 'unconfirmed' | 'shipped'
-    waterChecks: { sources: boolean; cache: boolean; filter: boolean }
+    resupplyStops: ResupplyStop[]
+    waterChecks: { filter: boolean }
     selectedCanId: string
     customCanName: string
-    targets: { calories: string; protein: string; water: string; packOut: string }
-    resupplyFields: { shipBy: string; daysInBox: string; holdAddress: string }
+    targets: { calories: string; protein: string; fat: string; carbs: string }
   }
   gear?: {
     categories: PlanGearCategoryEntry[]
