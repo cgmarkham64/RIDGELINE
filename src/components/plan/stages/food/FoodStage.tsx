@@ -60,6 +60,12 @@ function demoItem(id: string, name: string, kcal: number, oz: number): MealItem 
   return { id, name, kcal, proteinG: 0, fatG: 0, carbsG: 0, weightOz: oz }
 }
 
+function deepCopyItems(items: Record<MealSlot, MealItem[]>): Record<MealSlot, MealItem[]> {
+  return Object.fromEntries(
+    MEAL_SLOTS.map(s => [s, items[s].map(item => ({ ...item, id: crypto.randomUUID() }))])
+  ) as Record<MealSlot, MealItem[]>
+}
+
 const DEMO_MEALS: MealRow[] = [
   { n: 1, items: { breakfast: [demoItem('d1b', 'Granola + powder',       700, 3.5)], lunch: [demoItem('d1l', 'Tuna wrap',            875, 5.5)], dinner: [demoItem('d1d', 'Mtn House Beef Stew',  1050, 6.6)], snacks: [demoItem('d1s', '2 bars · gummies',     875, 6.4)] } },
   { n: 2, items: { breakfast: [demoItem('d2b', 'Oats + nut butter',      750, 3.8)], lunch: [demoItem('d2l', 'Salami + cheese',       925, 6.0)], dinner: [demoItem('d2d', 'Pad thai (Backpack)',  1110, 6.8)], snacks: [demoItem('d2s', '2 bars · jerky',        915, 7.4)] } },
@@ -611,7 +617,13 @@ export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) 
       {activeDayIdx !== null && (
         <DayMealDialog
           day={meals[activeDayIdx]}
+          dayIndex={activeDayIdx}
+          totalDays={meals.length}
           onSave={updated => setMeals(prev => prev.map((m, i) => i === activeDayIdx ? updated : m))}
+          onCopyTo={indices => {
+            const source = meals[activeDayIdx]
+            setMeals(prev => prev.map((m, i) => indices.includes(i) ? { ...m, items: deepCopyItems(source.items) } : m))
+          }}
           onClose={() => setActiveDayIdx(null)}
         />
       )}

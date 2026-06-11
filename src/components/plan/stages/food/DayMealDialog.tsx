@@ -198,9 +198,12 @@ function SlotSection({ slot, items, loading, weightUnit, pendingCandidates, onAd
   )
 }
 
-export function DayMealDialog({ day, onSave, onClose }: {
+export function DayMealDialog({ day, dayIndex, totalDays, onSave, onCopyTo, onClose }: {
   day: MealRow
+  dayIndex: number
+  totalDays: number
   onSave: (updated: MealRow) => void
+  onCopyTo: (targetIndices: number[]) => void
   onClose: () => void
 }) {
   const [slots, setSlots] = useState<Record<MealSlot, MealItem[]>>(() => ({
@@ -212,8 +215,24 @@ export function DayMealDialog({ day, onSave, onClose }: {
   const [loading, setLoading]                   = useState<Set<string>>(new Set())
   const [pendingCandidates, setPendingCandidates] = useState<Record<string, MacroResult[]>>({})
   const [weightUnit, setWeightUnit]               = useState<WeightUnit>('oz')
+  const [showCopyPicker, setShowCopyPicker]       = useState(false)
+  const [copyTargets, setCopyTargets]             = useState<Set<number>>(new Set())
   const onSaveRef = useRef(onSave)
   useEffect(() => { onSaveRef.current = onSave })
+
+  function toggleCopyTarget(i: number) {
+    setCopyTargets(prev => {
+      const next = new Set(prev)
+      if (next.has(i)) { next.delete(i) } else { next.add(i) }
+      return next
+    })
+  }
+
+  function applyCopy() {
+    onCopyTo([...copyTargets])
+    setShowCopyPicker(false)
+    setCopyTargets(new Set())
+  }
 
   function applyUpdate(updated: Record<MealSlot, MealItem[]>) {
     setSlots(updated)
@@ -337,6 +356,65 @@ export function DayMealDialog({ day, onSave, onClose }: {
         <div className="border-t border-border px-5 pt-2 pb-1 shrink-0">
           <p className="font-mono text-label text-text-dim">Lookup results are AI-assisted estimates · verify against product label</p>
         </div>
+
+        {showCopyPicker && (
+          <div className="border-t border-border px-5 py-3 bg-surface-2 shrink-0">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">Copy to days</span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCopyTargets(new Set(Array.from({ length: totalDays }, (_, i) => i).filter(i => i !== dayIndex)))}
+                  className="font-mono text-label text-text-dim hover:text-text transition-colors cursor-pointer"
+                >
+                  all
+                </button>
+                <span className="font-mono text-label text-text-dim">·</span>
+                <button
+                  type="button"
+                  onClick={() => setCopyTargets(new Set())}
+                  className="font-mono text-label text-text-dim hover:text-text transition-colors cursor-pointer"
+                >
+                  none
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {Array.from({ length: totalDays }, (_, i) => i).filter(i => i !== dayIndex).map(i => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => toggleCopyTarget(i)}
+                  className={`font-mono text-label px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                    copyTargets.has(i)
+                      ? 'border-amber-border bg-amber-dim text-amber'
+                      : 'border-border text-text-dim hover:border-border-mid hover:text-text-mid'
+                  }`}
+                >
+                  D{i + 1}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={applyCopy}
+                disabled={copyTargets.size === 0}
+                className="inline-flex items-center font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-amber-border bg-amber-dim text-amber hover:bg-amber transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Copy to {copyTargets.size > 0 ? `${copyTargets.size} day${copyTargets.size > 1 ? 's' : ''}` : 'days'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowCopyPicker(false); setCopyTargets(new Set()) }}
+                className="font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-dim hover:border-border-mid hover:text-text-mid transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="px-5 py-3 flex items-center gap-4 shrink-0 flex-wrap">
           <span className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">Day totals</span>
           <span className="font-heading text-body-sm font-extrabold text-amber">
@@ -349,6 +427,19 @@ export function DayMealDialog({ day, onSave, onClose }: {
           )}
           {dayWeightDisplay && (
             <span className="font-mono text-fine text-text-mid">{dayWeightDisplay}</span>
+          )}
+          {totalDays > 1 && (
+            <button
+              type="button"
+              onClick={() => setShowCopyPicker(v => !v)}
+              className={`font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border transition-colors cursor-pointer ${
+                showCopyPicker
+                  ? 'border-amber-border bg-amber-dim text-amber'
+                  : 'border-border text-text-dim hover:border-border-mid hover:text-text-mid'
+              }`}
+            >
+              Copy to days…
+            </button>
           )}
           <button type="button" onClick={onClose} className="ml-auto btn btn-ghost">
             Done
