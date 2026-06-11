@@ -2,47 +2,30 @@ import { useState, useRef, useId, useEffect } from 'react'
 import { Pill } from '../../Pill'
 import { ProgressBar } from '../../ProgressBar'
 import { CheckItem } from '../../CheckItem'
-import { IconCheck, IconPlus, IconX, IconPackage, IconDroplets, IconPencil, IconLock } from '../../../icons'
-import type { StageBodyProps, ResupplyStop } from '../../types'
+import { IconCheck, IconPlus, IconX, IconPackage, IconDroplets } from '../../../icons'
+import type { StageBodyProps, ResupplyStop, MealItem, MealSlot, PlanMealEntry } from '../../types'
 import { useAuthStore } from '../../../../store/auth'
+import { DayMealDialog } from './DayMealDialog'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface MealRow {
-  n: number
-  breakfast: string
-  lunch: string
-  dinner: string
-  snacks: string
-  kcal: number
-  weightOz: number
+type MealRow = PlanMealEntry
+
+type LegacyMealEntry = {
+  n: number; breakfast: string; lunch: string; dinner: string; snacks: string
+  kcal: number; weightOz?: number
 }
 
-interface BearCanOption {
-  id: string
-  name: string
-  capacity: string
-  weight: string
-  type: 'hard' | 'soft'
-  note?: string
-  recommended?: boolean
-}
-
-type MealCol = 'breakfast' | 'lunch' | 'dinner' | 'snacks' | 'kcal' | 'weightOz'
 type TargetField = 'calories' | 'protein' | 'fat' | 'carbs'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const DEMO_MEALS: MealRow[] = [
-  { n: 1, breakfast: 'Granola + powder',  lunch: 'Tuna wrap',       dinner: 'Mtn House Beef Stew', snacks: '2 bars · gummies',   kcal: 3500, weightOz: 22 },
-  { n: 2, breakfast: 'Oats + nut butter', lunch: 'Salami + cheese', dinner: 'Pad thai (Backpack)', snacks: '2 bars · jerky',     kcal: 3700, weightOz: 24 },
-  { n: 3, breakfast: 'Granola + powder',  lunch: 'Tortilla pizza',  dinner: 'Mtn House Lasagna',   snacks: '3 bars · gummies',   kcal: 3900, weightOz: 25 },
-  { n: 4, breakfast: 'Pop-tarts ×2',      lunch: 'Tuna wrap',       dinner: 'Beans & rice',        snacks: '3 bars · chocolate', kcal: 4400, weightOz: 28 },
-  { n: 5, breakfast: 'Oats + nut butter', lunch: 'Salami + cheese', dinner: 'Mtn House Chicken',   snacks: '2 bars · gummies',   kcal: 3700, weightOz: 24 },
-  { n: 6, breakfast: 'Granola + powder',  lunch: 'PB tortilla',     dinner: 'Backpack curry',      snacks: '3 bars · jerky',     kcal: 3900, weightOz: 25 },
-  { n: 7, breakfast: 'Pop-tarts ×2',      lunch: 'Tuna wrap',       dinner: 'Mtn House Lasagna',   snacks: '3 bars · gummies',   kcal: 3800, weightOz: 24 },
-  { n: 8, breakfast: 'Bar + coffee',      lunch: 'Burger @ Portal', dinner: '—',                   snacks: '—',                  kcal: 1800, weightOz: 8  },
-]
+const MEAL_SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snacks']
+
+interface BearCanOption {
+  id: string; name: string; capacity: string; weight: string
+  type: 'hard' | 'soft'; note?: string; recommended?: boolean
+}
 
 const BEAR_CANS: BearCanOption[] = [
   { id: 'bv450',      name: 'Bear Vault BV450',         capacity: '450 cu in', weight: '2.3 lb', type: 'hard' },
@@ -61,13 +44,11 @@ const TARGET_FIELDS: Array<{ key: TargetField; label: string; placeholder: strin
 ]
 
 const STOP_TEXT_FIELDS: Array<{
-  key: 'shipBy' | 'daysInBox' | 'holdAddress'
-  label: string
-  placeholder: string
+  key: 'shipBy' | 'daysInBox' | 'holdAddress'; label: string; placeholder: string
 }> = [
-  { key: 'shipBy',      label: 'Ship by',      placeholder: 'Aug 1, 2026'       },
-  { key: 'daysInBox',   label: 'Days in box',  placeholder: '4'                  },
-  { key: 'holdAddress', label: 'Hold address', placeholder: 'Bishop PO, 585 Main St' },
+  { key: 'shipBy',      label: 'Ship by',      placeholder: 'Aug 1, 2026'            },
+  { key: 'daysInBox',   label: 'Days in box',  placeholder: '4'                       },
+  { key: 'holdAddress', label: 'Hold address', placeholder: 'Bishop PO, 585 Main St'  },
 ]
 
 const CAN_TYPE_CLS: Record<'hard' | 'soft', string> = {
@@ -75,20 +56,63 @@ const CAN_TYPE_CLS: Record<'hard' | 'soft', string> = {
   soft: 'bg-amber-dim border-amber-border text-amber',
 }
 
+function demoItem(id: string, name: string, kcal: number, oz: number): MealItem {
+  return { id, name, kcal, proteinG: 0, fatG: 0, carbsG: 0, weightOz: oz }
+}
+
+const DEMO_MEALS: MealRow[] = [
+  { n: 1, items: { breakfast: [demoItem('d1b', 'Granola + powder',       700, 3.5)], lunch: [demoItem('d1l', 'Tuna wrap',            875, 5.5)], dinner: [demoItem('d1d', 'Mtn House Beef Stew',  1050, 6.6)], snacks: [demoItem('d1s', '2 bars · gummies',     875, 6.4)] } },
+  { n: 2, items: { breakfast: [demoItem('d2b', 'Oats + nut butter',      750, 3.8)], lunch: [demoItem('d2l', 'Salami + cheese',       925, 6.0)], dinner: [demoItem('d2d', 'Pad thai (Backpack)',  1110, 6.8)], snacks: [demoItem('d2s', '2 bars · jerky',        915, 7.4)] } },
+  { n: 3, items: { breakfast: [demoItem('d3b', 'Granola + powder',       700, 3.5)], lunch: [demoItem('d3l', 'Tortilla pizza',        975, 6.2)], dinner: [demoItem('d3d', 'Mtn House Lasagna',   1170, 7.0)], snacks: [demoItem('d3s', '3 bars · gummies',    1055, 8.3)] } },
+  { n: 4, items: { breakfast: [demoItem('d4b', 'Pop-tarts ×2',           880, 4.2)], lunch: [demoItem('d4l', 'Tuna wrap',            1100, 6.8)], dinner: [demoItem('d4d', 'Beans & rice',        1320, 8.4)], snacks: [demoItem('d4s', '3 bars · chocolate',  1100, 8.6)] } },
+  { n: 5, items: { breakfast: [demoItem('d5b', 'Oats + nut butter',      750, 3.8)], lunch: [demoItem('d5l', 'Salami + cheese',       925, 6.0)], dinner: [demoItem('d5d', 'Mtn House Chicken',   1110, 6.8)], snacks: [demoItem('d5s', '2 bars · gummies',     915, 7.4)] } },
+  { n: 6, items: { breakfast: [demoItem('d6b', 'Granola + powder',       700, 3.5)], lunch: [demoItem('d6l', 'PB tortilla',           975, 6.2)], dinner: [demoItem('d6d', 'Backpack curry',      1170, 7.0)], snacks: [demoItem('d6s', '3 bars · jerky',      1055, 8.3)] } },
+  { n: 7, items: { breakfast: [demoItem('d7b', 'Pop-tarts ×2',           760, 3.6)], lunch: [demoItem('d7l', 'Tuna wrap',             950, 6.0)], dinner: [demoItem('d7d', 'Mtn House Lasagna',   1140, 6.8)], snacks: [demoItem('d7s', '3 bars · gummies',     950, 7.6)] } },
+  { n: 8, items: { breakfast: [demoItem('d8b', 'Bar + coffee',            300, 1.6)], lunch: [demoItem('d8l', 'Burger @ Portal',      900, 4.2)], dinner: [],                                                   snacks: []                                                     } },
+]
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function kcalCls(kcal: number): string {
   if (kcal >= 3800) return 'text-pine'
   if (kcal >= 3000) return 'text-text-mid'
   return 'text-amber'
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+function itemSummary(items: MealItem[]): string {
+  if (items.length === 0) return ''
+  const first = items[0].name.trim()
+  if (items.length === 1) return first || '—'
+  return first ? `${first} +${items.length - 1}` : `${items.length} items`
+}
+
+function isLegacy(m: unknown): m is LegacyMealEntry {
+  return typeof (m as LegacyMealEntry)?.breakfast === 'string'
+}
+
+function migrateMealEntry(old: LegacyMealEntry): MealRow {
+  const toItems = (name: string): MealItem[] => {
+    if (!name || name === '—') return []
+    return [{ id: crypto.randomUUID(), name, kcal: 0, proteinG: 0, fatG: 0, carbsG: 0, weightOz: 0 }]
+  }
+  return {
+    n: old.n,
+    items: {
+      breakfast: toItems(old.breakfast),
+      lunch:     toItems(old.lunch),
+      dinner:    toItems(old.dinner),
+      snacks:    toItems(old.snacks),
+    },
+  }
+}
 
 function blankMeals(startDate?: string, endDate?: string): MealRow[] {
   if (!startDate || !endDate) return []
   const days = Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86_400_000) + 1
   if (days <= 0) return []
   return Array.from({ length: days }, (_, i) => ({
-    n: i + 1, breakfast: '', lunch: '', dinner: '', snacks: '', kcal: 0, weightOz: 0,
+    n: i + 1,
+    items: { breakfast: [], lunch: [], dinner: [], snacks: [] },
   }))
 }
 
@@ -127,86 +151,17 @@ function TargetsCard({ targets, onTargetChange }: {
 
 // ─── MealGrid ─────────────────────────────────────────────────────────────────
 
-function MealGrid({ meals, onMealsChange, mealsLocked, onToggleLock }: {
+function MealGrid({ meals, onDayClick }: {
   meals: MealRow[]
-  onMealsChange: (meals: MealRow[]) => void
-  mealsLocked: boolean
-  onToggleLock: () => void
+  onDayClick: (idx: number) => void
 }) {
-  const [editing, setEditing] = useState<{ row: number; col: MealCol } | null>(null)
-  const [editValue, setEditValue] = useState('')
-  // Refs keep editing state and value current for onBlur closures.
-  // editingRef is cleared eagerly in commitEdit to prevent double-fire when
-  // blur and click overlap (blur fires first, then startEdit from the click).
-  const editingRef   = useRef<{ row: number; col: MealCol } | null>(null)
-  const editValueRef = useRef('')
-
-  function startEdit(row: number, col: MealCol) {
-    if (mealsLocked) return
-    const m = meals[row]
-    const val = col === 'kcal' ? String(m.kcal || '') : col === 'weightOz' ? String(m.weightOz || '') : m[col]
-    editingRef.current   = { row, col }
-    editValueRef.current = val
-    setEditing({ row, col })
-    setEditValue(val)
-  }
-
-  function commitEdit() {
-    if (!editingRef.current) return
-    const { row, col } = editingRef.current
-    editingRef.current = null
-    const val = editValueRef.current
-    const updated = meals.map((m, i) => {
-      if (i !== row) return m
-      if (col === 'kcal') {
-        const parsed = parseInt(val.replace(/,/g, ''), 10)
-        return { ...m, kcal: isNaN(parsed) ? m.kcal : parsed }
-      }
-      if (col === 'weightOz') {
-        const parsed = parseFloat(val)
-        return { ...m, weightOz: isNaN(parsed) ? m.weightOz : parsed }
-      }
-      return { ...m, [col]: val }
-    })
-    onMealsChange(updated)
-    setEditing(null)
-  }
-
-  function cancelEdit() {
-    editingRef.current = null
-    setEditing(null)
-  }
-
-  function handleChange(v: string) {
-    editValueRef.current = v
-    setEditValue(v)
-  }
-
-  const textCols = ['breakfast', 'lunch', 'dinner', 'snacks'] as const
-
   return (
     <div className="bg-surface border border-border rounded-lg overflow-hidden">
       <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
         <span className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">Meal plan</span>
         <span className="font-mono text-label text-text-dim">
-          {meals.length} days · {mealsLocked ? 'locked' : 'click any cell to edit'}
+          {meals.length} {meals.length === 1 ? 'day' : 'days'} · click any row to edit
         </span>
-        <div className="flex items-center gap-1.5 ml-auto">
-          <button
-            type="button"
-            onClick={onToggleLock}
-            className={`inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border transition-colors cursor-pointer ${
-              mealsLocked
-                ? 'border-pine-border bg-pine-dim text-pine'
-                : 'border-border text-text-mid bg-transparent hover:border-border-mid'
-            }`}
-          >
-            <IconLock /> {mealsLocked ? 'Locked' : 'Lock meals'}
-          </button>
-          <button type="button" className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer">
-            <IconPencil /> Bulk edit
-          </button>
-        </div>
       </div>
 
       <div className="grid px-4 py-2 bg-surface-2 border-b border-border font-mono text-label tracking-[0.12em] uppercase text-text-dim grid-cols-[44px_1fr_1fr_1fr_1fr_56px_64px]">
@@ -224,83 +179,41 @@ function MealGrid({ meals, onMealsChange, mealsLocked, onToggleLock }: {
           <p className="font-mono text-label tracking-[0.14em] uppercase text-text-dim mb-2">No meals planned yet</p>
           <p className="text-body-sm text-text-mid">Set trip dates in the header — one row per day will be created automatically.</p>
         </div>
-      ) : meals.map((m, rowIdx) => (
-        <div
-          key={m.n}
-          className={`grid items-center px-4 gap-2 grid-cols-[44px_1fr_1fr_1fr_1fr_56px_64px] ${rowIdx < meals.length - 1 ? 'border-b border-border' : ''}`}
-        >
-          <span className="font-mono text-label font-bold text-amber text-center py-1 my-2.5 bg-amber-dim border border-amber-border rounded">
-            D{m.n}
-          </span>
+      ) : meals.map((m, rowIdx) => {
+        const allItems  = MEAL_SLOTS.flatMap(s => m.items[s])
+        const rowKcal   = allItems.reduce((sum, i) => sum + i.kcal     * (i.qty ?? 1), 0)
+        const rowOz     = allItems.reduce((sum, i) => sum + i.weightOz * (i.qty ?? 1), 0)
 
-          {textCols.map(col => {
-            const isEditing = editing?.row === rowIdx && editing.col === col
-            return (
-              <div key={col} className="py-2.5">
-                {isEditing ? (
-                  <input
-                    className="w-full bg-surface-2 border border-amber-border rounded px-1.5 py-0.5 text-fine text-text outline-none"
-                    autoFocus
-                    value={editValue}
-                    onChange={e => handleChange(e.target.value)}
-                    onBlur={commitEdit}
-                    onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') cancelEdit() }}
-                  />
-                ) : (
-                  <span
-                    onClick={() => startEdit(rowIdx, col)}
-                    className={`text-fine block leading-snug ${!m[col] || m[col] === '—' ? 'text-text-dim' : 'text-text'} ${!mealsLocked ? 'cursor-text hover:text-amber transition-colors' : ''}`}
-                  >
-                    {m[col] || '—'}
-                  </span>
-                )}
-              </div>
-            )
-          })}
-
-          {/* oz column */}
-          <div className="py-2.5 text-right">
-            {editing?.row === rowIdx && editing.col === 'weightOz' ? (
-              <input
-                className="w-full bg-surface-2 border border-amber-border rounded px-1.5 py-0.5 text-fine font-mono text-right outline-none"
-                autoFocus
-                value={editValue}
-                onChange={e => handleChange(e.target.value)}
-                onBlur={commitEdit}
-                onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') cancelEdit() }}
-              />
-            ) : (
-              <span
-                onClick={() => startEdit(rowIdx, 'weightOz')}
-                className={`font-mono text-fine ${m.weightOz ? 'text-text-mid' : 'text-text-dim'} ${!mealsLocked ? 'cursor-text' : ''}`}
-              >
-                {m.weightOz || '—'}
-              </span>
-            )}
-          </div>
-
-          {/* kcal column */}
-          <div className="py-2.5 text-right">
-            {editing?.row === rowIdx && editing.col === 'kcal' ? (
-              <input
-                className="w-full bg-surface-2 border border-amber-border rounded px-1.5 py-0.5 text-fine text-right font-mono outline-none"
-                autoFocus
-                value={editValue}
-                onChange={e => handleChange(e.target.value)}
-                onBlur={commitEdit}
-                onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') cancelEdit() }}
-              />
-            ) : (
-              <span
-                onClick={() => startEdit(rowIdx, 'kcal')}
-                className={`font-mono text-fine ${m.kcal ? kcalCls(m.kcal) : 'text-text-dim'} ${!mealsLocked ? 'cursor-text' : ''}`}
-              >
-                {m.kcal ? m.kcal.toLocaleString() : '—'}
-              </span>
-            )}
-          </div>
-        </div>
-      ))}
+        return (
+          <button
+            key={m.n}
+            type="button"
+            onClick={() => onDayClick(rowIdx)}
+            className={`grid items-center px-4 gap-2 grid-cols-[44px_1fr_1fr_1fr_1fr_56px_64px] w-full text-left hover:bg-surface-2 transition-colors cursor-pointer ${rowIdx < meals.length - 1 ? 'border-b border-border' : ''}`}
+          >
+            <span className="font-mono text-label font-bold text-amber text-center py-1 my-2.5 bg-amber-dim border border-amber-border rounded">
+              D{m.n}
+            </span>
+            {MEAL_SLOTS.map(slot => {
+              const summary = itemSummary(m.items[slot])
+              return (
+                <span
+                  key={slot}
+                  className={`text-fine truncate leading-snug py-2.5 ${summary ? 'text-text' : 'text-text-dim'}`}
+                >
+                  {summary || '—'}
+                </span>
+              )
+            })}
+            <span className={`font-mono text-fine text-right py-2.5 ${rowOz ? 'text-text-mid' : 'text-text-dim'}`}>
+              {rowOz ? rowOz.toFixed(1) : '—'}
+            </span>
+            <span className={`font-mono text-fine text-right py-2.5 ${rowKcal ? kcalCls(rowKcal) : 'text-text-dim'}`}>
+              {rowKcal ? rowKcal.toLocaleString() : '—'}
+            </span>
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -316,11 +229,7 @@ function ResupplySection({ stops, onStopsChange }: {
   function addStop() {
     onStopsChange([...stops, {
       id: crypto.randomUUID(),
-      name: '',
-      resupplyDay: '',
-      shipBy: '',
-      daysInBox: '',
-      holdAddress: '',
+      name: '', resupplyDay: '', shipBy: '', daysInBox: '', holdAddress: '',
       status: 'unconfirmed',
     }])
   }
@@ -451,15 +360,9 @@ function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
   customName: string
   onCustomName: (v: string) => void
 }) {
-  // prevName stores the committed name before re-entering edit mode so Escape can restore it.
   const [prevName, setPrevName] = useState('')
-  // Ref keeps the latest typed value current for onBlur — the prop closure can be one render
-  // stale when blur fires synchronously after onChange before React flushes the parent update.
   const customNameRef = useRef(customName)
 
-  // Entering mode is derived from props — no local state that can desync.
-  // selectedId === 'custom' && customName === '' → input visible (entering)
-  // selectedId === 'custom' && customName !== '' → committed name shown as button
   const enteringCustom = selectedId === 'custom' && customName === ''
 
   function handleCommittedNameClick() {
@@ -530,7 +433,6 @@ function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
           )
         })}
 
-        {/* Custom entry — input when entering, button when committed */}
         {enteringCustom ? (
           <div className="flex items-center gap-2 px-3 py-2 rounded border border-amber-border bg-amber-glow">
             <input
@@ -570,23 +472,22 @@ export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) 
   const macroDefaults = useAuthStore(s => s.user?.preferences?.macroTargets)
   const f = plan?.food
 
-  // Backward compat: migrate old single-stop resupply data saved before this field existed.
   const legacy = f as { resupplyFields?: Record<string, string>; resupplyStatus?: 'unconfirmed' | 'shipped' } | undefined
   const migratedStops: ResupplyStop[] =
     legacy?.resupplyFields?.holdAddress || legacy?.resupplyFields?.shipBy
       ? [{
-          id: 'legacy',
-          name: '',
-          resupplyDay: '',
-          shipBy:       legacy.resupplyFields!.shipBy       ?? '',
-          daysInBox:    legacy.resupplyFields!.daysInBox    ?? '',
-          holdAddress:  legacy.resupplyFields!.holdAddress  ?? '',
-          status:       legacy.resupplyStatus               ?? 'unconfirmed',
+          id: 'legacy', name: '', resupplyDay: '',
+          shipBy:      legacy.resupplyFields!.shipBy      ?? '',
+          daysInBox:   legacy.resupplyFields!.daysInBox   ?? '',
+          holdAddress: legacy.resupplyFields!.holdAddress ?? '',
+          status:      legacy.resupplyStatus              ?? 'unconfirmed',
         }]
       : []
 
   const [meals, setMeals] = useState<MealRow[]>(() => {
-    if (f?.meals !== undefined) return f.meals.map(m => ({ ...m, weightOz: m.weightOz ?? 0 }))
+    if (f?.meals !== undefined) {
+      return (f.meals as unknown[]).map(m => isLegacy(m) ? migrateMealEntry(m) : m as MealRow)
+    }
     if (plan !== undefined) return blankMeals(trip?.startDate, trip?.endDate)
     return DEMO_MEALS
   })
@@ -605,13 +506,11 @@ export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) 
       carbs:    macroDefaults?.carbs    ?? '',
     }
   })
+  const [activeDayIdx, setActiveDayIdx] = useState<number | null>(null)
 
-  // Derive tough days from route annotations for the calorie advisory
   const toughDays = (plan?.route?.segments ?? []).filter(s => s.hard).map(s => s.n)
 
   const isMounted   = useRef(false)
-  // Cleanup resets isMounted so StrictMode's remount starts with false,
-  // preventing a spurious onChange + save on the second mount in dev.
   useEffect(() => () => { isMounted.current = false }, [])
   const onChangeRef = useRef(onChange)
   useEffect(() => { onChangeRef.current = onChange })
@@ -620,7 +519,6 @@ export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) 
     onChangeRef.current?.({ food: { meals, mealsLocked, resupplyStops, waterChecks, selectedCanId, customCanName, targets } })
   }, [meals, mealsLocked, resupplyStops, waterChecks, selectedCanId, customCanName, targets])
 
-  // Checklist items
   const item1 = targets.calories.trim() !== ''
   const item2 = targets.protein.trim()  !== ''
   const item3 = resupplyStops.length > 0 && resupplyStops.every(s => s.status === 'shipped')
@@ -630,18 +528,13 @@ export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) 
   const doneCount = [item1, item2, item3, item4, item5, item6].filter(Boolean).length
   const progress  = Math.round((doneCount / 6) * 100)
 
-  // Report progress to PlanWizard whenever it changes
   const onProgressRef = useRef(onProgress)
   useEffect(() => { onProgressRef.current = onProgress })
   useEffect(() => { onProgressRef.current?.(doneCount, 6) }, [doneCount])
 
-  function toggleFilter() {
-    setWaterChecks(prev => ({ filter: !prev.filter }))
-  }
-
-  // Derived totals
-  const kcalTotal     = meals.reduce((sum, m) => sum + m.kcal, 0)
-  const totalWeightOz = meals.reduce((sum, m) => sum + (m.weightOz || 0), 0)
+  const allItems      = meals.flatMap(m => MEAL_SLOTS.flatMap(s => m.items[s]))
+  const kcalTotal     = allItems.reduce((sum, i) => sum + i.kcal     * (i.qty ?? 1), 0)
+  const totalWeightOz = allItems.reduce((sum, i) => sum + i.weightOz * (i.qty ?? 1), 0)
   const foodWeightStr = totalWeightOz > 0 ? `${(totalWeightOz / 16).toFixed(1)} lb` : '—'
 
   const totals = [
@@ -649,7 +542,6 @@ export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) 
     { value: foodWeightStr,                                      label: 'food weight' },
   ]
 
-  // "Heads up" advisory — SHR copy in demo mode, dynamic from route in real plans
   const headsUp = plan === undefined
     ? 'Big-day calories (D4, D8) should clear 4,200. D8 is light because you exit to Whitney Portal — burger after.'
     : toughDays.length > 0
@@ -666,15 +558,10 @@ export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) 
             targets={targets}
             onTargetChange={(field, value) => setTargets(prev => ({ ...prev, [field]: value }))}
           />
-          <MealGrid
-            meals={meals}
-            onMealsChange={setMeals}
-            mealsLocked={mealsLocked}
-            onToggleLock={() => setMealsLocked(v => !v)}
-          />
+          <MealGrid meals={meals} onDayClick={setActiveDayIdx} />
           <ResupplySection stops={resupplyStops} onStopsChange={setResupplyStops} />
           <div className="grid grid-cols-2 gap-3.5 items-start">
-            <WaterPlanCard filterPacked={waterChecks.filter} onToggle={toggleFilter} />
+            <WaterPlanCard filterPacked={waterChecks.filter} onToggle={() => setWaterChecks(prev => ({ filter: !prev.filter }))} />
             <BearCanCard
               selectedId={selectedCanId}
               onSelect={setSelectedCan}
@@ -694,7 +581,7 @@ export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) 
             <CheckItem text="Resupply confirmed"  done={item3} />
             <CheckItem text="Water cache ready"   done={item4} />
             <CheckItem text="Bear-can sized"      done={item5} />
-            <CheckItem text="Trail meals locked"  done={item6} />
+            <CheckItem text="Trail meals locked"  done={item6} onToggle={() => setMealsLocked(v => !v)} />
             <div className="h-px bg-border my-3" />
             <ProgressBar value={progress} tone="amber" />
             <div className="font-mono text-label text-text-dim text-center mt-1.5">{doneCount} of 6</div>
@@ -720,6 +607,14 @@ export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) 
           )}
         </aside>
       </div>
+
+      {activeDayIdx !== null && (
+        <DayMealDialog
+          day={meals[activeDayIdx]}
+          onSave={updated => setMeals(prev => prev.map((m, i) => i === activeDayIdx ? updated : m))}
+          onClose={() => setActiveDayIdx(null)}
+        />
+      )}
     </div>
   )
 }

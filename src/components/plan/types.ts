@@ -65,14 +65,23 @@ export interface PlanPermitEntry {
   criticalDates?: PlanCriticalDate[]
 }
 
+export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snacks'
+
+export interface MealItem {
+  id: string
+  name: string
+  kcal: number
+  proteinG: number
+  fatG: number
+  carbsG: number
+  weightOz: number
+  qty?: number
+  lookupNote?: string
+}
+
 export interface PlanMealEntry {
   n: number
-  breakfast: string
-  lunch: string
-  dinner: string
-  snacks: string
-  kcal: number
-  weightOz?: number
+  items: Record<MealSlot, MealItem[]>
 }
 
 export interface ResupplyStop {
