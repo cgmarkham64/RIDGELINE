@@ -2,7 +2,7 @@ import { useState, useRef, useId, useEffect } from 'react'
 import { Pill } from '../../Pill'
 import { ProgressBar } from '../../ProgressBar'
 import { CheckItem } from '../../CheckItem'
-import { IconCheck, IconPlus, IconX, IconPackage, IconDroplets } from '../../../icons'
+import { IconCheck, IconPlus, IconX, IconPackage, IconDroplets, IconAlertTriangle } from '../../../icons'
 import type { StageBodyProps, ResupplyStop, MealItem, MealSlot, PlanMealEntry } from '../../types'
 import { useAuthStore } from '../../../../store/auth'
 import { DayMealDialog } from './DayMealDialog'
@@ -122,6 +122,47 @@ function blankMeals(startDate?: string, endDate?: string): MealRow[] {
   }))
 }
 
+// ─── Warning helpers ──────────────────────────────────────────────────────────
+
+const TARGET_THRESHOLD = 0.10
+
+interface RowWarning { field: string; pct: number; actual: number; target: number }
+
+type RowTargets = { calories: string; protein: string; fat: string; carbs: string }
+
+function parseTarget(str: string): number {
+  return parseFloat(str.replace(/,/g, '')) || 0
+}
+
+function computeRowWarnings(row: MealRow, targets: RowTargets): RowWarning[] {
+  const allItems = MEAL_SLOTS.flatMap(s => row.items[s])
+  if (allItems.length === 0) return []
+  const rowKcal    = allItems.reduce((sum, i) => sum + i.kcal     * (i.qty ?? 1), 0)
+  const rowProtein = allItems.reduce((sum, i) => sum + i.proteinG * (i.qty ?? 1), 0)
+  const rowFat     = allItems.reduce((sum, i) => sum + i.fatG     * (i.qty ?? 1), 0)
+  const rowCarbs   = allItems.reduce((sum, i) => sum + i.carbsG   * (i.qty ?? 1), 0)
+  const checks = [
+    { field: 'kcal',    actual: rowKcal,    target: parseTarget(targets.calories) },
+    { field: 'protein', actual: rowProtein, target: parseTarget(targets.protein)  },
+    { field: 'fat',     actual: rowFat,     target: parseTarget(targets.fat)      },
+    { field: 'carbs',   actual: rowCarbs,   target: parseTarget(targets.carbs)    },
+  ]
+  return checks.flatMap(({ field, actual, target }) => {
+    if (!target || actual === 0) return []
+    const pct = (actual - target) / target
+    return Math.abs(pct) > TARGET_THRESHOLD
+      ? [{ field, pct, actual: Math.round(actual), target: Math.round(target) }]
+      : []
+  })
+}
+
+function warningTooltip(warnings: RowWarning[]): string {
+  return warnings.map(({ field, pct, actual, target }) => {
+    const unit = field === 'kcal' ? '' : 'g'
+    return `${field} ${pct > 0 ? 'over' : 'under'} ${Math.abs(Math.round(pct * 100))}% (${actual}${unit} vs ${target}${unit} target)`
+  }).join(' · ')
+}
+
 // ─── TargetsCard ──────────────────────────────────────────────────────────────
 
 function TargetsCard({ targets, onTargetChange }: {
@@ -157,10 +198,15 @@ function TargetsCard({ targets, onTargetChange }: {
 
 // ─── MealGrid ─────────────────────────────────────────────────────────────────
 
-function MealGrid({ meals, onDayClick }: {
+function MealGrid({ meals, targets, onDayClick }: {
   meals: MealRow[]
+  targets: RowTargets
   onDayClick: (idx: number) => void
 }) {
+  const allRowWarnings = meals.map(m => computeRowWarnings(m, targets))
+  const offTargetDays  = allRowWarnings.reduce<number[]>((acc, w, i) => w.length > 0 ? [...acc, i] : acc, [])
+  const targetKcal     = parseTarget(targets.calories)
+
   return (
     <div className="bg-surface border border-border rounded-lg overflow-hidden">
       <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border">
@@ -170,7 +216,17 @@ function MealGrid({ meals, onDayClick }: {
         </span>
       </div>
 
-      <div className="grid px-4 py-2 bg-surface-2 border-b border-border font-mono text-label tracking-[0.12em] uppercase text-text-dim grid-cols-[44px_1fr_1fr_1fr_1fr_56px_64px]">
+      {offTargetDays.length > 0 && (
+        <div className="flex items-center gap-2.5 px-4 py-2.5 bg-amber-dim border-b border-amber-border">
+          <IconAlertTriangle size={16} />
+          <p className="font-mono text-label text-amber">
+            {offTargetDays.map(i => `D${meals[i].n}`).join(' · ')}{' '}
+            {offTargetDays.length === 1 ? 'is' : 'are'} more than {TARGET_THRESHOLD * 100}% off target
+          </p>
+        </div>
+      )}
+
+      <div className="grid px-4 py-2 bg-surface-2 border-b border-border font-mono text-label tracking-[0.12em] uppercase text-text-dim grid-cols-[60px_1fr_1fr_1fr_1fr_56px_64px]">
         <span>Day</span>
         <span>Breakfast</span>
         <span>Lunch</span>
@@ -186,20 +242,32 @@ function MealGrid({ meals, onDayClick }: {
           <p className="text-body-sm text-text-mid">Set trip dates in the header — one row per day will be created automatically.</p>
         </div>
       ) : meals.map((m, rowIdx) => {
-        const allItems  = MEAL_SLOTS.flatMap(s => m.items[s])
-        const rowKcal   = allItems.reduce((sum, i) => sum + i.kcal     * (i.qty ?? 1), 0)
-        const rowOz     = allItems.reduce((sum, i) => sum + i.weightOz * (i.qty ?? 1), 0)
+        const allItems   = MEAL_SLOTS.flatMap(s => m.items[s])
+        const rowKcal    = allItems.reduce((sum, i) => sum + i.kcal     * (i.qty ?? 1), 0)
+        const rowOz      = allItems.reduce((sum, i) => sum + i.weightOz * (i.qty ?? 1), 0)
+        const rowWarnings = allRowWarnings[rowIdx]
+        const hasWarning  = rowWarnings.length > 0
+
+        const kcalColor = rowKcal === 0
+          ? 'text-text-dim'
+          : targetKcal > 0
+            ? Math.abs((rowKcal - targetKcal) / targetKcal) <= TARGET_THRESHOLD ? 'text-pine' : 'text-amber'
+            : kcalCls(rowKcal)
 
         return (
           <button
             key={m.n}
             type="button"
             onClick={() => onDayClick(rowIdx)}
-            className={`grid items-center px-4 gap-2 grid-cols-[44px_1fr_1fr_1fr_1fr_56px_64px] w-full text-left hover:bg-surface-2 transition-colors cursor-pointer ${rowIdx < meals.length - 1 ? 'border-b border-border' : ''}`}
+            title={hasWarning ? warningTooltip(rowWarnings) : undefined}
+            className={`grid items-center px-4 gap-2 grid-cols-[60px_1fr_1fr_1fr_1fr_56px_64px] w-full text-left hover:bg-surface-2 transition-colors cursor-pointer ${rowIdx < meals.length - 1 ? 'border-b border-border' : ''}`}
           >
-            <span className="font-mono text-label font-bold text-amber text-center py-1 my-2.5 bg-amber-dim border border-amber-border rounded">
-              D{m.n}
-            </span>
+            <div className="flex items-center gap-1.5 py-2.5">
+              <IconAlertTriangle size={16} className={hasWarning ? 'text-amber' : 'invisible'} />
+              <span className="font-mono text-label font-bold text-amber text-center flex-1 py-0.5 bg-amber-dim border border-amber-border rounded">
+                D{m.n}
+              </span>
+            </div>
             {MEAL_SLOTS.map(slot => {
               const summary = itemSummary(m.items[slot])
               return (
@@ -214,7 +282,7 @@ function MealGrid({ meals, onDayClick }: {
             <span className={`font-mono text-fine text-right py-2.5 ${rowOz ? 'text-text-mid' : 'text-text-dim'}`}>
               {rowOz ? rowOz.toFixed(1) : '—'}
             </span>
-            <span className={`font-mono text-fine text-right py-2.5 ${rowKcal ? kcalCls(rowKcal) : 'text-text-dim'}`}>
+            <span className={`font-mono text-fine text-right py-2.5 ${kcalColor}`}>
               {rowKcal ? rowKcal.toLocaleString() : '—'}
             </span>
           </button>
@@ -564,7 +632,7 @@ export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) 
             targets={targets}
             onTargetChange={(field, value) => setTargets(prev => ({ ...prev, [field]: value }))}
           />
-          <MealGrid meals={meals} onDayClick={setActiveDayIdx} />
+          <MealGrid meals={meals} targets={targets} onDayClick={setActiveDayIdx} />
           <ResupplySection stops={resupplyStops} onStopsChange={setResupplyStops} />
           <div className="grid grid-cols-2 gap-3.5 items-start">
             <WaterPlanCard filterPacked={waterChecks.filter} onToggle={() => setWaterChecks(prev => ({ filter: !prev.filter }))} />
