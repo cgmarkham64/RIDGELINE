@@ -181,7 +181,6 @@ export interface PlanData {
     meals: PlanMealEntry[]
     mealsLocked: boolean
     resupplyStops: ResupplyStop[]
-    waterChecks: { filter: boolean }
     selectedCanId: string
     customCanName: string
     targets: { calories: string; protein: string; fat: string; carbs: string }

@@ -1,10 +1,15 @@
-import { useState, useRef, useId, useEffect } from 'react'
+import { Fragment, useState, useRef, useId, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Pill } from '../../Pill'
 import { ProgressBar } from '../../ProgressBar'
 import { CheckItem } from '../../CheckItem'
-import { IconCheck, IconPlus, IconX, IconPackage, IconDroplets, IconAlertTriangle } from '../../../icons'
+import { IconCheck, IconPlus, IconX, IconAlertTriangle } from '../../../icons'
 import type { StageBodyProps, ResupplyStop, MealItem, MealSlot, PlanMealEntry } from '../../types'
+import type { Waypoint } from '../../../../types'
 import { useAuthStore } from '../../../../store/auth'
+import { api } from '../../../../lib/api'
+import { WaypointIcon } from '../../../map/WaypointIcon'
+import { WAYPOINT_COLOR } from '../../../map/constants'
 import { DayMealDialog } from './DayMealDialog'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -294,134 +299,195 @@ function MealGrid({ meals, targets, onDayClick }: {
 
 // ─── ResupplySection ──────────────────────────────────────────────────────────
 
-function ResupplySection({ stops, onStopsChange }: {
-  stops: ResupplyStop[]
-  onStopsChange: (stops: ResupplyStop[]) => void
+const RESUPPLY_COLOR = WAYPOINT_COLOR['resupply']
+
+function SegmentStrip({ label, fromDay, toDay, meals }: {
+  label: string; fromDay: number; toDay: number; meals: MealRow[]
 }) {
-  const uid = useId()
-
-  function addStop() {
-    onStopsChange([...stops, {
-      id: crypto.randomUUID(),
-      name: '', resupplyDay: '', shipBy: '', daysInBox: '', holdAddress: '',
-      status: 'unconfirmed',
-    }])
-  }
-
-  function removeStop(id: string) {
-    onStopsChange(stops.filter(s => s.id !== id))
-  }
-
-  function updateStop(id: string, patch: Partial<ResupplyStop>) {
-    onStopsChange(stops.map(s => s.id === id ? { ...s, ...patch } : s))
-  }
-
+  if (toDay < fromDay) return null
+  const segMeals = meals.filter(m => m.n >= fromDay && m.n <= toDay)
+  const allItems  = segMeals.flatMap(m => MEAL_SLOTS.flatMap(s => m.items[s]))
+  const kcal = allItems.reduce((s, i) => s + i.kcal     * (i.qty ?? 1), 0)
+  const oz   = allItems.reduce((s, i) => s + i.weightOz * (i.qty ?? 1), 0)
+  const days = toDay - fromDay + 1
   return (
-    <div className="flex flex-col gap-3">
-      {stops.length === 0 && (
-        <div className="bg-surface border border-dashed border-border rounded-lg px-4 py-6 text-center">
-          <p className="font-mono text-label tracking-[0.14em] uppercase text-text-dim mb-1">No resupply stops</p>
-          <p className="text-body-sm text-text-mid">Add a stop for mail drops or cache pickups along the route.</p>
-        </div>
-      )}
-
-      {stops.map(stop => (
-        <div key={stop.id} className="bg-surface border border-border rounded-lg p-[18px]">
-          <div className="flex items-start gap-3 mb-4">
-            <span className="w-8 h-8 rounded-md flex items-center justify-center bg-amber-dim border border-amber-border text-amber shrink-0 mt-0.5">
-              <IconPackage />
-            </span>
-            <div className="flex-1 min-w-0 flex items-center gap-2">
-              <input
-                className="flex-1 bg-transparent border-b border-transparent hover:border-border focus:border-border-mid font-heading text-body-sm font-extrabold text-text outline-none placeholder:text-text-dim pb-0.5 transition-colors"
-                placeholder="Stop name (e.g. Kearsarge Pass)…"
-                value={stop.name}
-                onChange={e => updateStop(stop.id, { name: e.target.value })}
-              />
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="font-mono text-label text-text-dim">Day</span>
-                <input
-                  className="w-10 bg-surface-2 border border-border rounded-sm px-1.5 py-1 font-mono text-label text-text outline-none focus:border-border-mid transition-colors text-center"
-                  placeholder="—"
-                  value={stop.resupplyDay}
-                  onChange={e => updateStop(stop.id, { resupplyDay: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Pill tone={stop.status === 'shipped' ? 'pine' : 'amber'}>
-                {stop.status === 'shipped' ? 'Shipped' : 'Unconfirmed'}
-              </Pill>
-              <button
-                type="button"
-                onClick={() => removeStop(stop.id)}
-                className="text-text-dim hover:text-text transition-colors cursor-pointer"
-                aria-label="Remove stop"
-              >
-                <IconX size={14} />
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2.5 mb-4">
-            {STOP_TEXT_FIELDS.map(f => (
-              <div key={f.key}>
-                <label
-                  htmlFor={`${uid}-${stop.id}-${f.key}`}
-                  className="font-mono text-label tracking-[0.14em] uppercase text-text-dim mb-1 block"
-                >
-                  {f.label}
-                </label>
-                <input
-                  id={`${uid}-${stop.id}-${f.key}`}
-                  className="w-full px-2.5 py-1.5 border border-border rounded-sm text-body-sm bg-surface-2 text-text outline-none font-mono focus:border-border-mid transition-colors placeholder:text-text-dim"
-                  placeholder={f.placeholder}
-                  value={stop[f.key]}
-                  onChange={e => updateStop(stop.id, { [f.key]: e.target.value })}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="flex gap-2 flex-wrap">
-            <button type="button" className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-amber-border bg-amber-dim text-amber hover:bg-amber transition-colors cursor-pointer">
-              <IconPlus size={10} /> Generate label
-            </button>
-            <button
-              type="button"
-              onClick={() => updateStop(stop.id, { status: stop.status === 'shipped' ? 'unconfirmed' : 'shipped' })}
-              className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
-            >
-              {stop.status === 'shipped' ? 'Mark unshipped' : 'Mark shipped'}
-            </button>
-          </div>
-        </div>
-      ))}
-
-      <button
-        type="button"
-        onClick={addStop}
-        className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-3 py-2 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer self-start"
-      >
-        <IconPlus size={10} /> Add resupply stop
-      </button>
+    <div className="flex items-center gap-2.5 px-3.5 py-2 rounded bg-surface-2 border border-border">
+      <span className="font-mono text-label tracking-[0.1em] uppercase font-bold text-amber shrink-0">{label}</span>
+      <span className="font-mono text-label text-text-dim shrink-0">D{fromDay}–D{toDay}</span>
+      <span className="font-mono text-label text-text-dim shrink-0">· {days} {days === 1 ? 'day' : 'days'}</span>
+      <span className="flex-1" />
+      {kcal > 0
+        ? <span className="font-mono text-label text-text-mid shrink-0">{kcal.toLocaleString()} kcal · {(oz / 16).toFixed(1)} lb</span>
+        : <span className="font-mono text-label text-text-dim italic shrink-0">no meals planned</span>
+      }
     </div>
   )
 }
 
-// ─── WaterPlanCard ────────────────────────────────────────────────────────────
-
-function WaterPlanCard({ filterPacked, onToggle }: {
-  filterPacked: boolean
-  onToggle: () => void
+function ResupplySection({
+  waypoints,
+  stops,
+  meals,
+  onStopsChange,
+  onRemoveWaypoint,
+  onAddStop,
+}: {
+  waypoints: Waypoint[]
+  stops: ResupplyStop[]
+  meals: MealRow[]
+  onStopsChange: (stops: ResupplyStop[]) => void
+  onRemoveWaypoint: (waypointId: string) => void
+  onAddStop: () => void
 }) {
+  const uid = useId()
+
+  function getStopData(waypointId: string): ResupplyStop {
+    return stops.find(s => s.id === waypointId) ?? {
+      id: waypointId, name: '', resupplyDay: '', shipBy: '', daysInBox: '', holdAddress: '', status: 'unconfirmed',
+    }
+  }
+
+  function updateStop(waypointId: string, patch: Partial<ResupplyStop>) {
+    const existing = stops.find(s => s.id === waypointId)
+    if (existing) {
+      onStopsChange(stops.map(s => s.id === waypointId ? { ...s, ...patch } : s))
+    } else {
+      onStopsChange([...stops, { ...getStopData(waypointId), ...patch }])
+    }
+  }
+
+  function removeStop(waypointId: string) {
+    onStopsChange(stops.filter(s => s.id !== waypointId))
+    onRemoveWaypoint(waypointId)
+  }
+
+  // Sort stops by resupplyDay — valid day numbers first, unsorted ones at the end
+  const stopsOrdered = waypoints
+    .map(wp => ({ wp, stop: getStopData(wp.id), day: parseInt(getStopData(wp.id).resupplyDay) || 0 }))
+    .sort((a, b) => {
+      if (a.day > 0 && b.day > 0) return a.day - b.day
+      if (a.day > 0) return -1
+      if (b.day > 0) return 1
+      return 0
+    })
+
+  const totalDays       = meals.length
+  const firstValidDay   = stopsOrdered.find(s => s.day > 0)?.day ?? 0
+  const showTimeline    = firstValidDay > 0 && totalDays > 0
+
   return (
-    <div className="bg-surface border border-border rounded-lg p-[18px]">
-      <div className="flex items-center gap-2 mb-2.5">
-        <span className="text-sky shrink-0"><IconDroplets /></span>
-        <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">Water</div>
-      </div>
-      <CheckItem text="Filter + backup packed" done={filterPacked} onToggle={onToggle} />
+    <div className="flex flex-col gap-3">
+      {waypoints.length === 0 && (
+        <div className="bg-surface border border-dashed border-border rounded-lg px-4 py-6 text-center">
+          <p className="font-mono text-label tracking-[0.14em] uppercase text-text-dim mb-1.5">No resupply stops</p>
+          <p className="text-body-sm text-text-mid">Add a resupply waypoint to the route map — it will appear here for planning.</p>
+        </div>
+      )}
+
+      {/* "Carry in" — days before the first stop */}
+      {showTimeline && (
+        <SegmentStrip label="Carry in" fromDay={1} toDay={firstValidDay} meals={meals} />
+      )}
+
+      {stopsOrdered.map((item, i) => {
+        const nextItem    = stopsOrdered[i + 1]
+        const boxFromDay  = item.day > 0 ? item.day + 1 : null
+        const boxToDay    = nextItem ? (nextItem.day > 0 ? nextItem.day : null)
+                                     : (totalDays > 0 ? totalDays : null)
+        const showBox     = showTimeline && boxFromDay !== null && boxToDay !== null && boxFromDay <= boxToDay
+
+        return (
+          <Fragment key={item.wp.id}>
+            <div className="bg-surface border border-border rounded-lg p-[18px]">
+              <div className="flex items-start gap-3 mb-4">
+                <span
+                  className="w-8 h-8 rounded-md flex items-center justify-center shrink-0 mt-0.5"
+                  style={{ background: `${RESUPPLY_COLOR}18`, border: `1px solid ${RESUPPLY_COLOR}44` }}
+                >
+                  <WaypointIcon type="resupply" size={16} />
+                </span>
+                <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                  <span className="font-heading text-body-sm font-extrabold text-text">{item.wp.label}</span>
+                  <span className="font-mono text-label text-text-dim">{item.wp.lat.toFixed(4)}, {item.wp.lon.toFixed(4)}</span>
+                  <div className="flex items-center gap-1.5 ml-auto shrink-0">
+                    <span className="font-mono text-label text-text-dim">Day</span>
+                    <input
+                      className="w-10 bg-surface-2 border border-border rounded-sm px-1.5 py-1 font-mono text-label text-text outline-none focus:border-border-mid transition-colors text-center"
+                      placeholder="—"
+                      value={item.stop.resupplyDay}
+                      onChange={e => updateStop(item.wp.id, { resupplyDay: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Pill tone={item.stop.status === 'shipped' ? 'pine' : 'amber'}>
+                    {item.stop.status === 'shipped' ? 'Shipped' : 'Unconfirmed'}
+                  </Pill>
+                  <button
+                    type="button"
+                    onClick={() => removeStop(item.wp.id)}
+                    className="text-text-dim hover:text-text transition-colors cursor-pointer"
+                    aria-label="Remove stop"
+                  >
+                    <IconX size={14} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5 mb-4">
+                {STOP_TEXT_FIELDS.map(f => (
+                  <div key={f.key}>
+                    <label
+                      htmlFor={`${uid}-${item.wp.id}-${f.key}`}
+                      className="font-mono text-label tracking-[0.14em] uppercase text-text-dim mb-1 block"
+                    >
+                      {f.label}
+                    </label>
+                    <input
+                      id={`${uid}-${item.wp.id}-${f.key}`}
+                      className="w-full px-2.5 py-1.5 border border-border rounded-sm text-body-sm bg-surface-2 text-text outline-none font-mono focus:border-border-mid transition-colors placeholder:text-text-dim"
+                      placeholder={f.placeholder}
+                      value={item.stop[f.key]}
+                      onChange={e => updateStop(item.wp.id, { [f.key]: e.target.value })}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2 flex-wrap">
+                <button type="button" className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-amber-border bg-amber-dim text-amber hover:bg-amber transition-colors cursor-pointer">
+                  <IconPlus size={10} /> Generate label
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateStop(item.wp.id, { status: item.stop.status === 'shipped' ? 'unconfirmed' : 'shipped' })}
+                  className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer"
+                >
+                  {item.stop.status === 'shipped' ? 'Mark unshipped' : 'Mark shipped'}
+                </button>
+              </div>
+            </div>
+
+            {/* Segment strip for the days covered by the box picked up at this stop */}
+            {showBox && (
+              <SegmentStrip
+                label={`Box ${i + 1}`}
+                fromDay={boxFromDay!}
+                toDay={boxToDay!}
+                meals={meals}
+              />
+            )}
+          </Fragment>
+        )
+      })}
+
+      <button
+        type="button"
+        onClick={onAddStop}
+        className="inline-flex items-center gap-1.5 font-heading text-caption font-bold tracking-[0.08em] uppercase px-3 py-2 rounded border border-border text-text-mid bg-transparent hover:border-border-mid transition-colors cursor-pointer self-start"
+      >
+        <IconPlus size={10} /> Add resupply stop
+      </button>
     </div>
   )
 }
@@ -542,8 +608,9 @@ function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
 
 // ─── FoodStage ────────────────────────────────────────────────────────────────
 
-export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) {
+export function FoodStage({ plan, onChange, onProgress, trip, onJump }: StageBodyProps) {
   const macroDefaults = useAuthStore(s => s.user?.preferences?.macroTargets)
+  const qc = useQueryClient()
   const f = plan?.food
 
   const legacy = f as { resupplyFields?: Record<string, string>; resupplyStatus?: 'unconfirmed' | 'shipped' } | undefined
@@ -567,7 +634,6 @@ export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) 
   })
   const [mealsLocked, setMealsLocked]     = useState(() => f?.mealsLocked  ?? false)
   const [resupplyStops, setResupplyStops] = useState<ResupplyStop[]>(() => f?.resupplyStops ?? migratedStops)
-  const [waterChecks, setWaterChecks]     = useState(() => ({ filter: f?.waterChecks?.filter ?? false }))
   const [selectedCanId, setSelectedCan]   = useState(() => f?.selectedCanId ?? '')
   const [customCanName, setCustomCan]     = useState(() => f?.customCanName ?? '')
   const [targets, setTargets]             = useState<Record<TargetField, string>>(() => {
@@ -590,17 +656,28 @@ export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) 
   useEffect(() => { onChangeRef.current = onChange })
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
-    onChangeRef.current?.({ food: { meals, mealsLocked, resupplyStops, waterChecks, selectedCanId, customCanName, targets } })
-  }, [meals, mealsLocked, resupplyStops, waterChecks, selectedCanId, customCanName, targets])
+    onChangeRef.current?.({ food: { meals, mealsLocked, resupplyStops, selectedCanId, customCanName, targets } })
+  }, [meals, mealsLocked, resupplyStops, selectedCanId, customCanName, targets])
+
+  const resupplyWaypoints = (trip?.waypoints ?? []).filter(w => w.type === 'resupply')
+
+  async function handleRemoveWaypoint(waypointId: string) {
+    if (!trip?._id) return
+    const updated = (trip.waypoints ?? []).filter(w => w.id !== waypointId)
+    try {
+      await api.put(`/api/trips/${trip._id}`, { waypoints: updated })
+      qc.invalidateQueries({ queryKey: ['plan', trip._id] })
+    } catch { /* waypoint will reappear on next load */ }
+  }
 
   const item1 = targets.calories.trim() !== ''
   const item2 = targets.protein.trim()  !== ''
-  const item3 = resupplyStops.length > 0 && resupplyStops.every(s => s.status === 'shipped')
-  const item4 = waterChecks.filter
-  const item5 = selectedCanId !== '' && (selectedCanId !== 'custom' || customCanName.trim() !== '')
-  const item6 = mealsLocked
-  const doneCount = [item1, item2, item3, item4, item5, item6].filter(Boolean).length
-  const progress  = Math.round((doneCount / 6) * 100)
+  const item3 = resupplyWaypoints.length === 0
+    || resupplyWaypoints.every(wp => resupplyStops.find(s => s.id === wp.id)?.status === 'shipped')
+  const item4 = selectedCanId !== '' && (selectedCanId !== 'custom' || customCanName.trim() !== '')
+  const item5 = mealsLocked
+  const doneCount = [item1, item2, item3, item4, item5].filter(Boolean).length
+  const progress  = Math.round((doneCount / 5) * 100)
 
   const onProgressRef = useRef(onProgress)
   useEffect(() => { onProgressRef.current = onProgress })
@@ -633,16 +710,20 @@ export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) 
             onTargetChange={(field, value) => setTargets(prev => ({ ...prev, [field]: value }))}
           />
           <MealGrid meals={meals} targets={targets} onDayClick={setActiveDayIdx} />
-          <ResupplySection stops={resupplyStops} onStopsChange={setResupplyStops} />
-          <div className="grid grid-cols-2 gap-3.5 items-start">
-            <WaterPlanCard filterPacked={waterChecks.filter} onToggle={() => setWaterChecks(prev => ({ filter: !prev.filter }))} />
-            <BearCanCard
-              selectedId={selectedCanId}
-              onSelect={setSelectedCan}
-              customName={customCanName}
-              onCustomName={setCustomCan}
-            />
-          </div>
+          <ResupplySection
+            waypoints={resupplyWaypoints}
+            stops={resupplyStops}
+            meals={meals}
+            onStopsChange={setResupplyStops}
+            onRemoveWaypoint={handleRemoveWaypoint}
+            onAddStop={() => onJump('route')}
+          />
+          <BearCanCard
+            selectedId={selectedCanId}
+            onSelect={setSelectedCan}
+            customName={customCanName}
+            onCustomName={setCustomCan}
+          />
         </div>
 
         {/* ── Right rail ── */}
@@ -653,12 +734,11 @@ export function FoodStage({ plan, onChange, onProgress, trip }: StageBodyProps) 
             <CheckItem text="Daily calories set"  done={item1} />
             <CheckItem text="Protein target"      done={item2} />
             <CheckItem text="Resupply confirmed"  done={item3} />
-            <CheckItem text="Water cache ready"   done={item4} />
-            <CheckItem text="Bear-can sized"      done={item5} />
-            <CheckItem text="Trail meals locked"  done={item6} onToggle={() => setMealsLocked(v => !v)} />
+            <CheckItem text="Bear-can sized"      done={item4} />
+            <CheckItem text="Trail meals locked"  done={item5} onToggle={() => setMealsLocked(v => !v)} />
             <div className="h-px bg-border my-3" />
             <ProgressBar value={progress} tone="amber" />
-            <div className="font-mono text-label text-text-dim text-center mt-1.5">{doneCount} of 6</div>
+            <div className="font-mono text-label text-text-dim text-center mt-1.5">{doneCount} of 5</div>
           </div>
 
           <div className="bg-surface border border-border rounded-lg p-3.5">

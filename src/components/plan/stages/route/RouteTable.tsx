@@ -309,6 +309,25 @@ export const RouteTable = forwardRef<RouteTableHandle, RouteTableProps>(function
               />
             )
 
+            if (row.kind === 'waypoint') return (
+              <div key={row.wp.id}
+                ref={el => { if (el) rowRefs.current.set(row.wp.id, el); else rowRefs.current.delete(row.wp.id) }}
+                className={`grid items-center px-4 py-2.5 gap-3 ${border} cursor-pointer transition-colors`}
+                style={{ gridTemplateColumns: gridTemplate, borderLeft: `3px solid ${waterSegColor(row.distFromStartMi)}`, background: activeRowId === row.wp.id ? ACTIVE_BG : undefined }}
+                onClick={() => onFlyTo(row.wp.lat, row.wp.lon, row.wp.id)}
+              >
+                {isDraggable && <span />}
+                <span style={{ color: WAYPOINT_COLOR[row.wp.type] }}>
+                  <WaypointIcon type={row.wp.type} size={15} />
+                </span>
+                <span className="text-body-sm font-semibold text-text truncate">{row.wp.label}</span>
+                <span className="font-mono text-caption text-text">{fmtMi(row.distFromStartMi, sys)}</span>
+                <span className="font-mono text-caption text-text-dim">—</span>
+                <span className="font-mono text-caption text-text-dim">—</span>
+                <span />
+              </div>
+            )
+
             return (
               <div key={row.entry.id}
                 ref={el => { if (el) rowRefs.current.set(row.entry.id, el); else rowRefs.current.delete(row.entry.id) }}

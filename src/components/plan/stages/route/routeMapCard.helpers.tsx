@@ -103,6 +103,25 @@ export function ContextMenuLayer({
   return null
 }
 
+export function WaypointPlaceLayer({
+  active,
+  onPlace,
+}: {
+  active: boolean
+  onPlace: (lat: number, lon: number) => void
+}) {
+  const map = useMap()
+  useEffect(() => {
+    const el = map.getContainer()
+    if (active) el.style.cursor = 'crosshair'
+    return () => { el.style.cursor = '' }
+  }, [map, active])
+  useMapEvents({
+    click(e) { if (active) onPlace(e.latlng.lat, e.latlng.lng) },
+  })
+  return null
+}
+
 export function DrawInteractionLayer({
   drawState,
   onMapClick,

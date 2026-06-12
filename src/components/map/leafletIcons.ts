@@ -40,6 +40,12 @@ function waypointSvgString(type: WaypointType, size: number): string {
         <path d="M8 2C8 2 4 7 4 10C4 12.21 5.79 14 8 14C10.21 14 12 12.21 12 10C12 7 8 2 8 2Z" fill="${c}" fill-opacity="0.9"/>
         <ellipse cx="6.4" cy="9.5" rx="1" ry="1.6" fill="white" fill-opacity="0.3" transform="rotate(-15 6.4 9.5)"/>
       </svg>`
+    case 'resupply':
+      return `<svg width="${size}" height="${size}" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 2L14 5L8 8L2 5Z" fill="${c}" opacity="0.9"/>
+        <path d="M2 5L2 12.5L8 15.5L8 8Z" fill="${c}" opacity="0.6"/>
+        <path d="M8 8L8 15.5L14 12.5L14 5Z" fill="${c}" opacity="0.75"/>
+      </svg>`
     case 'other':
       return `<svg width="${size}" height="${size}" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M8 1.5C5.5 1.5 3.5 3.5 3.5 6C3.5 9.5 8 14.5 8 14.5C8 14.5 12.5 9.5 12.5 6C12.5 3.5 10.5 1.5 8 1.5Z" fill="${c}" opacity="0.9"/>

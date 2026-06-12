@@ -5,17 +5,19 @@ import L, { type LatLngBoundsExpression } from 'leaflet'
 import { useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../../lib/api'
 import { parseGpx, enrichWithElevation } from '../../../../lib/gpx'
-import { PLANNED_COLOR, TILE_LAYERS, type TileLayerKey } from '../../../map/constants'
+import { PLANNED_COLOR, TILE_LAYERS, DEFAULT_FORM, type TileLayerKey } from '../../../map/constants'
 import { AttributionStrip, MapRefCapture, ZoomControls } from '../../../map/MapHelpers'
 import { MapTileToggle } from '../../../map/MapTileToggle'
 import { makeStartIcon, makeEndIcon, makeWaypointIcon, makeDetectedWaterIcon, makeDrawStartIcon, makeDrawEndIcon } from '../../../map/leafletIcons'
-import { IconMap, IconDownload, IconX } from '../../../icons'
+import { WaypointAddDialog } from '../../../map/WaypointAddDialog'
+import { IconMap, IconDownload, IconX, IconPlus } from '../../../icons'
+import type { Waypoint } from '../../../../types'
 import { SEG_COLORS, formatCoord } from './routeStage.helpers'
 import type { SegRow, DrawState } from './routeStage.types'
 import type { DetectedWaterSource } from '../../../../lib/waterSources'
 import type { StageBodyProps } from '../../types'
 import type { GpxTrackEntry } from '../../../../types'
-import { FitBounds, InvalidateSize, DrawInteractionLayer, ContextMenuLayer, type ContextMenuPayload } from './routeMapCard.helpers'
+import { FitBounds, InvalidateSize, DrawInteractionLayer, WaypointPlaceLayer, ContextMenuLayer, type ContextMenuPayload } from './routeMapCard.helpers'
 import { DrawConfirmTray } from './DrawConfirmTray'
 import { milesToKm, ftToM } from '../../../../lib/units'
 import { useUnitSystem } from '../../../../hooks/useUnitSystem'
@@ -81,7 +83,12 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
     const [uploadLabel, setUploadLabel] = useState<string | null>(null)
     const [uploadError, setUploadError] = useState<string | null>(null)
     const [isDragging,  setIsDragging]  = useState(false)
-    const [contextMenu, setContextMenu] = useState<ContextMenuPayload | null>(null)
+    const [contextMenu,    setContextMenu]    = useState<ContextMenuPayload | null>(null)
+    const [waypointMode,   setWaypointMode]   = useState(false)
+    const [pendingWpLatLon, setPendingWpLatLon] = useState<{ lat: number; lon: number } | null>(null)
+    const [wpForm,         setWpForm]         = useState(DEFAULT_FORM)
+    const [wpSaving,       setWpSaving]       = useState(false)
+    const [wpError,        setWpError]        = useState<string | null>(null)
     const mapRef       = useRef<L.Map | null>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -169,6 +176,35 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
       await importGpxFile(file)
     }
 
+    // ── Waypoint placement ──────────────────────────────────────────────────────
+
+    async function handleAddWaypoint(e: React.FormEvent) {
+      e.preventDefault()
+      if (!pendingWpLatLon || !wpForm.label.trim() || !trip?._id) return
+      setWpSaving(true); setWpError(null)
+      try {
+        const newWp: Waypoint = {
+          id: Date.now().toString(),
+          type: wpForm.type,
+          label: wpForm.label.trim(),
+          lat: pendingWpLatLon.lat,
+          lon: pendingWpLatLon.lon,
+          notes: wpForm.notes.trim() || undefined,
+        }
+        await api.put(`/api/trips/${trip._id}`, { waypoints: [...(trip.waypoints ?? []), newWp] })
+        qc.invalidateQueries({ queryKey: ['plan', trip._id] })
+        setPendingWpLatLon(null); setWpForm(DEFAULT_FORM); setWaypointMode(false)
+      } catch {
+        setWpError('Failed to save waypoint')
+      } finally {
+        setWpSaving(false)
+      }
+    }
+
+    function cancelWaypointMode() {
+      setWaypointMode(false); setPendingWpLatLon(null); setWpForm(DEFAULT_FORM); setWpError(null)
+    }
+
     // ── Derived draw state ──────────────────────────────────────────────────────
 
     const isDrawing    = drawState.phase !== 'idle'
@@ -224,6 +260,17 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
               >
                 <IconDownload size={9} />
                 {uploadLabel ?? (trip?.gpxPlanned ? 'Replace' : 'Import .gpx')}
+              </button>
+              <button
+                onClick={() => waypointMode ? cancelWaypointMode() : setWaypointMode(true)}
+                className={`inline-flex items-center gap-1.5 font-heading text-label font-bold tracking-widest uppercase px-2 py-1 rounded border transition-colors cursor-pointer bg-transparent ${
+                  waypointMode
+                    ? 'border-amber-border text-amber'
+                    : 'border-border text-text-dim hover:text-text hover:border-border-mid'
+                }`}
+              >
+                <IconPlus size={9} />
+                {waypointMode ? 'Cancel' : 'Waypoint'}
               </button>
             </div>
           )}
@@ -400,6 +447,23 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
                 />
               )}
 
+              {(trip?.waypoints ?? []).map(wp => (
+                <Marker
+                  key={wp.id}
+                  position={[wp.lat, wp.lon]}
+                  icon={makeWaypointIcon(wp.type, false, 24)}
+                  eventHandlers={{ click: () => isPlacingPin ? onMapClick(wp.lat, wp.lon) : undefined }}
+                >
+                  <Tooltip direction="top" offset={[0, -10]} opacity={0.95}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>{wp.label}</span>
+                  </Tooltip>
+                </Marker>
+              ))}
+
+              <WaypointPlaceLayer
+                active={waypointMode && !isDrawing}
+                onPlace={(lat, lon) => { setPendingWpLatLon({ lat, lon }); setWaypointMode(false) }}
+              />
               <DrawInteractionLayer drawState={drawState} onMapClick={onMapClick} />
               <ContextMenuLayer
                 segments={segments}
@@ -448,6 +512,18 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
           )}
         </div>
         <AttributionStrip tileLayer={tileLayer} />
+
+        {pendingWpLatLon && (
+          <WaypointAddDialog
+            coords={pendingWpLatLon}
+            form={wpForm}
+            saving={wpSaving}
+            error={wpError}
+            onChange={patch => setWpForm(f => ({ ...f, ...patch }))}
+            onSubmit={handleAddWaypoint}
+            onClose={cancelWaypointMode}
+          />
+        )}
 
         {/* Draw mode: step rail + coordinate chips */}
         {isDrawing && (

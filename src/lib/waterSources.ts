@@ -1,11 +1,13 @@
 import type { WaypointType } from '../types'
 
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
+const OVERPASS_URL     = 'https://overpass-api.de/api/interpreter'
 const MAX_SNAP_DIST_M  = 400
-const MAX_VERT_DROP_M  = 40   // ~130 ft — sources below this are effectively off a cliff
-const CLUSTER_MI       = 0.35  // within 0.35 miles, only the most reliable source shows
+const MAX_VERT_DROP_M  = 40       // ~130 ft — sources below this are effectively off a cliff
+const CLUSTER_MI       = 0.35     // within 0.35 miles, only the most reliable source shows
 const EARTH_RADIUS_M   = 6_371_000
 const METRES_PER_MILE  = 1_609.344
+const CACHE_TTL_MS     = 30 * 60 * 1000  // 30 minutes
+const RETRY_DELAY_MS   = 6_000            // wait 6 s before retrying a 429
 
 export type OsmWaterClass = 'spring' | 'stream' | 'river' | 'lake' | 'drinking_water'
 
@@ -20,6 +22,36 @@ export interface DetectedWaterSource {
   distFromStartMi: number
   snapDistM: number
   checkDate?: string  // OSM check_date or survey:date tag (YYYY-MM-DD)
+}
+
+// ─── Cache + fetch helpers ────────────────────────────────────────────────────
+
+function readCache(key: string): DetectedWaterSource[] | null {
+  try {
+    const raw = sessionStorage.getItem(key)
+    if (!raw) return null
+    const { data, ts } = JSON.parse(raw) as { data: DetectedWaterSource[]; ts: number }
+    if (Date.now() - ts > CACHE_TTL_MS) { sessionStorage.removeItem(key); return null }
+    return data
+  } catch { return null }
+}
+
+function writeCache(key: string, data: DetectedWaterSource[]): void {
+  try { sessionStorage.setItem(key, JSON.stringify({ data, ts: Date.now() })) } catch { /* quota */ }
+}
+
+async function overpassFetch(query: string): Promise<Response> {
+  const opts: RequestInit = {
+    method: 'POST',
+    body: `data=${encodeURIComponent(query)}`,
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  }
+  const res = await fetch(OVERPASS_URL, opts)
+  if (res.status === 429) {
+    await new Promise(r => setTimeout(r, RETRY_DELAY_MS))
+    return fetch(OVERPASS_URL, opts)
+  }
+  return res
 }
 
 // ─── Geometry ─────────────────────────────────────────────────────────────────
@@ -179,11 +211,11 @@ export async function fetchDetectedWaterSources(
 );
 out center;`
 
-  const resp = await fetch(OVERPASS_URL, {
-    method: 'POST',
-    body: `data=${encodeURIComponent(query)}`,
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  })
+  const cacheKey = `ridgeline-water-${bbox}`
+  const cached = readCache(cacheKey)
+  if (cached) return cached
+
+  const resp = await overpassFetch(query)
   if (!resp.ok) throw new Error(`Overpass API returned ${resp.status}`)
 
   const data = await resp.json() as {
@@ -256,5 +288,7 @@ out center;`
   }
 
   results.sort((a, b) => a.distFromStartMi - b.distFromStartMi)
-  return deduplicateWaterSources(results)
+  const final = deduplicateWaterSources(results)
+  writeCache(cacheKey, final)
+  return final
 }

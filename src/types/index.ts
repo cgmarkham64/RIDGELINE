@@ -117,6 +117,7 @@ export type WaypointType =
   | 'no-water'
   | 'some-water'
   | 'lots-of-water'
+  | 'resupply'
   | 'other'
 
 export interface Waypoint {

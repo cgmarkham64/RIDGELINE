@@ -1,4 +1,5 @@
 import type { DetectedWaterSource } from '../../../../lib/waterSources'
+import type { Waypoint } from '../../../../types'
 
 export type SegRow = {
   n: number
@@ -74,3 +75,4 @@ export type MergedRow =
       dryLeg: boolean
     }
   | { kind: 'water'; entry: WaterEntry; toNextWaterMi: number | null }
+  | { kind: 'waypoint'; wp: Waypoint; distFromStartMi: number }

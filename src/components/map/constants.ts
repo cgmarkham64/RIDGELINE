@@ -78,6 +78,7 @@ export const WAYPOINT_COLOR: Record<WaypointType, string> = {
   'no-water': '#dc2626',
   'some-water': '#d97706',
   'lots-of-water': '#0ea5e9',
+  resupply: '#a855f7',
   other: '#685646',
 }
 
@@ -88,6 +89,7 @@ export const WAYPOINT_LABEL: Record<WaypointType, string> = {
   'no-water': 'No Water',
   'some-water': 'Some Water',
   'lots-of-water': 'Lots of Water',
+  resupply: 'Resupply',
   other: 'Other',
 }
 
@@ -98,6 +100,7 @@ export const WAYPOINT_TYPES: WaypointType[] = [
   'no-water',
   'some-water',
   'lots-of-water',
+  'resupply',
   'other',
 ]
 

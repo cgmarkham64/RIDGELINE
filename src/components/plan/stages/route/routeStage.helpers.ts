@@ -312,13 +312,24 @@ export function buildMergedRows(
     })
   }
 
+  if (routeCoords && routeCoords.length >= 2) {
+    for (const wp of (waypoints ?? [])) {
+      if (WATER_TYPES.has(wp.type)) continue
+      rows.push({ kind: 'waypoint', wp, distFromStartMi: snapToRouteMi(wp.lat, wp.lon, routeCoords) })
+    }
+  }
+
+  const rowDist = (r: MergedRow): number =>
+    r.kind === 'start' ? -Infinity
+    : r.kind === 'camp' ? r.distFromStartMi
+    : r.kind === 'waypoint' ? r.distFromStartMi
+    : r.entry.distFromStartMi
+  const rowRank = (r: MergedRow): number =>
+    r.kind === 'camp' ? 0 : r.kind === 'waypoint' ? 1 : r.kind === 'water' ? 2 : -1
+
   rows.sort((a, b) => {
-    const da = a.kind === 'start' ? -Infinity : a.kind === 'camp' ? a.distFromStartMi : a.entry.distFromStartMi
-    const db = b.kind === 'start' ? -Infinity : b.kind === 'camp' ? b.distFromStartMi : b.entry.distFromStartMi
-    if (da !== db) return da - db
-    if (a.kind === 'water' && b.kind !== 'water') return 1
-    if (b.kind === 'water' && a.kind !== 'water') return -1
-    return 0
+    const d = rowDist(a) - rowDist(b)
+    return d !== 0 ? d : rowRank(a) - rowRank(b)
   })
 
   return rows

@@ -70,6 +70,14 @@ export function WaypointIcon({ type, size = 14 }: { type: WaypointType; size?: n
           <ellipse cx="6.4" cy="9.5" rx="1" ry="1.6" fill="white" fillOpacity="0.3" transform="rotate(-15 6.4 9.5)" />
         </svg>
       )
+    case 'resupply':
+      return (
+        <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+          <path d="M8 2L14 5L8 8L2 5Z" fill={color} opacity="0.9" />
+          <path d="M2 5L2 12.5L8 15.5L8 8Z" fill={color} opacity="0.6" />
+          <path d="M8 8L8 15.5L14 12.5L14 5Z" fill={color} opacity="0.75" />
+        </svg>
+      )
     case 'other':
       return (
         <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
