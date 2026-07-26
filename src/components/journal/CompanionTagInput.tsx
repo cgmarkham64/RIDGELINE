@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useDebounce } from '../../hooks/useDebounce'
 import { searchUsers, type UserSearchResult } from '../../lib/users'
 import { initials } from '../../lib/utils'
@@ -13,34 +13,32 @@ export function CompanionTagInput({
   onMentionAdded: (sub: string) => void
 }) {
   const [input, setInput] = useState('')
-  const [results, setResults] = useState<UserSearchResult[]>([])
-  const [searching, setSearching] = useState(false)
   const [open, setOpen] = useState(false)
-  const searchIdRef = useRef(0)
+  // Single state object so the effect never calls setState synchronously
+  const [searchResult, setSearchResult] = useState<{ query: string; results: UserSearchResult[] } | null>(null)
 
   const debouncedInput = useDebounce(input, 300)
-  const showDropdown = open && debouncedInput.trim().length >= 2
-
-  const runSearch = useCallback(async (query: string) => {
-    const id = ++searchIdRef.current
-    setSearching(true)
-    try {
-      const users = await searchUsers(query)
-      if (id !== searchIdRef.current) return
-      setResults(users)
-      setOpen(true)
-    } catch {
-      if (id !== searchIdRef.current) return
-      setResults([])
-    } finally {
-      if (id === searchIdRef.current) setSearching(false)
-    }
-  }, [])
+  const trimmedInput = debouncedInput.trim()
+  const hasQuery = trimmedInput.length >= 2
+  const showDropdown = open && hasQuery
+  const searching = hasQuery && searchResult?.query !== trimmedInput
+  const results = hasQuery && searchResult?.query === trimmedInput ? searchResult.results : []
 
   useEffect(() => {
-    if (debouncedInput.trim().length >= 2) runSearch(debouncedInput.trim())
-    else { setResults([]); setOpen(false) }
-  }, [debouncedInput, runSearch])
+    if (trimmedInput.length < 2) return
+    let cancelled = false
+    searchUsers(trimmedInput)
+      .then((users) => {
+        if (cancelled) return
+        setSearchResult({ query: trimmedInput, results: users })
+        setOpen(true)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setSearchResult({ query: trimmedInput, results: [] })
+      })
+    return () => { cancelled = true }
+  }, [trimmedInput])
 
   function addTag(label: string, sub?: string) {
     const trimmed = label.trim()

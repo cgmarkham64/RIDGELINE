@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useDebounce } from '../../hooks/useDebounce'
 import type { Trip } from '../../types'
 import { searchUsers, shareTrip, type UserSearchResult } from '../../lib/users'
@@ -16,40 +16,39 @@ export function ShareDialog({ trip, onClose }: Props) {
   )
   const [inviteRole, setInviteRole] = useState<'read' | 'edit'>('edit')
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<UserSearchResult[]>([])
-  const [isSearching, setIsSearching] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
   const [inviteSuccess, setInviteSuccess] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const searchIdRef = useRef(0)
   const unshare = useUnshareTrip()
 
-  const debouncedQuery = useDebounce(query, 300)
-  const showDropdown = dropdownOpen && debouncedQuery.trim().length >= 2
+  // Single state object so the effect never calls setState synchronously
+  const [searchResult, setSearchResult] = useState<{ query: string; results: UserSearchResult[] } | null>(null)
 
-  const runSearch = useCallback(async (q: string) => {
-    const id = ++searchIdRef.current
-    setIsSearching(true)
-    try {
-      const users = await searchUsers(q)
-      if (id !== searchIdRef.current) return
-      setResults(users)
-      setDropdownOpen(true)
-    } catch {
-      if (id !== searchIdRef.current) return
-      setResults([])
-    } finally {
-      if (id === searchIdRef.current) setIsSearching(false)
-    }
-  }, [])
+  const debouncedQuery = useDebounce(query, 300)
+  const trimmedQuery = debouncedQuery.trim()
+  const hasQuery = trimmedQuery.length >= 2
+  const showDropdown = dropdownOpen && hasQuery
+  const isSearching = hasQuery && searchResult?.query !== trimmedQuery
+  const results = hasQuery && searchResult?.query === trimmedQuery ? searchResult.results : []
 
   useEffect(() => {
-    if (debouncedQuery.trim().length >= 2) runSearch(debouncedQuery.trim())
-    else { setResults([]); setDropdownOpen(false) }
-  }, [debouncedQuery, runSearch])
+    if (trimmedQuery.length < 2) return
+    let cancelled = false
+    searchUsers(trimmedQuery)
+      .then((users) => {
+        if (cancelled) return
+        setSearchResult({ query: trimmedQuery, results: users })
+        setDropdownOpen(true)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setSearchResult({ query: trimmedQuery, results: [] })
+      })
+    return () => { cancelled = true }
+  }, [trimmedQuery])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -75,7 +74,7 @@ export function ShareDialog({ trip, onClose }: Props) {
       })
       setInviteSuccess(`Invite sent to ${user.name}`)
       setQuery('')
-      setResults([])
+      setSearchResult(null)
     } catch (err: unknown) {
       const msg = extractApiError(err)
       setInviteError(msg ?? 'Failed to send invite')

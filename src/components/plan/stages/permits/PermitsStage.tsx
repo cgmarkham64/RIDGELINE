@@ -154,7 +154,11 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
   }
 
   useEffect(() => {
-    runZoneDetection()
+    // Deferred a tick so the detection's state updates don't fire synchronously
+    // within this effect — also means a rapid second dep change here cancels the
+    // stale run before it starts, instead of letting it kick off unnecessarily.
+    const timer = setTimeout(() => { runZoneDetection() }, 0)
+    return () => clearTimeout(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip?._id, trip?.startDate, plan?.route?.segments])
 
