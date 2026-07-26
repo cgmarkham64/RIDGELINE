@@ -1,4 +1,4 @@
-import { useState, useRef, forwardRef, useImperativeHandle } from 'react'
+import { useState, useRef, useMemo, forwardRef, useImperativeHandle } from 'react'
 import { MapContainer, TileLayer, Polyline, Marker, Tooltip } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L, { type LatLngBoundsExpression } from 'leaflet'
@@ -19,6 +19,8 @@ import type { StageBodyProps } from '../../types'
 import type { GpxTrackEntry } from '../../../../types'
 import { FitBounds, InvalidateSize, DrawInteractionLayer, WaypointPlaceLayer, ContextMenuLayer, type ContextMenuPayload } from './routeMapCard.helpers'
 import { DrawConfirmTray } from './DrawConfirmTray'
+import { IpwZonesOverlay } from './IpwZonesOverlay'
+import { detectZoneStays, IPW_ZONES, nearIpw } from '../permits/zoneDetection.helpers'
 import { milesToKm, ftToM } from '../../../../lib/units'
 import { useUnitSystem } from '../../../../hooks/useUnitSystem'
 
@@ -218,6 +220,20 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
 
     const showMap = !!bounds || isDrawing || segments.some(s => s.path?.length)
 
+    // Zone-permit overlay — only engages for routes actually near Indian Peaks, so
+    // trips elsewhere don't show irrelevant zone boundaries. Checks both GPX-imported
+    // points and hand-drawn segment paths, since a route can come from either.
+    const showZoneOverlay = useMemo(
+      () => allPoints.some(([lat, lon]) => nearIpw(lat, lon)) ||
+        segments.some(s => s.path?.some(([lat, lon]) => nearIpw(lat, lon))),
+      [allPoints, segments],
+    )
+    const zoneHighlightIds = useMemo(() => {
+      if (!trip?.startDate || segments.length < 2) return []
+      try { return detectZoneStays(segments, trip.startDate).needs.map(n => n.zone.properties.id) }
+      catch { return [] }
+    }, [segments, trip?.startDate])
+
     return (
       <div
         ref={containerRef}
@@ -301,6 +317,8 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
               attributionControl={false}
             >
               <TileLayer {...TILE_LAYERS[tileLayer]} />
+
+              {showZoneOverlay && <IpwZonesOverlay zones={IPW_ZONES} highlightIds={zoneHighlightIds} />}
 
               {plannedLatLngs.length > 1 && (<>
                 <Polyline positions={plannedLatLngs} color={PLANNED_COLOR} weight={14} opacity={0.18} />

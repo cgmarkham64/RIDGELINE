@@ -7,8 +7,9 @@ import { PartnersCard } from './PartnersCard'
 import { CriticalDatesCard } from './CriticalDatesCard'
 import { extractScanDates } from './criticalDates.helpers'
 import { INITIAL_PERMITS } from './permitsStage.constants'
-import { suggestPermits, lookupPermit } from '../../../../lib/permits'
+import { suggestPermits, lookupPermit, pickZoneProduct } from '../../../../lib/permits'
 import type { PermitLookupResult } from '../../../../lib/permits'
+import { detectZoneStays, buildZonePermit, routeSignature, zoneNeedId } from './zoneDetection.helpers'
 import { extractApiError } from '../../../../lib/utils'
 import { toDateMs } from './criticalDates.helpers'
 import { HikerOverlay } from '../../../ui/HikerOverlay'
@@ -33,6 +34,13 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
   const [partyConfirmed, setPartyConfirmed] = useState(() => plan?.permits?.partyConfirmed ?? false)
   const [backupPlanned, setBackupPlanned]   = useState(() => plan?.permits?.backupPlanned ?? false)
   const [criticalDates, setCriticalDates]   = useState<PlanCriticalDate[]>(() => plan?.permits?.criticalDates ?? [])
+  const [zoneDetectedAt, setZoneDetectedAt] = useState<string | undefined>(() => plan?.permits?.zoneDetectedAt)
+  const [zoneDetectedSignature, setZoneDetectedSignature] =
+    useState<string | undefined>(() => plan?.permits?.zoneDetectedSignature)
+  const [zoneDetecting, setZoneDetecting]   = useState(false)
+  const [zoneDetectError, setZoneDetectError] = useState<string | null>(null)
+
+  const partySize = (trip?.sharedWith?.length ?? 0) + 1
 
   const scanDates = useMemo(() => extractScanDates(permits), [permits])
 
@@ -44,8 +52,16 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
   useEffect(() => { onProgressRef.current = onProgress }, [onProgress])
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
-    onChangeRef.current?.({ permits: { permits, permitFree, partyConfirmed, backupPlanned, links, lastScanned, criticalDates } })
-  }, [permits, permitFree, partyConfirmed, backupPlanned, links, lastScanned, criticalDates])
+    onChangeRef.current?.({
+      permits: {
+        permits, permitFree, partyConfirmed, backupPlanned, links, lastScanned, criticalDates,
+        zoneDetectedAt, zoneDetectedSignature,
+      },
+    })
+  }, [
+    permits, permitFree, partyConfirmed, backupPlanned, links, lastScanned, criticalDates,
+    zoneDetectedAt, zoneDetectedSignature,
+  ])
 
   async function runScan() {
     if (!trip?._id || scanning) return
@@ -70,6 +86,77 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trip?._id])
+
+  // Auto-detect zone-stay permits from route geometry. Re-runs whenever the route's
+  // camp nights actually change (routeSignature), not just once ever — so editing the
+  // route after visiting this stage keeps zone permits in sync instead of going stale.
+  // Geometry decides which zones/nights are ground truth; the AI call only picks the
+  // recgov product + copy. `force` lets the manual "Re-detect" button retry even when
+  // the signature hasn't changed (e.g. after a transient AI failure).
+  const zoneDetectingRef = useRef(false)
+  async function runZoneDetection(force = false) {
+    const segments = plan?.route?.segments
+    if (!trip?._id || !trip.startDate || !segments || segments.length < 2 || zoneDetectingRef.current) return
+    const signature = routeSignature(segments, trip.startDate)
+    if (!force && signature === zoneDetectedSignature) return
+
+    zoneDetectingRef.current = true
+    setZoneDetecting(true)
+    setZoneDetectError(null)
+
+    try {
+      const { needs } = detectZoneStays(segments, trip.startDate)
+      const currentNeedIds = new Set(needs.map(zoneNeedId))
+
+      // Drop auto-detected permits whose zone-stay no longer exists on the route.
+      // Never touches manually-added permits or ones a user has since edited away
+      // from autoDetected — only ids we generated ourselves for a need that's gone.
+      setPermits(prev => prev.filter(p => !(p.autoDetected && p.id.startsWith('zone_') && !currentNeedIds.has(p.id))))
+
+      const existingIds = new Set(permits.filter(p => currentNeedIds.has(p.id)).map(p => p.id))
+      const toAdd        = needs.filter(n => !existingIds.has(zoneNeedId(n)))
+
+      const detected: Permit[] = []
+      let failures = 0
+      for (const need of toAdd) {
+        const p = need.zone.properties
+        try {
+          const product = await pickZoneProduct(trip._id, {
+            zoneName:             p.name,
+            agency:               p.agency,
+            nights:               need.nights.length,
+            seasonStart:          p.overnight_permit.season_start,
+            seasonEnd:            p.overnight_permit.season_end,
+            recgov:               p.recgov,
+            campfiresAllowed:     p.campfires_allowed,
+            bearCanisterRequired: p.bear_canister_required,
+            designatedSitesOnly:  p.designated_sites_only,
+          })
+          detected.push(buildZonePermit(need, partySize, product))
+        } catch {
+          failures++
+        }
+      }
+      if (detected.length > 0) {
+        setPermits(prev => [...prev, ...detected.filter(d => !prev.some(p => p.id === d.id))])
+      }
+      setZoneDetectError(failures > 0
+        ? `Couldn't auto-fill ${failures} zone permit${failures !== 1 ? 's' : ''} — try Re-detect, or add ${failures !== 1 ? 'them' : 'it'} manually.`
+        : null)
+      setZoneDetectedSignature(signature)
+    } catch {
+      setZoneDetectError('Zone detection failed — try Re-detect, or add permits manually.')
+    } finally {
+      setZoneDetecting(false)
+      setZoneDetectedAt(new Date().toISOString())
+      zoneDetectingRef.current = false
+    }
+  }
+
+  useEffect(() => {
+    runZoneDetection()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip?._id, trip?.startDate, plan?.route?.segments])
 
   function remove(id: string) { setPermits(prev => prev.filter(p => p.id !== id)) }
 
@@ -151,7 +238,6 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
     onProgressRef.current?.(permitFree ? 2 : doneCount, permitFree ? 2 : 3)
   }, [doneCount, permitFree])
 
-  const partySize     = (trip?.sharedWith?.length ?? 0) + 1
   const locationLabel = trip?.location ?? trip?.title ?? ''
 
   return (
@@ -189,6 +275,10 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
               lookupLoading={lookupLoading}
               lookupError={lookupError}
               canLookup={!!trip?._id}
+              zoneDetecting={zoneDetecting}
+              zoneDetectError={zoneDetectError}
+              zoneDetectedAt={zoneDetectedAt}
+              onRedetectZones={() => runZoneDetection(true)}
             />
           </div>
 
@@ -241,6 +331,10 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
 
       {lookupLoading && (
         <HikerOverlay label="Looking up permit details…" saying={permitSaying} />
+      )}
+
+      {zoneDetecting && (
+        <HikerOverlay label="Checking your route against known permit zones…" saying={permitSaying} />
       )}
 
       {freeformOpen && (

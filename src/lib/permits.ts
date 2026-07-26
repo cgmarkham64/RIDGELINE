@@ -32,3 +32,27 @@ export async function lookupPermit(
   )
   return res.data
 }
+
+export interface ZoneProductInput {
+  zoneName:             string
+  agency:               string
+  nights:               number
+  seasonStart:          string
+  seasonEnd:            string
+  recgov:               { overnight_full_season: string; overnight_3day: string; large_group_day: string }
+  campfiresAllowed:     boolean
+  bearCanisterRequired: boolean
+  designatedSitesOnly:  boolean
+}
+
+export interface ZoneProductResult {
+  productId:    string
+  productLabel: string
+  why:          string
+  confidence:   'high' | 'medium' | 'low'
+}
+
+export async function pickZoneProduct(tripId: string, input: ZoneProductInput): Promise<ZoneProductResult> {
+  const res = await api.post<ZoneProductResult>(`/api/trips/${tripId}/permits/zone-product`, input)
+  return res.data
+}

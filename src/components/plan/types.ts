@@ -63,6 +63,10 @@ export interface PlanPermitEntry {
   zoneId?: string
   confidence?: 'high' | 'medium' | 'low'
   criticalDates?: PlanCriticalDate[]
+  /** Set when this permit was created from route/zone-geometry detection rather than AI web lookup or manual entry. */
+  autoDetected?: boolean
+  /** Boundary/closure/gear caveats surfaced by zone-geometry detection — shown until the user dismisses/edits. */
+  zoneWarnings?: string[]
 }
 
 export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snacks'
@@ -176,6 +180,10 @@ export interface PlanData {
     links?:          PermitLink[]
     lastScanned?:    string
     criticalDates?:  PlanCriticalDate[]
+    /** ISO timestamp of the last route/zone-geometry auto-detection pass — shown as "last checked". */
+    zoneDetectedAt?: string
+    /** Signature of the camp nights last checked — re-runs detection when the route changes instead of only once ever. */
+    zoneDetectedSignature?: string
   }
   food?: {
     meals: PlanMealEntry[]

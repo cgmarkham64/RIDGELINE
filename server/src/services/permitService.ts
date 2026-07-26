@@ -333,6 +333,117 @@ export async function lookupPermit(
   }
 }
 
+// ─── Zone-stay product pick ────────────────────────────────────────────────────
+// Geometry (zoneGeometry.ts on the frontend) already knows WHICH zone and WHICH
+// nights — ground truth from digitized USFS boundaries. What it can't know is
+// which of a zone's recreation.gov products actually fits this trip. No web
+// search needed here: all the facts are already known, this is a judgment call.
+
+export interface ZoneProductInput {
+  zoneName:              string
+  agency:                string
+  nights:                number
+  seasonStart:           string  // MM-DD
+  seasonEnd:             string  // MM-DD
+  recgov: {
+    overnight_full_season: string
+    overnight_3day:         string
+    large_group_day:        string
+  }
+  campfiresAllowed:      boolean
+  bearCanisterRequired:  boolean
+  designatedSitesOnly:   boolean
+}
+
+export interface ZoneProductResult {
+  productId:    string
+  productLabel: string
+  why:          string
+  confidence:   'high' | 'medium' | 'low'
+}
+
+const LARGE_GROUP_THRESHOLD = 8
+
+const ZONE_PRODUCT_SYSTEM_PROMPT = `You are a wilderness permit expert. You are given the exact zone, dates, and
+recreation.gov product IDs already known for an overnight backcountry stay — your only job is to pick which
+product fits this specific trip and explain why in plain language.
+
+Return ONLY a JSON object - no markdown, no explanation:
+{
+  "productId": "the recgov id you picked, copied exactly from the input",
+  "productLabel": "short human label, e.g. '3-day overnight permit' or 'Full-season overnight permit'",
+  "why": "1-2 sentences: what this permit covers and why this product fits this trip",
+  "confidence": "high|medium|low"
+}
+
+Rules:
+- If partySize is ${LARGE_GROUP_THRESHOLD} or more, prefer the large-group product.
+- Otherwise, if nights <= 3, prefer the 3-day product; if nights > 3, prefer the full-season product.
+- Only deviate from those defaults if the season window or other facts given make a different product clearly
+  more appropriate — explain why in "why" if you do.
+- Mention campfire, bear canister, or designated-site rules in "why" only if they were flagged as true.`
+
+function buildZoneProductMessage(input: ZoneProductInput, partySize: number): string {
+  return [
+    `Zone: ${input.zoneName} (${input.agency})`,
+    `Nights camped in this zone this trip: ${input.nights}`,
+    `Party size: ${partySize}`,
+    `Permit season: ${input.seasonStart} to ${input.seasonEnd} (MM-DD)`,
+    `Recreation.gov product IDs — full-season: ${input.recgov.overnight_full_season}, ` +
+      `3-day: ${input.recgov.overnight_3day}, large-group day: ${input.recgov.large_group_day}`,
+    `Campfires allowed: ${input.campfiresAllowed}`,
+    `Bear canister required: ${input.bearCanisterRequired}`,
+    `Designated sites only: ${input.designatedSitesOnly}`,
+    '\nPick the product and return the JSON object.',
+  ].join('\n')
+}
+
+const ZONE_PRODUCT_FALLBACK = (input: ZoneProductInput, partySize: number): ZoneProductResult => ({
+  productId:    partySize >= LARGE_GROUP_THRESHOLD
+    ? input.recgov.large_group_day
+    : input.nights <= 3 ? input.recgov.overnight_3day : input.recgov.overnight_full_season,
+  productLabel: partySize >= LARGE_GROUP_THRESHOLD
+    ? 'Large-group day permit'
+    : input.nights <= 3 ? '3-day overnight permit' : 'Full-season overnight permit',
+  why:          'AI could not confirm details — verify this is the right product before booking.',
+  confidence:   'low',
+})
+
+// partySize is a separate argument (not on ZoneProductInput) so callers can't pass a
+// client-controlled party size — the route handler must derive it from trip.sharedWith,
+// same as suggestPermits/lookupPermit do.
+export async function pickZoneProduct(input: ZoneProductInput, partySize: number): Promise<ZoneProductResult> {
+  const response = await client.messages.create({
+    model:      'claude-sonnet-4-6',
+    max_tokens: 512,
+    system:     ZONE_PRODUCT_SYSTEM_PROMPT,
+    messages:   [{ role: 'user', content: buildZoneProductMessage(input, partySize) }],
+  })
+
+  const textBlocks = response.content.filter(b => b.type === 'text')
+  const raw        = textBlocks.length > 0
+    ? (textBlocks[textBlocks.length - 1] as { type: 'text'; text: string }).text
+    : ''
+
+  const parsed = extractJsonObject(raw)
+  if (!parsed) return ZONE_PRODUCT_FALLBACK(input, partySize)
+
+  const validIds = new Set(Object.values(input.recgov))
+  const productId = typeof parsed.productId === 'string' && validIds.has(parsed.productId)
+    ? parsed.productId
+    : ZONE_PRODUCT_FALLBACK(input, partySize).productId
+
+  return {
+    productId,
+    productLabel: typeof parsed.productLabel === 'string' && parsed.productLabel
+      ? parsed.productLabel : ZONE_PRODUCT_FALLBACK(input, partySize).productLabel,
+    why:          typeof parsed.why === 'string' ? parsed.why : '',
+    confidence:   (['high', 'medium', 'low'] as const).includes(parsed.confidence as 'high' | 'medium' | 'low')
+      ? parsed.confidence as 'high' | 'medium' | 'low'
+      : 'medium',
+  }
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function suggestPermits(

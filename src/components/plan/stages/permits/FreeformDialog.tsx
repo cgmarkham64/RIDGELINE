@@ -171,6 +171,8 @@ export function FreeformDialog({ onClose, onSave, partySize, initialPermit, aiPr
       zoneId:        initialPermit?.zoneId,
       confidence:    initialPermit?.confidence,
       criticalDates: toCriticalDates(permitId, draftDates),
+      autoDetected:  initialPermit?.autoDetected,
+      zoneWarnings:  initialPermit?.zoneWarnings,
     })
   }
 

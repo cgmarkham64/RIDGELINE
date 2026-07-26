@@ -1,4 +1,4 @@
-import { IconX, IconCheck, IconPencil, IconExternalLink } from '../../../icons'
+import { IconX, IconCheck, IconPencil, IconExternalLink, IconSparkle, IconAlertTriangle } from '../../../icons'
 import { PermitTypeIcon, TypeChip, Field } from './PermitAtoms'
 import { PERMIT_TYPES, TONE_CLS, ZONE_STATUS_CLS } from './permitsStage.constants'
 import type { Permit } from './permitsStage.types'
@@ -24,6 +24,18 @@ export function PermitCard({ permit, onRemove, onEdit, onUpdatePermit, canEdit, 
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <TypeChip type={permit.type} />
             <span className="font-mono text-label text-text-dim">party {partySize}</span>
+            {permit.autoDetected && (
+              <span className="inline-flex items-center gap-1 font-mono text-label tracking-[0.06em] uppercase px-1.5 py-0.5 rounded-sm border border-dashed border-border text-text-dim">
+                <IconSparkle /> from route
+              </span>
+            )}
+            {permit.confidence && (
+              <span className={`font-mono text-label uppercase tracking-[0.06em] ${
+                permit.confidence === 'high' ? 'text-pine' : permit.confidence === 'medium' ? 'text-amber' : 'text-red'
+              }`}>
+                {permit.confidence === 'high' ? 'Verify' : permit.confidence === 'medium' ? 'Review carefully' : 'Low confidence'}
+              </span>
+            )}
           </div>
           <div className="font-heading text-body-sm font-extrabold text-text leading-snug">{permit.name}</div>
           <div className="font-mono text-label text-text-dim mt-0.5">{permit.agency}</div>
@@ -112,6 +124,16 @@ export function PermitCard({ permit, onRemove, onEdit, onUpdatePermit, canEdit, 
               </div>
             ))}
           </div>
+          {permit.zoneWarnings && permit.zoneWarnings.length > 0 && (
+            <div className="flex flex-col gap-1.5 mt-3">
+              {permit.zoneWarnings.map((w, i) => (
+                <div key={i} className="flex items-start gap-2 px-3 py-2 bg-amber-dim border border-amber-border rounded text-fine text-text-mid">
+                  <IconAlertTriangle size={13} className="shrink-0 mt-px text-amber" />
+                  <span>{w}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
       {permit.type === 'parking' && fields.length > 0 && (

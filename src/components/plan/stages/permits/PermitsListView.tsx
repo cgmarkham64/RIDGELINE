@@ -15,6 +15,7 @@ export function PermitsListView({
   canEdit, partySize, scanning, scanError, lastScanned, onRescan,
   permitFree, onMarkPermitFree,
   onSearch, lookupLoading, lookupError, canLookup,
+  zoneDetecting, zoneDetectError, zoneDetectedAt, onRedetectZones,
 }: {
   permits:          Permit[]
   links:            PermitLink[]
@@ -34,6 +35,10 @@ export function PermitsListView({
   lookupLoading:    boolean
   lookupError:      string | null
   canLookup:        boolean
+  zoneDetecting:    boolean
+  zoneDetectError:  string | null
+  zoneDetectedAt:   string | undefined
+  onRedetectZones:  () => void
 }) {
   const [search, setSearch] = useState('')
 
@@ -41,6 +46,11 @@ export function PermitsListView({
     e.preventDefault()
     if (search.trim() && canLookup && !lookupLoading) onSearch(search.trim())
   }
+
+  // Only surface the zone-detection status/control once it's actually relevant to this
+  // trip — most trips aren't near a wilderness area with zone geometry, and detection
+  // finding nothing shouldn't clutter the UI with a control that never does anything.
+  const hasZoneDetection = permits.some(p => p.autoDetected)
 
   const bannerHeading = scanning
     ? 'Searching for permit and booking resources…'
@@ -211,6 +221,34 @@ export function PermitsListView({
             <span className="font-mono text-label text-text-dim">nothing added yet</span>
           )}
         </div>
+
+        {(hasZoneDetection || zoneDetectError) && (
+          <div className="flex items-center justify-between mb-2.5 -mt-1">
+            <span className="font-mono text-label text-text-dim">
+              {zoneDetecting
+                ? 'Checking route against permit zones…'
+                : zoneDetectedAt
+                  ? `Zone permits checked ${new Date(zoneDetectedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
+                  : ''}
+            </span>
+            {canEdit && (
+              <button
+                onClick={onRedetectZones}
+                disabled={zoneDetecting}
+                className="inline-flex items-center gap-1 font-mono text-label tracking-[0.06em] uppercase text-text-dim hover:text-amber transition-colors bg-transparent border-none cursor-pointer p-0 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Re-detect zones
+              </button>
+            )}
+          </div>
+        )}
+        {zoneDetectError && (
+          <div className="flex items-start gap-2 px-3 py-2 mb-2.5 bg-amber-dim border border-amber-border rounded text-fine text-text-mid">
+            <IconAlertTriangle size={13} className="shrink-0 mt-px text-amber" />
+            <span>{zoneDetectError}</span>
+          </div>
+        )}
+
         {permits.length > 0 ? (
           <div className="flex flex-col gap-3">
             {permits.map(p => (

@@ -644,6 +644,15 @@
   }
 }
 
+/* ─── Leaflet overrides (outside layers — third-party classes) ───────────────── */
+/* Leaflet makes interactive vector layers (e.g. GeoJSON zone polygons) focusable
+   for keyboard accessibility, and clicking one also focuses it — which triggers
+   the browser's default focus ring. Suppress it for mouse/click focus only;
+   :focus-visible still shows it for keyboard tab-navigation. */
+.leaflet-interactive:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* ─── Keyframe animations (outside layers) ───────────────── */
 @keyframes wp-glow-pulse {
   0%, 100% { box-shadow: 0 0 0 3px var(--wp-glow-dim),    0 2px 6px rgba(0,0,0,0.55); }
