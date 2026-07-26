@@ -1,10 +1,12 @@
 import ipwZonesRaw from '../../../../data/ipw_zones.json'
-import { derivePermitNeeds, type CampNight, type PermitNeed, type ZoneCollection } from '../../../../lib/zoneGeometry'
+import enchantmentsZonesRaw from '../../../../data/enchantments_zones.json'
+import { derivePermitNeeds, type CampNight, type PermitNeed, type ZoneCollection, type ZoneProps } from '../../../../lib/zoneGeometry'
 import { toDateMs } from './criticalDates.helpers'
 import type { PlanRouteData, PlanPermitEntry, PlanCriticalDate } from '../../types'
 import type { ZoneProductResult } from '../../../../lib/permits'
 
-export const IPW_ZONES = ipwZonesRaw as unknown as ZoneCollection
+export const IPW_ZONES           = ipwZonesRaw as unknown as ZoneCollection
+export const ENCHANTMENTS_ZONES  = enchantmentsZonesRaw as unknown as ZoneCollection
 
 function addDaysIso(startDate: string, days: number): string {
   const d = new Date(`${startDate.slice(0, 10)}T00:00:00Z`)
@@ -40,14 +42,30 @@ function computeBBox(zones: ZoneCollection) {
   return { minLat, maxLat, minLon, maxLon }
 }
 
+const BBOX_BUFFER_DEG = 0.05
+
+function nearBBox(lat: number, lon: number, bbox: ReturnType<typeof computeBBox>): boolean {
+  return lat >= bbox.minLat - BBOX_BUFFER_DEG && lat <= bbox.maxLat + BBOX_BUFFER_DEG &&
+         lon >= bbox.minLon - BBOX_BUFFER_DEG && lon <= bbox.maxLon + BBOX_BUFFER_DEG
+}
+
 const IPW_BBOX = computeBBox(IPW_ZONES)
-const IPW_BBOX_BUFFER_DEG = 0.05
+const ENCHANTMENTS_BBOX = computeBBox(ENCHANTMENTS_ZONES)
 
 /** Cheap bounding-box check so the zone overlay/detection only engages for routes
  *  actually near Indian Peaks, rather than showing irrelevant zones on every trip. */
 export function nearIpw(lat: number, lon: number): boolean {
-  return lat >= IPW_BBOX.minLat - IPW_BBOX_BUFFER_DEG && lat <= IPW_BBOX.maxLat + IPW_BBOX_BUFFER_DEG &&
-         lon >= IPW_BBOX.minLon - IPW_BBOX_BUFFER_DEG && lon <= IPW_BBOX.maxLon + IPW_BBOX_BUFFER_DEG
+  return nearBBox(lat, lon, IPW_BBOX)
+}
+
+/** Same idea as nearIpw, scoped to the Enchantments permit area. */
+export function nearEnchantments(lat: number, lon: number): boolean {
+  return nearBBox(lat, lon, ENCHANTMENTS_BBOX)
+}
+
+const ALL_ZONES: ZoneCollection = {
+  type: 'FeatureCollection',
+  features: [...IPW_ZONES.features, ...ENCHANTMENTS_ZONES.features],
 }
 
 export function detectZoneStays(
@@ -56,7 +74,24 @@ export function detectZoneStays(
 ): { needs: PermitNeed[]; unresolved: CampNight[] } {
   const camps = deriveCampNights(segments, startDate)
   if (camps.length === 0) return { needs: [], unresolved: [] }
-  return derivePermitNeeds(camps, IPW_ZONES)
+  return derivePermitNeeds(camps, ALL_ZONES)
+}
+
+/** Lottery zones (e.g. Enchantments) have no per-trip product to pick via AI judgment —
+ *  the two recreation.gov entry points (advanced/daily lottery) are already fixed facts,
+ *  so this builds the permit's copy directly instead of calling pickZoneProduct. */
+export function buildLotteryProduct(p: ZoneProps): ZoneProductResult {
+  const advanced = p.recgov.advanced_lottery
+  const daily    = p.recgov.daily_lottery
+  return {
+    productId:    advanced ?? daily ?? Object.values(p.recgov)[0] ?? '',
+    productLabel: 'Enchantments lottery',
+    why: [
+      advanced ? `Apply to the advanced lottery (recreation.gov) Feb 15–Mar 1.` : null,
+      daily ? `A daily walk-up lottery is also available closer to your trip.` : null,
+    ].filter(Boolean).join(' ') || 'Overnight permits here are lottery-allocated — apply via recreation.gov.',
+    confidence: 'high',
+  }
 }
 
 /** Changes whenever the route's camp count, positions, or dates change — lets the

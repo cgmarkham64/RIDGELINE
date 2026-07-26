@@ -9,7 +9,7 @@ import { extractScanDates } from './criticalDates.helpers'
 import { INITIAL_PERMITS } from './permitsStage.constants'
 import { suggestPermits, lookupPermit, pickZoneProduct } from '../../../../lib/permits'
 import type { PermitLookupResult } from '../../../../lib/permits'
-import { detectZoneStays, buildZonePermit, routeSignature, zoneNeedId } from './zoneDetection.helpers'
+import { detectZoneStays, buildZonePermit, buildLotteryProduct, routeSignature, zoneNeedId } from './zoneDetection.helpers'
 import { extractApiError } from '../../../../lib/utils'
 import { toDateMs } from './criticalDates.helpers'
 import { HikerOverlay } from '../../../ui/HikerOverlay'
@@ -121,17 +121,19 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
       for (const need of toAdd) {
         const p = need.zone.properties
         try {
-          const product = await pickZoneProduct(trip._id, {
-            zoneName:             p.name,
-            agency:               p.agency,
-            nights:               need.nights.length,
-            seasonStart:          p.overnight_permit.season_start,
-            seasonEnd:            p.overnight_permit.season_end,
-            recgov:               p.recgov,
-            campfiresAllowed:     p.campfires_allowed,
-            bearCanisterRequired: p.bear_canister_required,
-            designatedSitesOnly:  p.designated_sites_only,
-          })
+          const product = p.overnight_permit.allocation === 'lottery'
+            ? buildLotteryProduct(p)
+            : await pickZoneProduct(trip._id, {
+                zoneName:             p.name,
+                agency:               p.agency,
+                nights:               need.nights.length,
+                seasonStart:          p.overnight_permit.season_start,
+                seasonEnd:            p.overnight_permit.season_end,
+                recgov:               p.recgov,
+                campfiresAllowed:     p.campfires_allowed,
+                bearCanisterRequired: p.bear_canister_required,
+                designatedSitesOnly:  p.designated_sites_only,
+              })
           detected.push(buildZonePermit(need, partySize, product))
         } catch {
           failures++

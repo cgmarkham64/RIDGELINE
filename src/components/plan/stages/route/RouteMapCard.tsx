@@ -19,8 +19,8 @@ import type { StageBodyProps } from '../../types'
 import type { GpxTrackEntry } from '../../../../types'
 import { FitBounds, InvalidateSize, DrawInteractionLayer, WaypointPlaceLayer, ContextMenuLayer, type ContextMenuPayload } from './routeMapCard.helpers'
 import { DrawConfirmTray } from './DrawConfirmTray'
-import { IpwZonesOverlay } from './IpwZonesOverlay'
-import { detectZoneStays, IPW_ZONES, nearIpw } from '../permits/zoneDetection.helpers'
+import { ZonesOverlay } from './ZonesOverlay'
+import { detectZoneStays, IPW_ZONES, ENCHANTMENTS_ZONES, nearIpw, nearEnchantments } from '../permits/zoneDetection.helpers'
 import { milesToKm, ftToM } from '../../../../lib/units'
 import { useUnitSystem } from '../../../../hooks/useUnitSystem'
 
@@ -220,12 +220,17 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
 
     const showMap = !!bounds || isDrawing || segments.some(s => s.path?.length)
 
-    // Zone-permit overlay — only engages for routes actually near Indian Peaks, so
-    // trips elsewhere don't show irrelevant zone boundaries. Checks both GPX-imported
-    // points and hand-drawn segment paths, since a route can come from either.
-    const showZoneOverlay = useMemo(
+    // Zone-permit overlays — each only engages for routes actually near that wilderness
+    // area, so trips elsewhere don't show irrelevant zone boundaries. Checks both
+    // GPX-imported points and hand-drawn segment paths, since a route can come from either.
+    const showIpwOverlay = useMemo(
       () => allPoints.some(([lat, lon]) => nearIpw(lat, lon)) ||
         segments.some(s => s.path?.some(([lat, lon]) => nearIpw(lat, lon))),
+      [allPoints, segments],
+    )
+    const showEnchantmentsOverlay = useMemo(
+      () => allPoints.some(([lat, lon]) => nearEnchantments(lat, lon)) ||
+        segments.some(s => s.path?.some(([lat, lon]) => nearEnchantments(lat, lon))),
       [allPoints, segments],
     )
     const zoneHighlightIds = useMemo(() => {
@@ -318,7 +323,8 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
             >
               <TileLayer {...TILE_LAYERS[tileLayer]} />
 
-              {showZoneOverlay && <IpwZonesOverlay zones={IPW_ZONES} highlightIds={zoneHighlightIds} />}
+              {showIpwOverlay && <ZonesOverlay zones={IPW_ZONES} highlightIds={zoneHighlightIds} />}
+              {showEnchantmentsOverlay && <ZonesOverlay zones={ENCHANTMENTS_ZONES} highlightIds={zoneHighlightIds} />}
 
               {plannedLatLngs.length > 1 && (<>
                 <Polyline positions={plannedLatLngs} color={PLANNED_COLOR} weight={14} opacity={0.18} />

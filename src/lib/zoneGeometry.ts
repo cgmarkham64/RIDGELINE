@@ -19,8 +19,22 @@ export interface ZoneProps {
   camping_closure: string | null            // "05-01/11-30" for Four Lakes
   designated_sites_only: boolean
   bear_canister_required: boolean
-  overnight_permit: { required: boolean; season_start: string; season_end: string }
-  recgov: { overnight_full_season: string; overnight_3day: string; large_group_day: string }
+  dogs_allowed?: boolean
+  group_size_max?: number
+  /** True when a master/core permit for this wilderness area also covers camping
+   *  in this zone (e.g. Enchantments Core permit) — absent for areas without one. */
+  core_permit_valid_here?: boolean
+  overnight_permit: {
+    required: boolean
+    season_start: string
+    season_end: string
+    /** How overnight permits are allocated. Defaults to quota (IPW-style purchase)
+     *  when absent — only lottery areas (Enchantments) need to set this. */
+    allocation?: 'quota' | 'lottery'
+  }
+  // Permit systems differ per area (IPW: quota-purchase product ids; Enchantments:
+  // lottery ids) — keyed loosely rather than a fixed shape so both fit.
+  recgov: Record<string, string>
   accuracy_note: string
 }
 
@@ -198,6 +212,23 @@ export function derivePermitNeeds(
     if (!p.campfires_allowed) {
       n.warnings.push(`${p.name}: campfires prohibited`)
     }
+    if (p.dogs_allowed === false) {
+      n.warnings.push(`${p.name}: no dogs`)
+    }
+    if (p.group_size_max != null) {
+      n.warnings.push(`${p.name}: max group size ${p.group_size_max}`)
+    }
   }
+
+  const zonesInStay = new Map(needs.map(n => [n.zone.properties.id, n.zone.properties]))
+  const corePermitZones = [...zonesInStay.values()].filter(p => p.core_permit_valid_here)
+  if (corePermitZones.length > 1) {
+    const note = `A single core permit covers camping in any of: ${corePermitZones.map(p => p.name).join(', ')} — ` +
+      `you may only need one permit for this trip instead of one per zone.`
+    needs.forEach(n => {
+      if (n.zone.properties.core_permit_valid_here) n.warnings.push(note)
+    })
+  }
+
   return { needs, unresolved }
 }

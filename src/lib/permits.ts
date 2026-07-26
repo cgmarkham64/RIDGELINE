@@ -39,7 +39,7 @@ export interface ZoneProductInput {
   nights:               number
   seasonStart:          string
   seasonEnd:            string
-  recgov:               { overnight_full_season: string; overnight_3day: string; large_group_day: string }
+  recgov:               Record<string, string>
   campfiresAllowed:     boolean
   bearCanisterRequired: boolean
   designatedSitesOnly:  boolean

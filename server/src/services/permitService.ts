@@ -345,11 +345,11 @@ export interface ZoneProductInput {
   nights:                number
   seasonStart:           string  // MM-DD
   seasonEnd:             string  // MM-DD
-  recgov: {
-    overnight_full_season: string
-    overnight_3day:         string
-    large_group_day:        string
-  }
+  // Loosened from a fixed quota shape — lottery areas (e.g. Enchantments) key
+  // this differently. This AI product-pick flow is IPW/quota-specific; lottery
+  // zones build their permit directly in zoneDetection.helpers.ts and never
+  // reach this endpoint (see buildZonePermit's allocation branch).
+  recgov: Record<string, string>
   campfiresAllowed:      boolean
   bearCanisterRequired:  boolean
   designatedSitesOnly:   boolean

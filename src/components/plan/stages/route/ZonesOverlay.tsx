@@ -1,6 +1,7 @@
 /**
- * IpwZonesOverlay — permit-zone layer for RIDGELINE's react-leaflet maps.
- * Drop inside any <MapContainer> (e.g. RouteMapCard).
+ * ZonesOverlay — permit-zone layer for RIDGELINE's react-leaflet maps.
+ * Drop inside any <MapContainer> (e.g. RouteMapCard). Works with any wilderness
+ * area's ZoneCollection (Indian Peaks, Enchantments, ...).
  */
 import { useMemo } from 'react'
 import { GeoJSON, Tooltip } from 'react-leaflet'
@@ -19,7 +20,7 @@ function fillFor(f: ZoneFeature): string {
   return p.campfires_allowed ? FILL.campfiresOk : FILL.noCampfires
 }
 
-export interface IpwZonesOverlayProps {
+export interface ZonesOverlayProps {
   zones: ZoneCollection
   /** zone ids to emphasize (e.g. zones where the plan has camps) */
   highlightIds?: string[]
@@ -27,12 +28,12 @@ export interface IpwZonesOverlayProps {
   onZoneClick?: (zone: ZoneFeature) => void
 }
 
-export function IpwZonesOverlay({
+export function ZonesOverlay({
   zones,
   highlightIds = [],
   opacity = 0.35,
   onZoneClick,
-}: IpwZonesOverlayProps) {
+}: ZonesOverlayProps) {
   const hot = useMemo(() => new Set(highlightIds), [highlightIds])
 
   const style = (f?: ZoneFeature): PathOptions => {
