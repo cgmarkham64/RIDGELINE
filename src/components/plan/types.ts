@@ -189,13 +189,15 @@ export interface PlanData {
     meals: PlanMealEntry[]
     mealsLocked: boolean
     resupplyStops: ResupplyStop[]
-    selectedCanId: string
-    customCanName: string
+    /** Whether this trip needs a bear canister — the specific model is chosen in the Gear stage. */
+    bearCanNeed?: 'required' | 'recommended' | 'not_needed'
     targets: { calories: string; protein: string; fat: string; carbs: string }
   }
   gear?: {
     categories: PlanGearCategoryEntry[]
     unlockChecklist: { text: string; done: boolean }[]
+    selectedCanId?: string
+    customCanName?: string
   }
   depart?: PlanDepartData
 }

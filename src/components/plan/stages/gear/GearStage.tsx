@@ -28,7 +28,33 @@ interface GearCategory {
   items: GearItem[]
 }
 
+interface BearCanOption {
+  id: string; name: string; capacity: string; weight: string
+  type: 'hard' | 'soft'; note?: string; recommended?: boolean
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
+
+const BEAR_CANS: BearCanOption[] = [
+  { id: 'bv450',      name: 'Bear Vault BV450',         capacity: '450 cu in', weight: '2.3 lb', type: 'hard' },
+  { id: 'bv475',      name: 'Bear Vault BV475',         capacity: '475 cu in', weight: '2.6 lb', type: 'hard' },
+  { id: 'bv500',      name: 'Bear Vault BV500',         capacity: '700 cu in', weight: '2.8 lb', type: 'hard', recommended: true },
+  { id: 'ursack_maj', name: 'Ursack Major',             capacity: '10.7 L',   weight: '8.0 oz', type: 'soft', note: 'USDA approved · not SEKI' },
+  { id: 'ursack_alm', name: 'Ursack AllMitey',          capacity: '10.7 L',   weight: '8.4 oz', type: 'soft', note: 'Yosemite approved · not SEKI' },
+  { id: 'ca_keg',     name: 'Counter Assault Bear Keg', capacity: '615 cu in', weight: '3.1 lb', type: 'hard' },
+]
+
+const CAN_TYPE_CLS: Record<'hard' | 'soft', string> = {
+  hard: 'bg-sky-dim border-sky-border text-sky',
+  soft: 'bg-amber-dim border-amber-border text-amber',
+}
+
+function canWeightOz(weight: string): number {
+  const match = weight.match(/^([\d.]+)\s*(lb|oz)$/)
+  if (!match) return 0
+  const value = parseFloat(match[1])
+  return match[2] === 'lb' ? value * 16 : value
+}
 
 const DEFAULT_CATEGORIES: GearCategory[] = [
   {
@@ -83,6 +109,119 @@ const DEFAULT_UNLOCK_CHECKLIST = [
 
 function fromPlanCategories(src: PlanGearCategoryEntry[]): GearCategory[] {
   return src.map(c => ({ id: c.id, label: c.label, items: c.items.map(i => ({ ...i })) }))
+}
+
+// ─── BearCanCard ──────────────────────────────────────────────────────────────
+
+function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
+  selectedId: string
+  onSelect: (id: string) => void
+  customName: string
+  onCustomName: (v: string) => void
+}) {
+  const [prevName, setPrevName] = useState('')
+  const customNameRef = useRef(customName)
+
+  const enteringCustom = selectedId === 'custom' && customName === ''
+
+  function handleCommittedNameClick() {
+    setPrevName(customName)
+    customNameRef.current = ''
+    onCustomName('')
+    onSelect('custom')
+  }
+
+  function handleCustomBlur() {
+    if (!customNameRef.current.trim()) onSelect('')
+    setPrevName('')
+  }
+
+  function handleCustomKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') {
+      if (prevName) {
+        customNameRef.current = prevName
+        onCustomName(prevName)
+      } else {
+        customNameRef.current = ''
+        onSelect('')
+        onCustomName('')
+      }
+      setPrevName('')
+    }
+  }
+
+  return (
+    <div className="bg-surface border border-border rounded-lg overflow-hidden">
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-surface-2 border-b border-border">
+        <span className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">Bear canister</span>
+      </div>
+      <div className="p-[18px] flex flex-col gap-1.5">
+        {BEAR_CANS.map(can => {
+          const isSelected = selectedId === can.id
+          return (
+            <button
+              key={can.id}
+              type="button"
+              onClick={() => { onSelect(can.id); setPrevName('') }}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded border text-left transition-colors cursor-pointer w-full ${
+                isSelected ? 'bg-amber-glow border-amber-border' : 'bg-transparent border-border hover:border-border-mid'
+              }`}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`font-mono text-caption font-bold ${isSelected ? 'text-amber' : 'text-text-mid'}`}>
+                    {can.name}
+                  </span>
+                  {can.recommended && (
+                    <span className="font-mono text-label tracking-widest uppercase text-pine bg-pine-dim border border-pine-border px-1.5 py-0.5 rounded">
+                      recommended
+                    </span>
+                  )}
+                </div>
+                <div className="font-mono text-label text-text-dim mt-0.5">
+                  {can.capacity} · {can.weight}
+                  {can.note && <span className="text-amber"> · {can.note}</span>}
+                </div>
+              </div>
+              <span className={`font-mono text-label tracking-widest uppercase px-1.5 py-0.5 rounded border shrink-0 ${CAN_TYPE_CLS[can.type]}`}>
+                {can.type}
+              </span>
+              {isSelected && <span className="text-amber shrink-0"><IconCheck size={12} /></span>}
+            </button>
+          )
+        })}
+
+        {enteringCustom ? (
+          <div className="flex items-center gap-2 px-3 py-2 rounded border border-amber-border bg-amber-glow">
+            <input
+              className="flex-1 bg-transparent border-none text-body-sm text-text outline-none placeholder:text-text-dim font-mono"
+              placeholder="Container name or model…"
+              autoFocus
+              value={customName}
+              onChange={e => { customNameRef.current = e.target.value; onCustomName(e.target.value) }}
+              onBlur={handleCustomBlur}
+              onKeyDown={handleCustomKeyDown}
+            />
+            {customName && <span className="text-amber shrink-0"><IconCheck size={12} /></span>}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={selectedId === 'custom' ? handleCommittedNameClick : () => onSelect('custom')}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded border text-left transition-colors cursor-pointer w-full ${
+              selectedId === 'custom' ? 'bg-amber-glow border-amber-border' : 'bg-transparent border-border hover:border-border-mid'
+            }`}
+          >
+            <span className={`font-mono text-caption ${selectedId === 'custom' ? 'text-amber font-bold' : 'text-text-dim'}`}>
+              {selectedId === 'custom' && customName ? customName : 'Custom / other…'}
+            </span>
+            {selectedId !== 'custom' && <span className="ml-auto text-text-dim"><IconPlus size={10} /></span>}
+            {selectedId === 'custom' && <span className="ml-auto text-amber"><IconCheck size={12} /></span>}
+          </button>
+        )}
+      </div>
+    </div>
+  )
 }
 
 // ─── CategoryCard ─────────────────────────────────────────────────────────────
@@ -147,6 +286,11 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
   const [unlockChecklist, setUnlockChecklist] = useState<{ text: string; done: boolean }[]>(() =>
     plan?.gear?.unlockChecklist ?? (plan !== undefined ? [] : DEFAULT_UNLOCK_CHECKLIST)
   )
+  // Bear canister used to be picked in the Food stage — fall back to that legacy
+  // location so trips started before the move don't lose the selection.
+  const legacyFood = plan?.food as { selectedCanId?: string; customCanName?: string } | undefined
+  const [selectedCanId, setSelectedCanId] = useState(() => plan?.gear?.selectedCanId ?? legacyFood?.selectedCanId ?? '')
+  const [customCanName, setCustomCanName] = useState(() => plan?.gear?.customCanName ?? legacyFood?.customCanName ?? '')
 
   const isMounted   = useRef(false)
   useEffect(() => () => { isMounted.current = false }, [])
@@ -154,8 +298,8 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
   useEffect(() => { onChangeRef.current = onChange })
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
-    onChangeRef.current?.({ gear: { categories, unlockChecklist } })
-  }, [categories, unlockChecklist])
+    onChangeRef.current?.({ gear: { categories, unlockChecklist, selectedCanId, customCanName } })
+  }, [categories, unlockChecklist, selectedCanId, customCanName])
 
   function toggleItem(catIdx: number, itemIdx: number) {
     setCategories(prev => prev.map((c, ci) =>
@@ -173,7 +317,9 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
   const allItems     = categories.flatMap(c => c.items)
   const checkedCount = allItems.filter(i => i.checked).length
   const totalCount   = allItems.length
-  const baseOz       = allItems.filter(i => i.checked).reduce((s, i) => s + i.weight, 0)
+  const selectedCan  = BEAR_CANS.find(c => c.id === selectedCanId)
+  const canOz        = selectedCan ? canWeightOz(selectedCan.weight) : 0
+  const baseOz       = allItems.filter(i => i.checked).reduce((s, i) => s + i.weight, 0) + canOz
   const baseLb       = (baseOz / 16).toFixed(1)
 
   // Stub — future: pull from Food stage state
@@ -253,6 +399,13 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
               onToggleItem={itemIdx => toggleItem(ci, itemIdx)}
             />
           ))}
+
+          <BearCanCard
+            selectedId={selectedCanId}
+            onSelect={setSelectedCanId}
+            customName={customCanName}
+            onCustomName={setCustomCanName}
+          />
 
           {/* Action buttons */}
           <div className="flex gap-2 flex-wrap">

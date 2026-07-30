@@ -3,7 +3,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Pill } from '../../Pill'
 import { ProgressBar } from '../../ProgressBar'
 import { CheckItem } from '../../CheckItem'
-import { IconCheck, IconPlus, IconX, IconAlertTriangle } from '../../../icons'
+import { JumpChip } from '../../JumpChip'
+import { IconPlus, IconX, IconAlertTriangle } from '../../../icons'
 import type { StageBodyProps, ResupplyStop, MealItem, MealSlot, PlanMealEntry } from '../../types'
 import type { Waypoint } from '../../../../types'
 import { useAuthStore } from '../../../../store/auth'
@@ -27,20 +28,6 @@ type TargetField = 'calories' | 'protein' | 'fat' | 'carbs'
 
 const MEAL_SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snacks']
 
-interface BearCanOption {
-  id: string; name: string; capacity: string; weight: string
-  type: 'hard' | 'soft'; note?: string; recommended?: boolean
-}
-
-const BEAR_CANS: BearCanOption[] = [
-  { id: 'bv450',      name: 'Bear Vault BV450',         capacity: '450 cu in', weight: '2.3 lb', type: 'hard' },
-  { id: 'bv475',      name: 'Bear Vault BV475',         capacity: '475 cu in', weight: '2.6 lb', type: 'hard' },
-  { id: 'bv500',      name: 'Bear Vault BV500',         capacity: '700 cu in', weight: '2.8 lb', type: 'hard', recommended: true },
-  { id: 'ursack_maj', name: 'Ursack Major',             capacity: '10.7 L',   weight: '8.0 oz', type: 'soft', note: 'USDA approved · not SEKI' },
-  { id: 'ursack_alm', name: 'Ursack AllMitey',          capacity: '10.7 L',   weight: '8.4 oz', type: 'soft', note: 'Yosemite approved · not SEKI' },
-  { id: 'ca_keg',     name: 'Counter Assault Bear Keg', capacity: '615 cu in', weight: '3.1 lb', type: 'hard' },
-]
-
 // Rough backpacking calorie-burn model: baseline appetite (the account's daily
 // calorie macro target, or this default) + fixed trail effort from mileage/gain.
 const BASE_KCAL_PER_DAY       = 2600
@@ -63,11 +50,6 @@ const STOP_TEXT_FIELDS: Array<{
   { key: 'daysInBox',   label: 'Days in box',  placeholder: '4'                       },
   { key: 'holdAddress', label: 'Hold address', placeholder: 'Bishop PO, 585 Main St'  },
 ]
-
-const CAN_TYPE_CLS: Record<'hard' | 'soft', string> = {
-  hard: 'bg-sky-dim border-sky-border text-sky',
-  soft: 'bg-amber-dim border-amber-border text-amber',
-}
 
 function demoItem(id: string, name: string, kcal: number, oz: number): MealItem {
   return { id, name, kcal, proteinG: 0, fatG: 0, carbsG: 0, weightOz: oz }
@@ -542,116 +524,46 @@ function ResupplySection({
   )
 }
 
-// ─── BearCanCard ──────────────────────────────────────────────────────────────
+// ─── BearCanNeedCard ──────────────────────────────────────────────────────────
+// Flags whether this trip needs a bear canister at all; the specific model is
+// chosen in the Gear stage, where it counts toward the loadout weight.
 
-function BearCanCard({ selectedId, onSelect, customName, onCustomName }: {
-  selectedId: string
-  onSelect: (id: string) => void
-  customName: string
-  onCustomName: (v: string) => void
+const BEAR_CAN_NEED_OPTIONS: Array<{ id: 'not_needed' | 'recommended' | 'required'; label: string }> = [
+  { id: 'not_needed',  label: 'Not needed'  },
+  { id: 'recommended', label: 'Recommended' },
+  { id: 'required',    label: 'Required'    },
+]
+
+function BearCanNeedCard({ need, onChange, onJump }: {
+  need: string
+  onChange: (v: 'not_needed' | 'recommended' | 'required') => void
+  onJump: (id: string) => void
 }) {
-  const [prevName, setPrevName] = useState('')
-  const customNameRef = useRef(customName)
-
-  const enteringCustom = selectedId === 'custom' && customName === ''
-
-  function handleCommittedNameClick() {
-    setPrevName(customName)
-    customNameRef.current = ''
-    onCustomName('')
-    onSelect('custom')
-  }
-
-  function handleCustomBlur() {
-    if (!customNameRef.current.trim()) onSelect('')
-    setPrevName('')
-  }
-
-  function handleCustomKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Escape') {
-      if (prevName) {
-        customNameRef.current = prevName
-        onCustomName(prevName)
-      } else {
-        customNameRef.current = ''
-        onSelect('')
-        onCustomName('')
-      }
-      setPrevName('')
-    }
-  }
-
   return (
     <div className="bg-surface border border-border rounded-lg p-[18px]">
       <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">Bear canister</div>
       <p className="text-fine text-text-mid mb-3 leading-relaxed">
-        Capacity depends on resupply. Hard-sided required at SEKI.
+        Check land manager rules for where you'll camp — requirements vary (hard-sided required at SEKI, Ursack accepted at some but not others).
       </p>
-      <div className="flex flex-col gap-1.5">
-        {BEAR_CANS.map(can => {
-          const isSelected = selectedId === can.id
-          return (
-            <button
-              key={can.id}
-              type="button"
-              onClick={() => { onSelect(can.id); setPrevName('') }}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded border text-left transition-colors cursor-pointer w-full ${
-                isSelected ? 'bg-amber-glow border-amber-border' : 'bg-transparent border-border hover:border-border-mid'
-              }`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`font-mono text-caption font-bold ${isSelected ? 'text-amber' : 'text-text-mid'}`}>
-                    {can.name}
-                  </span>
-                  {can.recommended && (
-                    <span className="font-mono text-label tracking-widest uppercase text-pine bg-pine-dim border border-pine-border px-1.5 py-0.5 rounded">
-                      recommended
-                    </span>
-                  )}
-                </div>
-                <div className="font-mono text-label text-text-dim mt-0.5">
-                  {can.capacity} · {can.weight}
-                  {can.note && <span className="text-amber"> · {can.note}</span>}
-                </div>
-              </div>
-              <span className={`font-mono text-label tracking-widest uppercase px-1.5 py-0.5 rounded border shrink-0 ${CAN_TYPE_CLS[can.type]}`}>
-                {can.type}
-              </span>
-              {isSelected && <span className="text-amber shrink-0"><IconCheck size={12} /></span>}
-            </button>
-          )
-        })}
-
-        {enteringCustom ? (
-          <div className="flex items-center gap-2 px-3 py-2 rounded border border-amber-border bg-amber-glow">
-            <input
-              className="flex-1 bg-transparent border-none text-body-sm text-text outline-none placeholder:text-text-dim font-mono"
-              placeholder="Container name or model…"
-              autoFocus
-              value={customName}
-              onChange={e => { customNameRef.current = e.target.value; onCustomName(e.target.value) }}
-              onBlur={handleCustomBlur}
-              onKeyDown={handleCustomKeyDown}
-            />
-            {customName && <span className="text-amber shrink-0"><IconCheck size={12} /></span>}
-          </div>
-        ) : (
+      <div className="flex rounded border border-border overflow-hidden">
+        {BEAR_CAN_NEED_OPTIONS.map(opt => (
           <button
+            key={opt.id}
             type="button"
-            onClick={selectedId === 'custom' ? handleCommittedNameClick : () => onSelect('custom')}
-            className={`flex items-center gap-2.5 px-3 py-2 rounded border text-left transition-colors cursor-pointer w-full ${
-              selectedId === 'custom' ? 'bg-amber-glow border-amber-border' : 'bg-transparent border-border hover:border-border-mid'
+            onClick={() => onChange(opt.id)}
+            className={`flex-1 font-mono text-caption px-2.5 py-2 transition-colors cursor-pointer ${
+              need === opt.id ? 'bg-amber-dim text-amber' : 'text-text-dim hover:text-text-mid'
             }`}
           >
-            <span className={`font-mono text-caption ${selectedId === 'custom' ? 'text-amber font-bold' : 'text-text-dim'}`}>
-              {selectedId === 'custom' && customName ? customName : 'Custom / other…'}
-            </span>
-            {selectedId !== 'custom' && <span className="ml-auto text-text-dim"><IconPlus size={10} /></span>}
-            {selectedId === 'custom' && <span className="ml-auto text-amber"><IconCheck size={12} /></span>}
+            {opt.label}
           </button>
-        )}
+        ))}
       </div>
+      {(need === 'required' || need === 'recommended') && (
+        <div className="mt-3">
+          <JumpChip to="gear" onJump={onJump}>Pick your canister in Gear</JumpChip>
+        </div>
+      )}
     </div>
   )
 }
@@ -684,8 +596,7 @@ export function FoodStage({ plan, onChange, onProgress, trip, onJump }: StageBod
   })
   const [mealsLocked, setMealsLocked]     = useState(() => f?.mealsLocked  ?? false)
   const [resupplyStops, setResupplyStops] = useState<ResupplyStop[]>(() => f?.resupplyStops ?? migratedStops)
-  const [selectedCanId, setSelectedCan]   = useState(() => f?.selectedCanId ?? '')
-  const [customCanName, setCustomCan]     = useState(() => f?.customCanName ?? '')
+  const [bearCanNeed, setBearCanNeed]     = useState<'' | 'required' | 'recommended' | 'not_needed'>(() => f?.bearCanNeed ?? '')
   const [targets, setTargets]             = useState<Record<TargetField, string>>(() => {
     const t = f?.targets as Record<string, string> | undefined
     if (t) return { calories: t.calories ?? '', protein: t.protein ?? '', fat: t.fat ?? '', carbs: t.carbs ?? '' }
@@ -721,8 +632,8 @@ export function FoodStage({ plan, onChange, onProgress, trip, onJump }: StageBod
   useEffect(() => { onChangeRef.current = onChange })
   useEffect(() => {
     if (!isMounted.current) { isMounted.current = true; return }
-    onChangeRef.current?.({ food: { meals, mealsLocked, resupplyStops, selectedCanId, customCanName, targets } })
-  }, [meals, mealsLocked, resupplyStops, selectedCanId, customCanName, targets])
+    onChangeRef.current?.({ food: { meals, mealsLocked, resupplyStops, bearCanNeed: bearCanNeed || undefined, targets } })
+  }, [meals, mealsLocked, resupplyStops, bearCanNeed, targets])
 
   const resupplyWaypoints = (trip?.waypoints ?? []).filter(w => w.type === 'resupply')
 
@@ -739,7 +650,7 @@ export function FoodStage({ plan, onChange, onProgress, trip, onJump }: StageBod
   const item2 = targets.protein.trim()  !== ''
   const item3 = resupplyWaypoints.length === 0
     || resupplyWaypoints.every(wp => resupplyStops.find(s => s.id === wp.id)?.status === 'shipped')
-  const item4 = selectedCanId !== '' && (selectedCanId !== 'custom' || customCanName.trim() !== '')
+  const item4 = bearCanNeed !== ''
   const item5 = mealsLocked
   const doneCount = [item1, item2, item3, item4, item5].filter(Boolean).length
   const progress  = Math.round((doneCount / 5) * 100)
@@ -790,11 +701,10 @@ export function FoodStage({ plan, onChange, onProgress, trip, onJump }: StageBod
             onRemoveWaypoint={handleRemoveWaypoint}
             onAddStop={() => onJump('route')}
           />
-          <BearCanCard
-            selectedId={selectedCanId}
-            onSelect={setSelectedCan}
-            customName={customCanName}
-            onCustomName={setCustomCan}
+          <BearCanNeedCard
+            need={bearCanNeed}
+            onChange={setBearCanNeed}
+            onJump={onJump}
           />
         </div>
 
@@ -806,7 +716,7 @@ export function FoodStage({ plan, onChange, onProgress, trip, onJump }: StageBod
             <CheckItem text="Daily calories set"  done={item1} />
             <CheckItem text="Protein target"      done={item2} />
             <CheckItem text="Resupply confirmed"  done={item3} />
-            <CheckItem text="Bear-can sized"      done={item4} />
+            <CheckItem text="Bear-can need set"   done={item4} />
             <CheckItem text="Trail meals locked"  done={item5} onToggle={() => setMealsLocked(v => !v)} />
             <div className="h-px bg-border my-3" />
             <ProgressBar value={progress} tone="amber" />
