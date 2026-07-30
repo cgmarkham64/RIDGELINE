@@ -36,7 +36,7 @@ router.post('/', asyncRoute(async (req, res) => {
 router.put('/:id', asyncRoute(async (req, res) => {
   const trip = await Trip.findById(req.params.id)
   if (!trip) throw new HttpError(404, 'Not found')
-  if (!canRead(trip as TripLean, req.user.sub)) throw new HttpError(403, 'Forbidden')
+  if (!canRead(trip, req.user.sub)) throw new HttpError(403, 'Forbidden')
 
   // Separate Mixed array fields — Mongoose's set() recursively casts array
   // elements and mangles nested GeoJSON { type } keys. Write them directly

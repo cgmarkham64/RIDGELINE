@@ -1,5 +1,5 @@
 import { Types } from 'mongoose'
 
-export function validObjectId(id: string): boolean {
-  return Types.ObjectId.isValid(id)
+export function validObjectId(id: string | string[]): boolean {
+  return typeof id === 'string' && Types.ObjectId.isValid(id)
 }

@@ -454,7 +454,7 @@ export function AccountDialog({ onClose }: Props) {
               <div className="border-t border-border pt-4 flex flex-col gap-3">
                 <div className="flex items-center gap-1.5">
                   <label className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">Daily macro targets</label>
-                  <InfoTooltip text="Pre-fills the Food stage on new trips. Override per-trip any time." />
+                  <InfoTooltip text="Pre-fills the Food stage on new trips. Calories also anchors its route-based per-day suggestion (plus mileage/elevation effort). Override per-trip any time." />
                 </div>
                 <div className="grid grid-cols-4 gap-2.5">
                   {([

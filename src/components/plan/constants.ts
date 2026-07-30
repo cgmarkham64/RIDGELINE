@@ -5,7 +5,7 @@ export const STAGES: Stage[] = [
   { id: 'route',   n: '01', label: 'Route',              sub: 'Where',          done: 0, total: 7 },
   { id: 'weather', n: '02', label: 'Weather',            sub: 'Forecast',        done: 0, total: 4 },
   { id: 'permits', n: '03', label: 'Partners & Permits', sub: 'Party & Access', done: 0, total: 3 },
-  { id: 'food',    n: '04', label: 'Food',    sub: 'Calories & H₂O',  done: 0, total: 6 },
+  { id: 'food',    n: '04', label: 'Food',    sub: 'Calories & resupply',  done: 0, total: 5 },
   { id: 'gear',    n: '05', label: 'Gear',    sub: 'Loadout',         done: 0, total: 5, blocked: true },
   { id: 'depart',  n: '06', label: 'Depart',  sub: 'Take it with',    done: 0, total: 4 },
   { id: 'journal', n: '07', label: 'Journal', sub: 'Trip report',     done: 0, total: 0 },

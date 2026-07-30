@@ -24,7 +24,7 @@ router.post('/:id/accept', asyncRoute(async (req, res) => {
     const alreadyIn = (trip.sharedWith as Array<{ sub: string } | string>)
       .some((e) => (typeof e === 'string' ? e : e.sub) === req.user.sub)
     if (!alreadyIn) {
-      await Trip.collection.updateOne(
+      await Trip.updateOne(
         { _id: trip._id },
         { $push: { sharedWith: { sub: req.user.sub, role: (note as { role?: string }).role ?? 'edit' } } }
       )

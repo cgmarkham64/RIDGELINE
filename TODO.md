@@ -16,7 +16,7 @@ Every trip in Ridgeline starts as a plan. The Plan Wizard IS how trips are creat
 All seven stages render with internal state. The items below are UI stubs, disconnected wiring, or hardcoded values that need real data before the wizard is production-ready.
 
 **All stages**
-- ⚠ `Stage.done / Stage.total` are wired for Stage 1 (Route) — other stages still need their checklists connected to `onProgress` as they are built out.
+- ⚠ `Stage.done / Stage.total` are wired for Route, Weather, Permits, and Food — Gear and Depart still need their checklists connected to `onProgress`.
 
 **Stage 1 - Route** 
 - On an out and back trip, the list of waypoints and water sources is a little off. I'd expect the water sources to appear twice in this case, in the order of encounter.
@@ -25,22 +25,13 @@ All seven stages render with internal state. The items below are UI stubs, disco
 - ℹ Sunrise/sunset times computed here should eventually feed the Depart one-pager's per-day schedule column.
 
 **Stage 4 — Food**
-- ⚠ Content section needs layout adjustment the same as stages 1-3; make it fill the window without the gap on the right of the screen.
-- ⚠ `onProgress` is never called — the 6-item checklist is computed but never reported to `PlanWizard`. Overview always shows 0/6 for Food.
-- ⚠ `ResupplyCard` is entirely hardcoded (name, location, days, address). Needs full add/edit/remove support for dynamic resupply points, each pinned to a trip day. Resupply stops should also appear as waypoint markers on the Route stage map alongside water and camp waypoints.
-- ⚠ `WaterPlanCard` is entirely hardcoded — day labels and dry-stretch warning are SHR-specific strings, not derived from route or plan data.
-- ⚠ Meal rows don't seed from trip duration — real plans start empty with no mechanism to initialize the correct number of rows from trip start/end dates.
-- ⚠ The "Heads up" advisory in the right rail is hardcoded SHR copy — needs to be dynamic or removed.
-- ⚠ "Bulk edit" button is a stub. Per-meal granularity beyond Breakfast / Lunch / Dinner / Snacks and the ability to recover cleared cell content are also needed.
-- ⚠ "Generate label" and "Swap location" buttons on `ResupplyCard` are stubs.
-- ⚠ "Add cache" button on `WaterPlanCard` is a stub.
-- ⚠ Right-rail totals for food weight and protein are hardcoded — not derived from meal state. Water total should derive from daily target × trip days.
-- ⚠ Add a per-meal weight column (oz) to the meal grid so food weight derives from the grid rather than being hardcoded. Feed total food weight into the Gear stage right-rail stats.
-- ⚠ Calorie target derivation from tough-day flags — Route stage already marks segments as tough; `TargetsCard` references "adjusted for tough days" but it's hardcoded. Wire it: sum daily mileage + elevation from route segments, apply the tough-day multiplier to auto-suggest a per-day kcal target and flag which days need higher kcal in the meal grid.
+- ⚠ `GearStage` right-rail still hardcodes `foodLb` (explicit "Stub — future: pull from Food stage state" comment) instead of pulling the real total from `plan.food` meal weights.
+- ℹ No water planning in the stage, and no water-weight stat in Gear's right rail — by design. Water is planned qualitatively (dry-stretch awareness from Route segment `water: reliable | caches | dry`), not tracked to the ounce like food.
+- ⚠ "Generate label" button on resupply stops is a stub — no shipping label generation.
 
 **Stage 5 — Gear**
 - ⚠ "Add item" button in each `CategoryCard` footer is a stub — no dialog or inline input.
-- ⚠ Food weight and water weight in the right-rail stats are hardcoded — not pulled from Food stage state.
+- ⚠ Food weight in the right-rail stats is hardcoded — not pulled from Food stage state.
 - ⚠ The "locked" state is purely visual — the stage is always fully interactive. No actual dependency gate blocks editing.
 
 **Stage 6 — Depart**
@@ -162,7 +153,7 @@ Full gear inventory system:
 - **Stage 1 — Route** — MapTopo SVG, ElevationProfile chart, segments table with JumpChip to Days, locked banner, right rail (checklist + partners + source files).
 - **Stage 2 — Days** *(superseded)* — original stat strip, day list with exposure pills, selected-day detail, and empty-state built; `onChange` + `onProgress` wired. Stage is being replaced by Weather: exposure / water / tough-day / pass metadata moves to Route segments; time targets defer to the Depart one-pager; `DaysStage.tsx` and the `days` slice in `PlanData` to be removed once Weather is in place.
 - **Stage 3 — Permits** — list view, two-step `FreeformDialog`, permit-free state, `canEdit` enforced, `onProgress` wired. All hardcoded SHR demo data removed; critical dates, detection banner, and party size derived from live data. Permit editing via pre-populated dialog. `PartnersCard` embedded in right rail with confirm-party flow. AI permit lookup (Claude-backed `lookupPermit`): pre-fills name, agency, URL, critical dates, and confidence/verification banner; `HikerOverlay` with permit-specific sayings shown during lookup. Dead code removed: map view, `SuggestionRow.tsx`, unused constants. `FreeformDialog` type-specific fields: booking URL, confirmation # (lottery/reservation), trailhead (selfissue), zone-per-night builder (zonenights). `PermitCard` layouts for hut (check-in date + nights), fishing (license # + expiry), vehicle (pass type + pass #). Scanned permit links: domain badge replaces tier label; recreation.gov links get an Add button (AI lookup flow); other agencies dimmed with no Add button. AI disclaimer consolidated into detection banner.
-- **Stage 4 — Food** — daily targets, click-to-edit meal grid with ref-guarded blur (stale-closure fix), resupply card, water plan toggles, bear canister picker with custom entry.
+- **Stage 4 — Food** — daily targets, click-to-edit meal grid with ref-guarded blur (stale-closure fix), resupply card, bear canister picker with custom entry. Layout matches Stages 1–3 (no more right-side gap). `onProgress` wired correctly (5-item checklist, matching `constants.ts` `total: 5`; previously mismatched against a stale 6). Meal rows auto-seed from trip start/end dates. `ResupplySection` is fully dynamic — add/edit/remove stops synced to route `resupply` waypoints (which already render on the Route stage map alongside water/camp waypoints); ship/hold-address fields, shipped/unconfirmed status. Per-meal item editing via `DayMealDialog`: add/remove items per slot, qty, full macros, per-item oz/g weight, AI-assisted macro lookup (`POST /api/food/macros`, Claude-backed `foodMacrosService`), and "copy to days" (supersedes the old bulk-edit stub). Right-rail kcal/food-weight totals derive from real meal state. "Heads up" banner is dynamic, pulling tough (`hard: true`) days from Route segments. Per-day calorie targets auto-suggest from route mileage/elevation gain with a tough-day multiplier (`estimateDayKcalTarget` in `FoodStage.tsx`) — days without a manual calories target fall back to the suggested value for over/under-target flagging in the grid, tough days get a highlighted day badge, and the Daily Targets card surfaces a one-click "use" hint with the route-derived average. Water planning intentionally not carried forward (see Wizard Stage Gaps) — the sub-label was changed from "Calories & H₂O" to "Calories & resupply" to match.
 - **Stage 5 — Gear** — hold banner, four interactive category cards (Shelter / Kitchen / Worn / Safety+Nav), live weight stats, unlock checklist.
 - **Stage 6 — Depart** — reminders, emergency contacts, offline maps cards, one-pager preview (pulls day rows from plan data), take-it-with-you checklist.
 - **Plan persistence** — `Plan` Mongoose model, `/api/plans` CRUD (GET list, POST, GET/:id, PUT/:id, DELETE/:id; ObjectId validation; owner-scoped). Frontend: `src/lib/plans.ts`, `src/hooks/usePlans.ts`. `PlanPage` auto-creates a plan on first visit and stores ID in `?id=` search param.

@@ -41,6 +41,14 @@ const BEAR_CANS: BearCanOption[] = [
   { id: 'ca_keg',     name: 'Counter Assault Bear Keg', capacity: '615 cu in', weight: '3.1 lb', type: 'hard' },
 ]
 
+// Rough backpacking calorie-burn model: baseline appetite (the account's daily
+// calorie macro target, or this default) + fixed trail effort from mileage/gain.
+const BASE_KCAL_PER_DAY       = 2600
+const KCAL_PER_MILE           = 100
+const KCAL_PER_1000FT_GAIN    = 150
+const TOUGH_DAY_KCAL_MULTIPLIER = 1.15
+const KCAL_ROUNDING           = 50
+
 const TARGET_FIELDS: Array<{ key: TargetField; label: string; placeholder: string }> = [
   { key: 'calories', label: 'Calories / day', placeholder: 'e.g. 3,800' },
   { key: 'protein',  label: 'Protein / day',  placeholder: 'e.g. 120 g'  },
@@ -117,6 +125,18 @@ function migrateMealEntry(old: LegacyMealEntry): MealRow {
   }
 }
 
+function estimateDayKcalTarget(
+  mi: number,
+  gainFt: number,
+  hard?: boolean,
+  baseKcalPerDay = BASE_KCAL_PER_DAY
+): number {
+  const trailEffort = mi * KCAL_PER_MILE + (gainFt / 1000) * KCAL_PER_1000FT_GAIN
+  const base   = baseKcalPerDay + trailEffort
+  const scaled = hard ? base * TOUGH_DAY_KCAL_MULTIPLIER : base
+  return Math.round(scaled / KCAL_ROUNDING) * KCAL_ROUNDING
+}
+
 function blankMeals(startDate?: string, endDate?: string): MealRow[] {
   if (!startDate || !endDate) return []
   const days = Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86_400_000) + 1
@@ -170,11 +190,13 @@ function warningTooltip(warnings: RowWarning[]): string {
 
 // ─── TargetsCard ──────────────────────────────────────────────────────────────
 
-function TargetsCard({ targets, onTargetChange }: {
+function TargetsCard({ targets, suggestedAvgKcal, onTargetChange }: {
   targets: Record<TargetField, string>
+  suggestedAvgKcal?: number
   onTargetChange: (field: TargetField, value: string) => void
 }) {
   const uid = useId()
+  const showSuggestion = suggestedAvgKcal !== undefined && targets.calories.trim() === ''
   return (
     <div className="bg-surface border border-border rounded-lg p-[18px]">
       <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-3">Daily targets</div>
@@ -194,6 +216,15 @@ function TargetsCard({ targets, onTargetChange }: {
               value={targets[f.key]}
               onChange={e => onTargetChange(f.key, e.target.value)}
             />
+            {f.key === 'calories' && showSuggestion && (
+              <button
+                type="button"
+                onClick={() => onTargetChange('calories', String(suggestedAvgKcal))}
+                className="font-mono text-label text-amber hover:underline cursor-pointer mt-1 text-left"
+              >
+                Suggested {suggestedAvgKcal.toLocaleString()} (from route) · use
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -203,14 +234,22 @@ function TargetsCard({ targets, onTargetChange }: {
 
 // ─── MealGrid ─────────────────────────────────────────────────────────────────
 
-function MealGrid({ meals, targets, onDayClick }: {
+function MealGrid({ meals, targets, suggestedKcalByDay, toughDayNumbers, onDayClick }: {
   meals: MealRow[]
   targets: RowTargets
+  suggestedKcalByDay: Map<number, number>
+  toughDayNumbers: Set<number>
   onDayClick: (idx: number) => void
 }) {
-  const allRowWarnings = meals.map(m => computeRowWarnings(m, targets))
+  const manualKcalSet  = parseTarget(targets.calories) > 0
+  // Days without a manual calorie target fall back to the route-derived suggestion for that day.
+  const effectiveTargets: RowTargets[] = meals.map(m => {
+    if (manualKcalSet) return targets
+    const suggested = suggestedKcalByDay.get(m.n)
+    return suggested ? { ...targets, calories: String(suggested) } : targets
+  })
+  const allRowWarnings = meals.map((m, i) => computeRowWarnings(m, effectiveTargets[i]))
   const offTargetDays  = allRowWarnings.reduce<number[]>((acc, w, i) => w.length > 0 ? [...acc, i] : acc, [])
-  const targetKcal     = parseTarget(targets.calories)
 
   return (
     <div className="bg-surface border border-border rounded-lg overflow-hidden">
@@ -252,24 +291,35 @@ function MealGrid({ meals, targets, onDayClick }: {
         const rowOz      = allItems.reduce((sum, i) => sum + i.weightOz * (i.qty ?? 1), 0)
         const rowWarnings = allRowWarnings[rowIdx]
         const hasWarning  = rowWarnings.length > 0
+        const rowTargetKcal   = parseTarget(effectiveTargets[rowIdx].calories)
+        const isTough         = toughDayNumbers.has(m.n)
+        const isSuggestedKcal = !manualKcalSet && suggestedKcalByDay.has(m.n)
 
         const kcalColor = rowKcal === 0
           ? 'text-text-dim'
-          : targetKcal > 0
-            ? Math.abs((rowKcal - targetKcal) / targetKcal) <= TARGET_THRESHOLD ? 'text-pine' : 'text-amber'
+          : rowTargetKcal > 0
+            ? Math.abs((rowKcal - rowTargetKcal) / rowTargetKcal) <= TARGET_THRESHOLD ? 'text-pine' : 'text-amber'
             : kcalCls(rowKcal)
+
+        const tooltip = [
+          hasWarning ? warningTooltip(rowWarnings) : null,
+          isTough ? 'Tough day' : null,
+          isSuggestedKcal ? `target auto-suggested from route (${rowTargetKcal.toLocaleString()} kcal)` : null,
+        ].filter(Boolean).join(' · ') || undefined
 
         return (
           <button
             key={m.n}
             type="button"
             onClick={() => onDayClick(rowIdx)}
-            title={hasWarning ? warningTooltip(rowWarnings) : undefined}
+            title={tooltip}
             className={`grid items-center px-4 gap-2 grid-cols-[60px_1fr_1fr_1fr_1fr_56px_64px] w-full text-left hover:bg-surface-2 transition-colors cursor-pointer ${rowIdx < meals.length - 1 ? 'border-b border-border' : ''}`}
           >
             <div className="flex items-center gap-1.5 py-2.5">
               <IconAlertTriangle size={16} className={hasWarning ? 'text-amber' : 'invisible'} />
-              <span className="font-mono text-label font-bold text-amber text-center flex-1 py-0.5 bg-amber-dim border border-amber-border rounded">
+              <span
+                className={`font-mono text-label font-bold text-amber text-center flex-1 py-0.5 bg-amber-dim rounded border ${isTough ? 'border-amber' : 'border-amber-border'}`}
+              >
                 D{m.n}
               </span>
             </div>
@@ -648,7 +698,22 @@ export function FoodStage({ plan, onChange, onProgress, trip, onJump }: StageBod
   })
   const [activeDayIdx, setActiveDayIdx] = useState<number | null>(null)
 
-  const toughDays = (plan?.route?.segments ?? []).filter(s => s.hard).map(s => s.n)
+  const routeSegments    = plan?.route?.segments ?? []
+  const toughDays        = routeSegments.filter(s => s.hard).map(s => s.n)
+  const toughDayNumbers  = new Set(toughDays)
+
+  const accountBaseKcal = parseTarget(macroDefaults?.calories ?? '')
+  const baseKcalPerDay  = accountBaseKcal > 0 ? accountBaseKcal : BASE_KCAL_PER_DAY
+
+  const suggestedKcalByDay = new Map(
+    routeSegments.map(s => [s.n, estimateDayKcalTarget(s.mi, s.gain, s.hard, baseKcalPerDay)])
+  )
+  const suggestedAvgKcal = suggestedKcalByDay.size > 0
+    ? Math.round(
+        Array.from(suggestedKcalByDay.values()).reduce((sum, v) => sum + v, 0)
+        / suggestedKcalByDay.size / KCAL_ROUNDING
+      ) * KCAL_ROUNDING
+    : undefined
 
   const isMounted   = useRef(false)
   useEffect(() => () => { isMounted.current = false }, [])
@@ -681,7 +746,7 @@ export function FoodStage({ plan, onChange, onProgress, trip, onJump }: StageBod
 
   const onProgressRef = useRef(onProgress)
   useEffect(() => { onProgressRef.current = onProgress })
-  useEffect(() => { onProgressRef.current?.(doneCount, 6) }, [doneCount])
+  useEffect(() => { onProgressRef.current?.(doneCount, 5) }, [doneCount])
 
   const allItems      = meals.flatMap(m => MEAL_SLOTS.flatMap(s => m.items[s]))
   const kcalTotal     = allItems.reduce((sum, i) => sum + i.kcal     * (i.qty ?? 1), 0)
@@ -707,9 +772,16 @@ export function FoodStage({ plan, onChange, onProgress, trip, onJump }: StageBod
         <div className="flex flex-col gap-[18px]">
           <TargetsCard
             targets={targets}
+            suggestedAvgKcal={suggestedAvgKcal}
             onTargetChange={(field, value) => setTargets(prev => ({ ...prev, [field]: value }))}
           />
-          <MealGrid meals={meals} targets={targets} onDayClick={setActiveDayIdx} />
+          <MealGrid
+            meals={meals}
+            targets={targets}
+            suggestedKcalByDay={suggestedKcalByDay}
+            toughDayNumbers={toughDayNumbers}
+            onDayClick={setActiveDayIdx}
+          />
           <ResupplySection
             waypoints={resupplyWaypoints}
             stops={resupplyStops}

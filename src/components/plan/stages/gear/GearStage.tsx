@@ -176,10 +176,9 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
   const baseOz       = allItems.filter(i => i.checked).reduce((s, i) => s + i.weight, 0)
   const baseLb       = (baseOz / 16).toFixed(1)
 
-  // Stubs — future: pull from Food stage state
+  // Stub — future: pull from Food stage state
   const foodLb  = '16.4'
-  const waterLb = '4.4'
-  const totalLb = (baseOz / 16 + parseFloat(foodLb) + parseFloat(waterLb)).toFixed(1)
+  const totalLb = (baseOz / 16 + parseFloat(foodLb)).toFixed(1)
 
   const unlockDone     = unlockChecklist.filter(c => c.done).length
   const unlockProgress = Math.round((unlockDone / unlockChecklist.length) * 100)
@@ -294,9 +293,8 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
             <div className="h-px bg-border my-3" />
             <div className="flex flex-col gap-2.5">
               {[
-                { value: `${baseLb} lb`,  label: 'base weight'   },
-                { value: `${foodLb} lb`,  label: 'food (start)'  },
-                { value: `${waterLb} lb`, label: 'water (start)' },
+                { value: `${baseLb} lb`, label: 'base weight'  },
+                { value: `${foodLb} lb`, label: 'food (start)' },
               ].map(s => (
                 <div key={s.label}>
                   <div className="font-heading text-body-lg font-extrabold text-text leading-none">{s.value}</div>
