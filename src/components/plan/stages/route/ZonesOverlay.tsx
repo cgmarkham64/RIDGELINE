@@ -20,6 +20,13 @@ function fillFor(f: ZoneFeature): string {
   return p.campfires_allowed ? FILL.campfiresOk : FILL.noCampfires
 }
 
+/** A `permit_required: false` feature is a partial-coverage collection's outer
+ *  boundary (e.g. MBSW wilderness) — informational only, so it renders as a thin
+ *  outline rather than competing visually with the small bookable zones inside it. */
+function isBoundaryOnly(f: ZoneFeature): boolean {
+  return f.properties.permit_required === false
+}
+
 export interface ZonesOverlayProps {
   zones: ZoneCollection
   /** zone ids to emphasize (e.g. zones where the plan has camps) */
@@ -38,6 +45,9 @@ export function ZonesOverlay({
 
   const style = (f?: ZoneFeature): PathOptions => {
     if (!f) return {}
+    if (isBoundaryOnly(f)) {
+      return { color: '#7a7261', weight: 1, dashArray: '4 4', fillOpacity: 0 }
+    }
     const emphasized = hot.has(f.properties.id)
     return {
       color: emphasized ? '#2f2a1e' : '#4a4438',

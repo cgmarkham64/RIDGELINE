@@ -24,18 +24,32 @@ export interface ZoneProps {
   /** True when a master/core permit for this wilderness area also covers camping
    *  in this zone (e.g. Enchantments Core permit) — absent for areas without one. */
   core_permit_valid_here?: boolean
+  /** False for "partial coverage" collections' boundary feature (e.g. MBSW wilderness) —
+   *  camping there needs only trailhead self-registration, not a bookable permit.
+   *  Absent/true everywhere else. */
+  permit_required?: boolean
+  /** True on a partial-coverage collection's boundary feature — camping inside it but
+   *  outside every real zone needs only trailhead self-registration. */
+  self_register_required?: boolean
   overnight_permit: {
     required: boolean
-    season_start: string
-    season_end: string
+    season_start?: string
+    season_end?: string
+    /** MM-DD/MM-DD window when a per-person nightly fee applies (MBSW: fee year-round
+     *  permit, fee only part of the year) — absent when the fee (if any) applies whenever
+     *  the permit is required. */
+    fee_window?: string
     /** How overnight permits are allocated. Defaults to quota (IPW-style purchase)
-     *  when absent — only lottery areas (Enchantments) need to set this. */
-    allocation?: 'quota' | 'lottery'
+     *  when absent — lottery (Enchantments) and advance-reservation (MBSW) areas set this. */
+    allocation?: 'quota' | 'lottery' | 'advance-reservation'
   }
   // Permit systems differ per area (IPW: quota-purchase product ids; Enchantments:
   // lottery ids) — keyed loosely rather than a fixed shape so both fit.
   recgov: Record<string, string>
   accuracy_note: string
+  /** Free-text campfire restriction, e.g. elevation-based bans — shown in place of the
+   *  generic "campfires prohibited" warning when present. */
+  campfire_note?: string
 }
 
 export interface ZoneFeature {
@@ -152,25 +166,30 @@ export interface CampNight {
 export interface PermitNeed {
   zone: ZoneFeature
   nights: CampNight[]   // consecutive nights grouped per zone stay
-  inSeason: boolean     // any night inside Jun 1 – Sep 15
+  inSeason: boolean     // any night inside the zone's permit season, when it has one
   warnings: string[]
 }
 
-function inWindow(date: string, start: string, end: string): boolean {
+function inWindow(date: string, start: string | undefined, end: string | undefined): boolean {
+  if (!start || !end) return false
   const mmdd = date.slice(5)
   return mmdd >= start && mmdd <= end
 }
 
 /**
  * Derive overnight permit needs from planned camps.
- * IPW permits attach to WHERE YOU CAMP each night, not the zones you hike
- * through — one permit per zone-stay (consecutive nights in one zone).
+ * Permits attach to WHERE YOU CAMP each night, not the zones you hike
+ * through — one need per zone-stay (consecutive nights in one zone).
+ * Zones with `permit_required: false` (e.g. a partial-coverage collection's
+ * self-register wilderness boundary) come back as `selfRegister`, not `needs` —
+ * camping there requires only trailhead self-registration, not a bookable permit.
  */
 export function derivePermitNeeds(
   camps: CampNight[],
   zones: ZoneCollection
-): { needs: PermitNeed[]; unresolved: CampNight[] } {
+): { needs: PermitNeed[]; selfRegister: PermitNeed[]; unresolved: CampNight[] } {
   const needs: PermitNeed[] = []
+  const selfRegister: PermitNeed[] = []
   const unresolved: CampNight[] = []
   let current: PermitNeed | null = null
 
@@ -186,7 +205,7 @@ export function derivePermitNeeds(
       current.nights.push(camp)
     } else {
       current = { zone: hit.zone, nights: [camp], inSeason: false, warnings: [] }
-      needs.push(current)
+      ;(p.permit_required === false ? selfRegister : needs).push(current)
     }
     if (inWindow(camp.date, p.overnight_permit.season_start, p.overnight_permit.season_end)) {
       current.inSeason = true
@@ -198,7 +217,7 @@ export function derivePermitNeeds(
     }
   }
 
-  for (const n of needs) {
+  for (const n of [...needs, ...selfRegister]) {
     const p = n.zone.properties
     if (!p.camping_allowed) {
       n.warnings.unshift(`${p.name} is CLOSED to camping (${p.camping_closure}) — move this camp`)
@@ -210,7 +229,7 @@ export function derivePermitNeeds(
       n.warnings.push(`${p.name}: bear canister required`)
     }
     if (!p.campfires_allowed) {
-      n.warnings.push(`${p.name}: campfires prohibited`)
+      n.warnings.push(p.campfire_note ?? `${p.name}: campfires prohibited`)
     }
     if (p.dogs_allowed === false) {
       n.warnings.push(`${p.name}: no dogs`)
@@ -230,5 +249,5 @@ export function derivePermitNeeds(
     })
   }
 
-  return { needs, unresolved }
+  return { needs, selfRegister, unresolved }
 }

@@ -20,7 +20,7 @@ import type { GpxTrackEntry } from '../../../../types'
 import { FitBounds, InvalidateSize, DrawInteractionLayer, WaypointPlaceLayer, ContextMenuLayer, type ContextMenuPayload } from './routeMapCard.helpers'
 import { DrawConfirmTray } from './DrawConfirmTray'
 import { ZonesOverlay } from './ZonesOverlay'
-import { detectZoneStays, IPW_ZONES, ENCHANTMENTS_ZONES, nearIpw, nearEnchantments } from '../permits/zoneDetection.helpers'
+import { detectZoneStays, IPW_ZONES, ENCHANTMENTS_ZONES, MBSW_ZONES, nearIpw, nearEnchantments, nearMbsw } from '../permits/zoneDetection.helpers'
 import { milesToKm, ftToM } from '../../../../lib/units'
 import { useUnitSystem } from '../../../../hooks/useUnitSystem'
 
@@ -233,6 +233,11 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
         segments.some(s => s.path?.some(([lat, lon]) => nearEnchantments(lat, lon))),
       [allPoints, segments],
     )
+    const showMbswOverlay = useMemo(
+      () => allPoints.some(([lat, lon]) => nearMbsw(lat, lon)) ||
+        segments.some(s => s.path?.some(([lat, lon]) => nearMbsw(lat, lon))),
+      [allPoints, segments],
+    )
     const zoneHighlightIds = useMemo(() => {
       if (!trip?.startDate || segments.length < 2) return []
       try { return detectZoneStays(segments, trip.startDate).needs.map(n => n.zone.properties.id) }
@@ -325,6 +330,7 @@ export const RouteMapCard = forwardRef<RouteMapCardHandle, RouteMapCardProps>(
 
               {showIpwOverlay && <ZonesOverlay zones={IPW_ZONES} highlightIds={zoneHighlightIds} />}
               {showEnchantmentsOverlay && <ZonesOverlay zones={ENCHANTMENTS_ZONES} highlightIds={zoneHighlightIds} />}
+              {showMbswOverlay && <ZonesOverlay zones={MBSW_ZONES} highlightIds={zoneHighlightIds} />}
 
               {plannedLatLngs.length > 1 && (<>
                 <Polyline positions={plannedLatLngs} color={PLANNED_COLOR} weight={14} opacity={0.18} />

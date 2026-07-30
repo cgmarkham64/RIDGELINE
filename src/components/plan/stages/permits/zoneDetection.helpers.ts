@@ -1,5 +1,6 @@
 import ipwZonesRaw from '../../../../data/ipw_zones.json'
 import enchantmentsZonesRaw from '../../../../data/enchantments_zones.json'
+import mbswZonesRaw from '../../../../data/mbsw_zones.json'
 import { derivePermitNeeds, type CampNight, type PermitNeed, type ZoneCollection, type ZoneProps } from '../../../../lib/zoneGeometry'
 import { toDateMs } from './criticalDates.helpers'
 import type { PlanRouteData, PlanPermitEntry, PlanCriticalDate } from '../../types'
@@ -7,6 +8,7 @@ import type { ZoneProductResult } from '../../../../lib/permits'
 
 export const IPW_ZONES           = ipwZonesRaw as unknown as ZoneCollection
 export const ENCHANTMENTS_ZONES  = enchantmentsZonesRaw as unknown as ZoneCollection
+export const MBSW_ZONES          = mbswZonesRaw as unknown as ZoneCollection
 
 function addDaysIso(startDate: string, days: number): string {
   const d = new Date(`${startDate.slice(0, 10)}T00:00:00Z`)
@@ -51,6 +53,7 @@ function nearBBox(lat: number, lon: number, bbox: ReturnType<typeof computeBBox>
 
 const IPW_BBOX = computeBBox(IPW_ZONES)
 const ENCHANTMENTS_BBOX = computeBBox(ENCHANTMENTS_ZONES)
+const MBSW_BBOX = computeBBox(MBSW_ZONES)
 
 /** Cheap bounding-box check so the zone overlay/detection only engages for routes
  *  actually near Indian Peaks, rather than showing irrelevant zones on every trip. */
@@ -63,17 +66,22 @@ export function nearEnchantments(lat: number, lon: number): boolean {
   return nearBBox(lat, lon, ENCHANTMENTS_BBOX)
 }
 
+/** Same idea as nearIpw, scoped to the Maroon Bells-Snowmass permit area. */
+export function nearMbsw(lat: number, lon: number): boolean {
+  return nearBBox(lat, lon, MBSW_BBOX)
+}
+
 const ALL_ZONES: ZoneCollection = {
   type: 'FeatureCollection',
-  features: [...IPW_ZONES.features, ...ENCHANTMENTS_ZONES.features],
+  features: [...IPW_ZONES.features, ...ENCHANTMENTS_ZONES.features, ...MBSW_ZONES.features],
 }
 
 export function detectZoneStays(
   segments: PlanRouteData['segments'],
   startDate: string,
-): { needs: PermitNeed[]; unresolved: CampNight[] } {
+): { needs: PermitNeed[]; selfRegister: PermitNeed[]; unresolved: CampNight[] } {
   const camps = deriveCampNights(segments, startDate)
-  if (camps.length === 0) return { needs: [], unresolved: [] }
+  if (camps.length === 0) return { needs: [], selfRegister: [], unresolved: [] }
   return derivePermitNeeds(camps, ALL_ZONES)
 }
 
@@ -91,6 +99,49 @@ export function buildLotteryProduct(p: ZoneProps): ZoneProductResult {
       daily ? `A daily walk-up lottery is also available closer to your trip.` : null,
     ].filter(Boolean).join(' ') || 'Overnight permits here are lottery-allocated — apply via recreation.gov.',
     confidence: 'high',
+  }
+}
+
+/** Advance-reservation zones (e.g. MBSW) have a single recreation.gov product covering
+ *  every zone year-round — no product judgment call to make, so this builds the permit's
+ *  copy directly instead of calling pickZoneProduct (which is IPW's multi-product flow). */
+export function buildAdvanceReservationProduct(p: ZoneProps): ZoneProductResult {
+  return {
+    productId:    p.recgov.overnight ?? Object.values(p.recgov)[0] ?? '',
+    productLabel: 'Advance overnight permit',
+    why: [
+      `Reserve on recreation.gov before your trip — required year-round in ${p.name}.`,
+      p.overnight_permit.fee_window ? `A per-person nightly fee applies ${p.overnight_permit.fee_window}.` : null,
+    ].filter(Boolean).join(' '),
+    confidence: 'high',
+  }
+}
+
+/** Quota zones (IPW) always carry a season window in practice — pickZoneProduct's AI
+ *  call needs it as a plain string. Throws if a zone is missing one instead of silently
+ *  sending "undefined" to the prompt; callers already treat a thrown need as a per-permit
+ *  failure to surface, not a crash. */
+export function requireSeasonBound(value: string | undefined, zoneName: string): string {
+  if (!value) throw new Error(`${zoneName}: missing permit season date`)
+  return value
+}
+
+/** Builds a self-issue permit for a zone-stay where `permit_required` is false
+ *  (a partial-coverage collection's self-register boundary, e.g. MBSW wilderness) —
+ *  no booking, no AI product pick, just a trailhead-registration reminder. */
+export function buildSelfRegisterPermit(need: PermitNeed): PlanPermitEntry {
+  const p = need.zone.properties
+  return {
+    id:           zoneNeedId(need),
+    type:         'selfissue',
+    name:         'Trailhead self-registration',
+    agency:       p.agency,
+    why:          'No booking required — self-issue permit at the trailhead.',
+    fields:       {},
+    party:        1,
+    confidence:   'high',
+    autoDetected: true,
+    zoneWarnings: need.warnings,
   }
 }
 

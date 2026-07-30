@@ -9,7 +9,10 @@ import { extractScanDates } from './criticalDates.helpers'
 import { INITIAL_PERMITS } from './permitsStage.constants'
 import { suggestPermits, lookupPermit, pickZoneProduct } from '../../../../lib/permits'
 import type { PermitLookupResult } from '../../../../lib/permits'
-import { detectZoneStays, buildZonePermit, buildLotteryProduct, routeSignature, zoneNeedId } from './zoneDetection.helpers'
+import {
+  detectZoneStays, buildZonePermit, buildLotteryProduct, buildAdvanceReservationProduct,
+  buildSelfRegisterPermit, requireSeasonBound, routeSignature, zoneNeedId,
+} from './zoneDetection.helpers'
 import { extractApiError } from '../../../../lib/utils'
 import { toDateMs } from './criticalDates.helpers'
 import { HikerOverlay } from '../../../ui/HikerOverlay'
@@ -105,8 +108,9 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
     setZoneDetectError(null)
 
     try {
-      const { needs } = detectZoneStays(segments, trip.startDate)
-      const currentNeedIds = new Set(needs.map(zoneNeedId))
+      const { needs, selfRegister } = detectZoneStays(segments, trip.startDate)
+      const allNeeds = [...needs, ...selfRegister]
+      const currentNeedIds = new Set(allNeeds.map(zoneNeedId))
 
       // Drop auto-detected permits whose zone-stay no longer exists on the route.
       // Never touches manually-added permits or ones a user has since edited away
@@ -115,25 +119,29 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
 
       const existingIds = new Set(permits.filter(p => currentNeedIds.has(p.id)).map(p => p.id))
       const toAdd        = needs.filter(n => !existingIds.has(zoneNeedId(n)))
+      const toAddSelfReg = selfRegister.filter(n => !existingIds.has(zoneNeedId(n)))
 
-      const detected: Permit[] = []
+      // Self-register stays never need a booking product — build them straight away.
+      const detected: Permit[] = toAddSelfReg.map(buildSelfRegisterPermit)
       let failures = 0
       for (const need of toAdd) {
         const p = need.zone.properties
         try {
           const product = p.overnight_permit.allocation === 'lottery'
             ? buildLotteryProduct(p)
-            : await pickZoneProduct(trip._id, {
-                zoneName:             p.name,
-                agency:               p.agency,
-                nights:               need.nights.length,
-                seasonStart:          p.overnight_permit.season_start,
-                seasonEnd:            p.overnight_permit.season_end,
-                recgov:               p.recgov,
-                campfiresAllowed:     p.campfires_allowed,
-                bearCanisterRequired: p.bear_canister_required,
-                designatedSitesOnly:  p.designated_sites_only,
-              })
+            : p.overnight_permit.allocation === 'advance-reservation'
+              ? buildAdvanceReservationProduct(p)
+              : await pickZoneProduct(trip._id, {
+                  zoneName:             p.name,
+                  agency:               p.agency,
+                  nights:               need.nights.length,
+                  seasonStart:          requireSeasonBound(p.overnight_permit.season_start, p.name),
+                  seasonEnd:            requireSeasonBound(p.overnight_permit.season_end, p.name),
+                  recgov:               p.recgov,
+                  campfiresAllowed:     p.campfires_allowed,
+                  bearCanisterRequired: p.bear_canister_required,
+                  designatedSitesOnly:  p.designated_sites_only,
+                })
           detected.push(buildZonePermit(need, partySize, product))
         } catch {
           failures++
