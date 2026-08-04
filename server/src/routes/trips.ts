@@ -7,8 +7,17 @@ import { asyncRoute, requireOwner, HttpError } from '../utils/routeHelpers'
 import { normalizeShared, canRead, populateTripUsers, TripLean, SharedEntry } from '../services/tripService'
 import { suggestPermits, lookupPermit, pickZoneProduct } from '../services/permitService'
 import type { PermitLink, ZoneProductInput } from '../services/permitService'
+import { validObjectId } from '../utils/objectId'
 
 const router = Router()
+
+router.param('id', (req, res, next, id) => {
+  if (!validObjectId(id)) {
+    res.status(400).json({ error: 'Invalid id' })
+    return
+  }
+  next()
+})
 
 router.get('/', asyncRoute(async (req, res) => {
   const sub = req.user.sub

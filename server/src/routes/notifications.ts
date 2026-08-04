@@ -2,8 +2,17 @@ import { Router } from 'express'
 import { Notification } from '../models/Notification'
 import { Trip } from '../models/Trip'
 import { asyncRoute, HttpError } from '../utils/routeHelpers'
+import { validObjectId } from '../utils/objectId'
 
 const router = Router()
+
+router.param('id', (req, res, next, id) => {
+  if (!validObjectId(id)) {
+    res.status(400).json({ error: 'Invalid id' })
+    return
+  }
+  next()
+})
 
 router.get('/', asyncRoute(async (req, res) => {
   const notes = await Notification.find({ toSub: req.user.sub })

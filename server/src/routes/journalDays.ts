@@ -25,7 +25,11 @@ router.put('/:id', asyncRoute(async (req, res) => {
   const day = await JournalDay.findById(req.params.id).lean()
   if (!day) throw new HttpError(404, 'Not found')
   await fetchTripForWrite(String(day.tripId), req.user.sub)
-  const updated = await JournalDay.findByIdAndUpdate(req.params.id, req.body, {
+  // tripId is immutable via this route — reassigning it would move the entry into
+  // a trip whose write access was never checked.
+  const rest = { ...(req.body as Record<string, unknown>) }
+  delete rest.tripId
+  const updated = await JournalDay.findByIdAndUpdate(req.params.id, rest, {
     new: true,
     runValidators: true,
   }).lean()
