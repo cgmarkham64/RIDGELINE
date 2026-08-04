@@ -2,6 +2,7 @@ import { IconX, IconCheck, IconPencil, IconExternalLink, IconSparkle, IconAlertT
 import { PermitTypeIcon, TypeChip, Field } from './PermitAtoms'
 import { PERMIT_TYPES, TONE_CLS, ZONE_STATUS_CLS } from './permitsStage.constants'
 import type { Permit } from './permitsStage.types'
+import { isSafeExternalUrl } from '../../../../lib/utils'
 
 export function PermitCard({ permit, onRemove, onEdit, onUpdatePermit, canEdit, partySize }: {
   permit: Permit
@@ -39,7 +40,7 @@ export function PermitCard({ permit, onRemove, onEdit, onUpdatePermit, canEdit, 
           </div>
           <div className="font-heading text-body-sm font-extrabold text-text leading-snug">{permit.name}</div>
           <div className="font-mono text-label text-text-dim mt-0.5">{permit.agency}</div>
-          {permit.url && (
+          {permit.url && isSafeExternalUrl(permit.url) && (
             <a
               href={permit.url}
               target="_blank"

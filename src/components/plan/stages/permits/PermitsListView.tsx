@@ -3,6 +3,7 @@ import { IconMap, IconCheck, IconSearch, IconPlus, IconAlertTriangle, IconExtern
 import { PermitCard } from './PermitCard'
 import type { Permit } from './permitsStage.types'
 import type { PermitLink } from '../../types'
+import { isSafeExternalUrl } from '../../../../lib/utils'
 
 function linkDomain(url: string): string {
   try { return new URL(url).hostname.replace(/^www\./, '') } catch { return url }
@@ -123,6 +124,7 @@ export function PermitsListView({
             {links.map((link, i) => {
               const bookable = isBookable(link.url)
               const domain   = linkDomain(link.url)
+              const safe     = isSafeExternalUrl(link.url)
               return (
                 <div
                   key={i}
@@ -137,14 +139,23 @@ export function PermitsListView({
                   }`}>
                     {domain}
                   </span>
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 min-w-0 font-heading text-body-sm font-bold text-text hover:text-amber transition-colors truncate no-underline"
-                  >
-                    {link.title}
-                  </a>
+                  {safe ? (
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 min-w-0 font-heading text-body-sm font-bold text-text hover:text-amber transition-colors truncate no-underline"
+                    >
+                      {link.title}
+                    </a>
+                  ) : (
+                    <span
+                      title="Unsafe link scheme — not rendered as a clickable link"
+                      className="flex-1 min-w-0 font-heading text-body-sm font-bold text-text-dim truncate"
+                    >
+                      {link.title}
+                    </span>
+                  )}
                   {bookable && canEdit && canLookup && (
                     <button
                       onClick={() => onSearch(link.title)}
@@ -155,14 +166,16 @@ export function PermitsListView({
                       <IconPlus size={9} /> Add
                     </button>
                   )}
-                  <a
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0 text-text-dim hover:text-amber transition-colors"
-                  >
-                    <IconExternalLink size={12} />
-                  </a>
+                  {safe && (
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 text-text-dim hover:text-amber transition-colors"
+                    >
+                      <IconExternalLink size={12} />
+                    </a>
+                  )}
                 </div>
               )
             })}
