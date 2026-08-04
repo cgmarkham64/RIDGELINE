@@ -4,7 +4,7 @@ import { UserProfile } from '../models/UserProfile'
 import { JournalDay } from '../models/JournalDay'
 import { Notification } from '../models/Notification'
 import { asyncRoute, requireOwner, HttpError } from '../utils/routeHelpers'
-import { normalizeShared, canRead, populateTripUsers, TripLean, SharedEntry } from '../services/tripService'
+import { normalizeShared, canRead, populateTripUsers, fetchTripForRead, partySizeFor, TripLean, SharedEntry } from '../services/tripService'
 import { suggestPermits, lookupPermit, pickZoneProduct } from '../services/permitService'
 import type { PermitLink, ZoneProductInput } from '../services/permitService'
 import { validObjectId } from '../utils/objectId'
@@ -31,10 +31,8 @@ router.get('/', asyncRoute(async (req, res) => {
 }))
 
 router.get('/:id', asyncRoute(async (req, res) => {
-  const trip = await Trip.findById(req.params.id).populate('loadoutId').lean()
-  if (!trip) throw new HttpError(404, 'Not found')
-  if (!canRead(trip as TripLean, req.user.sub)) throw new HttpError(403, 'Forbidden')
-  res.json(await populateTripUsers(trip as TripLean))
+  const trip = await fetchTripForRead(req.params.id as string, req.user.sub, 'loadoutId')
+  res.json(await populateTripUsers(trip))
 }))
 
 router.post('/', asyncRoute(async (req, res) => {
@@ -148,20 +146,16 @@ router.delete('/:id', asyncRoute(async (req, res) => {
 // ─── Permit suggestion ────────────────────────────────────────────────────────
 
 router.post('/:id/permits/suggest', asyncRoute(async (req, res) => {
-  const trip = await Trip.findById(req.params.id).lean()
-  if (!trip) throw new HttpError(404, 'Not found')
-  if (!canRead(trip as TripLean, req.user.sub)) throw new HttpError(403, 'Forbidden')
-
-  const shared    = normalizeShared((trip as TripLean).sharedWith)
-  const partySize = shared.length + 1
+  const trip = await fetchTripForRead(req.params.id as string, req.user.sub)
+  const partySize = partySizeFor(trip)
 
   const gpxPlanned = trip.gpxPlanned as { coordinates?: [number, number, number][] } | undefined
 
   const result = await suggestPermits({
     title:     trip.title as string | undefined,
     location:  trip.location as string | undefined,
-    startDate: trip.startDate?.toString(),
-    endDate:   trip.endDate?.toString(),
+    startDate: (trip.startDate as Date | undefined)?.toString(),
+    endDate:   (trip.endDate as Date | undefined)?.toString(),
     partySize,
     gpxCoords: gpxPlanned?.coordinates,
   })
@@ -170,21 +164,17 @@ router.post('/:id/permits/suggest', asyncRoute(async (req, res) => {
 }))
 
 router.post('/:id/permits/lookup', asyncRoute(async (req, res) => {
-  const trip = await Trip.findById(req.params.id).lean()
-  if (!trip) throw new HttpError(404, 'Not found')
-  if (!canRead(trip as TripLean, req.user.sub)) throw new HttpError(403, 'Forbidden')
+  const trip = await fetchTripForRead(req.params.id as string, req.user.sub)
 
   const { permitName, links = [] } = req.body as { permitName?: string; links?: PermitLink[] }
   if (!permitName?.trim()) throw new HttpError(400, 'permitName is required')
-
-  const shared    = normalizeShared((trip as TripLean).sharedWith)
-  const partySize = shared.length + 1
+  const partySize = partySizeFor(trip)
 
   const result = await lookupPermit(permitName.trim(), {
     title:     trip.title as string | undefined,
     location:  trip.location as string | undefined,
-    startDate: trip.startDate?.toString(),
-    endDate:   trip.endDate?.toString(),
+    startDate: (trip.startDate as Date | undefined)?.toString(),
+    endDate:   (trip.endDate as Date | undefined)?.toString(),
     partySize,
   }, links)
 
@@ -192,15 +182,11 @@ router.post('/:id/permits/lookup', asyncRoute(async (req, res) => {
 }))
 
 router.post('/:id/permits/zone-product', asyncRoute(async (req, res) => {
-  const trip = await Trip.findById(req.params.id).lean()
-  if (!trip) throw new HttpError(404, 'Not found')
-  if (!canRead(trip as TripLean, req.user.sub)) throw new HttpError(403, 'Forbidden')
+  const trip = await fetchTripForRead(req.params.id as string, req.user.sub)
 
   const input = req.body as ZoneProductInput
   if (!input?.zoneName || !input?.recgov) throw new HttpError(400, 'zoneName and recgov are required')
-
-  const shared    = normalizeShared((trip as TripLean).sharedWith)
-  const partySize = shared.length + 1
+  const partySize = partySizeFor(trip)
 
   const result = await pickZoneProduct(input, partySize)
   res.json(result)

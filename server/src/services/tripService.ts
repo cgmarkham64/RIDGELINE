@@ -13,6 +13,10 @@ export function normalizeShared(sw: Array<SharedEntry | string>): SharedEntry[] 
   return (sw ?? []).map((e) => (typeof e === 'string' ? { sub: e, role: 'edit' } : e))
 }
 
+export function partySizeFor(trip: { sharedWith: Array<SharedEntry | string> }): number {
+  return normalizeShared(trip.sharedWith).length + 1
+}
+
 export function canRead(
   trip: { ownerSub: string; sharedWith: Array<SharedEntry | string> },
   sub: string,
@@ -39,8 +43,10 @@ export async function populateTripUsers(trip: TripLean) {
   }
 }
 
-export async function fetchTripForRead(tripId: string, sub: string): Promise<TripLean> {
-  const trip = (await Trip.findById(tripId).lean()) as TripLean | null
+export async function fetchTripForRead(tripId: string, sub: string, populate?: string): Promise<TripLean> {
+  const query = Trip.findById(tripId)
+  if (populate) query.populate(populate)
+  const trip = (await query.lean()) as TripLean | null
   if (!trip) throw new HttpError(404, 'Trip not found')
   if (!canRead(trip, sub)) throw new HttpError(403, 'Forbidden')
   return trip

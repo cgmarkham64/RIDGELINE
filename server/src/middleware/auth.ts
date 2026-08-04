@@ -14,6 +14,16 @@ const jwksClient = process.env.KEYCLOAK_JWKS_URI
     })
   : null
 
+// Reads the first claim present as a non-empty string; throws otherwise, so a
+// malformed or legacy token can never smuggle `undefined` through as `string`.
+function firstStringClaim(payload: jwt.JwtPayload, claims: string[]): string {
+  for (const claim of claims) {
+    const value = payload[claim]
+    if (typeof value === 'string' && value.length > 0) return value
+  }
+  throw new Error(`Token missing required claim: ${claims.join(' or ')}`)
+}
+
 async function verifyToken(token: string): Promise<{ sub: string; email: string; name: string }> {
   if (jwksClient) {
     const decoded = jwt.decode(token, { complete: true })
@@ -22,23 +32,25 @@ async function verifyToken(token: string): Promise<{ sub: string; email: string;
     const payload = jwt.verify(token, key.getPublicKey(), {
       algorithms: ['RS256'],
       issuer: process.env.KEYCLOAK_ISSUER,
-    }) as jwt.JwtPayload
+    })
+    if (typeof payload === 'string') throw new Error('Invalid token payload')
     return {
-      sub: payload.sub as string,
-      email: payload.email as string,
+      sub: firstStringClaim(payload, ['sub']),
+      email: firstStringClaim(payload, ['email']),
       // Keycloak uses "name" (full name) or falls back to "preferred_username"
-      name: (payload.name ?? payload.preferred_username) as string,
+      name: firstStringClaim(payload, ['name', 'preferred_username']),
     }
   }
 
   // Local JWT path — used when running outside Docker (npm run dev:all)
   const secret = process.env.JWT_SECRET
   if (!secret) throw new Error('JWT_SECRET is not set')
-  const payload = jwt.verify(token, secret, { algorithms: ['HS256'] }) as jwt.JwtPayload
+  const payload = jwt.verify(token, secret, { algorithms: ['HS256'] })
+  if (typeof payload === 'string') throw new Error('Invalid token payload')
   return {
-    sub: payload.sub as string,
-    email: payload.email as string,
-    name: payload.name as string,
+    sub: firstStringClaim(payload, ['sub']),
+    email: firstStringClaim(payload, ['email']),
+    name: firstStringClaim(payload, ['name']),
   }
 }
 

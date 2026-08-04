@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 import { UserProfile } from '../models/UserProfile'
+import { asyncRoute } from '../utils/routeHelpers'
 
 const router = Router()
 
@@ -15,7 +16,7 @@ const searchLimiter = rateLimit({
 // GET /api/users/search?q=<query>
 // Returns up to 8 users matching name or email (case-insensitive). Excludes the caller.
 // Email is intentionally omitted from results to prevent harvesting.
-router.get('/search', searchLimiter, async (req, res) => {
+router.get('/search', searchLimiter, asyncRoute(async (req, res) => {
   const { q } = req.query
   if (!q || typeof q !== 'string' || q.trim().length < 2) {
     return res.json([])
@@ -30,6 +31,6 @@ router.get('/search', searchLimiter, async (req, res) => {
     .limit(8)
     .lean()
   res.json(users)
-})
+}))
 
 export default router

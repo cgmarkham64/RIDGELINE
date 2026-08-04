@@ -1,11 +1,10 @@
 import type { WaypointType } from '../types'
+import { haversineMeters, haversineMiles } from './geo'
 
 const OVERPASS_URL     = 'https://overpass-api.de/api/interpreter'
 const MAX_SNAP_DIST_M  = 400
 const MAX_VERT_DROP_M  = 40       // ~130 ft — sources below this are effectively off a cliff
 const CLUSTER_MI       = 0.35     // within 0.35 miles, only the most reliable source shows
-const EARTH_RADIUS_M   = 6_371_000
-const METRES_PER_MILE  = 1_609.344
 const CACHE_TTL_MS     = 30 * 60 * 1000  // 30 minutes
 const RETRY_DELAY_MS   = 6_000            // wait 6 s before retrying a 429
 
@@ -54,20 +53,6 @@ async function overpassFetch(query: string): Promise<Response> {
   return res
 }
 
-// ─── Geometry ─────────────────────────────────────────────────────────────────
-
-function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const dφ = (lat2 - lat1) * Math.PI / 180
-  const dλ = (lon2 - lon1) * Math.PI / 180
-  const a = Math.sin(dφ / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dλ / 2) ** 2
-  return EARTH_RADIUS_M * 2 * Math.asin(Math.sqrt(a))
-}
-
-function haversineMi(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  return haversineM(lat1, lon1, lat2, lon2) / METRES_PER_MILE
-}
-
 // Projects point P onto segment AB; returns t ∈ [0,1] and nearest point.
 function nearestOnSegment(
   pLat: number, pLon: number,
@@ -87,7 +72,7 @@ function buildCumulDistMi(coords: [number, number, number][]): number[] {
   for (let i = 1; i < coords.length; i++) {
     const [lon1, lat1] = coords[i - 1]
     const [lon2, lat2] = coords[i]
-    d.push(d[i - 1] + haversineMi(lat1, lon1, lat2, lon2))
+    d.push(d[i - 1] + haversineMiles(lat1, lon1, lat2, lon2))
   }
   return d
 }
@@ -108,10 +93,10 @@ function snapToRoute(
     const [aLon, aLat, aEle] = coords[i]
     const [bLon, bLat, bEle] = coords[i + 1]
     const { t, lat: sLat, lon: sLon } = nearestOnSegment(lat, lon, aLat, aLon, bLat, bLon)
-    const dist = haversineM(lat, lon, sLat, sLon)
+    const dist = haversineMeters(lat, lon, sLat, sLon)
     if (dist < bestDist) {
       bestDist = dist
-      const segMi = haversineMi(aLat, aLon, bLat, bLon)
+      const segMi = haversineMiles(aLat, aLon, bLat, bLon)
       bestCumul = cumulDistMi[i] + t * segMi
       bestEle   = aEle + t * (bEle - aEle)
     }

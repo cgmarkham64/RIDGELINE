@@ -16,6 +16,8 @@ import { TripSetupDialog } from './TripSetupDialog'
 import { usePlan, useUpdatePlan } from '../../hooks/usePlans'
 import { useJournalDays } from '../../hooks/useJournalDays'
 import { useAuthStore } from '../../store/auth'
+import { isOwnedBy } from '../../lib/utils'
+import { Modal } from '../ui/Modal'
 import type { StageBodyProps } from './types'
 
 export type SaveState = 'saved' | 'saving' | 'unsaved'
@@ -263,7 +265,7 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
   // stage's useState initializer. After that, stage state is self-contained.
   const plan = (savedPlan.planStages as PlanData) ?? {}
   const meta = buildMeta(savedPlan)
-  const isOwner = !!userId && savedPlan.ownerSub === userId
+  const isOwner = isOwnedBy(savedPlan.ownerSub, userId)
   const collaborator = !isOwner && userId
     ? savedPlan.sharedWith?.find((c) => c.sub === userId)
     : undefined
@@ -339,29 +341,30 @@ export function PlanWizard({ planId, initialStage }: { planId: string; initialSt
       </div>
 
       {confirmComplete && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
-          <div className="bg-surface border border-border-mid rounded-xl p-6 w-full max-w-sm shadow-2xl">
-            <h2 className="font-heading text-sub font-extrabold text-text mb-2">No journal entries yet.</h2>
-            <p className="text-body text-text-mid leading-relaxed mb-5">
-              Consider adding a trip report before marking this complete — it only takes a few minutes.
-            </p>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => { setConfirmComplete(false); jumpTo('journal') }}
-                className="px-3 py-1.5 font-heading text-caption font-bold tracking-widest uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
-              >
-                Add entries
-              </button>
-              <button
-                onClick={() => { doUpdate({ id: planId, body: { status: 'complete' } }); setConfirmComplete(false) }}
-                className="px-3 py-1.5 font-heading text-caption font-bold tracking-widest uppercase rounded border cursor-pointer transition-colors"
-                style={{ background: 'var(--amber-dim)', borderColor: 'var(--amber-border)', color: 'var(--amber)' }}
-              >
-                Complete anyway
-              </button>
-            </div>
+        <Modal
+          backdropClassName="bg-black/60"
+          panelClassName="bg-surface border border-border-mid rounded-xl p-6 w-full max-w-sm shadow-2xl"
+        >
+          <h2 className="font-heading text-sub font-extrabold text-text mb-2">No journal entries yet.</h2>
+          <p className="text-body text-text-mid leading-relaxed mb-5">
+            Consider adding a trip report before marking this complete — it only takes a few minutes.
+          </p>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => { setConfirmComplete(false); jumpTo('journal') }}
+              className="px-3 py-1.5 font-heading text-caption font-bold tracking-widest uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
+            >
+              Add entries
+            </button>
+            <button
+              onClick={() => { doUpdate({ id: planId, body: { status: 'complete' } }); setConfirmComplete(false) }}
+              className="px-3 py-1.5 font-heading text-caption font-bold tracking-widest uppercase rounded border cursor-pointer transition-colors"
+              style={{ background: 'var(--amber-dim)', borderColor: 'var(--amber-border)', color: 'var(--amber)' }}
+            >
+              Complete anyway
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
     </>
   )

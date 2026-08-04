@@ -3,6 +3,7 @@ import type { Stage, PlanData } from './types'
 import { stageState, STAGES, STAGE_DESCRIPTIONS } from './constants'
 import { Ring } from './Ring'
 import { Pill } from './Pill'
+import { BackToPlanningDialog } from './BackToPlanningDialog'
 import { IconArrowLeft, IconArrowRight, IconChevronRight } from '../icons'
 
 const CRITICAL_PATH = [
@@ -169,30 +170,10 @@ export function PlanOverview({ stages, totalDone, totalAll, onJump, plan, tripSt
       </main>
 
       {confirmBack && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
-          <div className="bg-surface border border-border-mid rounded-xl p-6 w-full max-w-sm shadow-2xl">
-            <h2 className="font-heading text-sub font-extrabold text-text mb-2">Back to planning?</h2>
-            <p className="text-body text-text-mid leading-relaxed mb-5">
-              This resets the trip status to{' '}
-              <span className="text-amber font-semibold">Planning</span>. You can re-advance it any time.
-            </p>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setConfirmBack(false)}
-                className="px-3 py-1.5 font-heading text-caption font-bold tracking-widest uppercase rounded border border-border text-text-dim hover:text-text hover:border-border-mid transition-colors cursor-pointer bg-transparent"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => { onStatusChange?.('planning'); setConfirmBack(false) }}
-                className="px-3 py-1.5 font-heading text-caption font-bold tracking-widest uppercase rounded border cursor-pointer transition-colors"
-                style={{ background: 'var(--amber-dim)', borderColor: 'var(--amber-border)', color: 'var(--amber)' }}
-              >
-                Back to planning
-              </button>
-            </div>
-          </div>
-        </div>
+        <BackToPlanningDialog
+          onCancel={() => setConfirmBack(false)}
+          onConfirm={() => { onStatusChange?.('planning'); setConfirmBack(false) }}
+        />
       )}
     </>
   )

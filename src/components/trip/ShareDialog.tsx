@@ -4,6 +4,7 @@ import type { Trip } from '../../types'
 import { searchUsers, shareTrip, type UserSearchResult } from '../../lib/users'
 import { useUnshareTrip } from '../../hooks/useTrips'
 import { initials, extractApiError } from '../../lib/utils'
+import { Modal } from '../ui/Modal'
 
 interface Props {
   trip: Trip
@@ -106,163 +107,158 @@ export function ShareDialog({ trip, onClose }: Props) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
-      onClick={onClose}
+    <Modal
+      onClose={onClose}
+      backdropClassName="bg-black/70 backdrop-blur-sm"
+      panelClassName="bg-surface border border-border-mid rounded-lg w-full max-w-[400px] mx-4 overflow-hidden"
     >
-      <div
-        className="bg-surface border border-border-mid rounded-lg w-full max-w-[400px] mx-4 overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <div>
-            <div className="font-heading text-sm font-extrabold text-text">Share trip</div>
-            <div className="font-mono text-label tracking-widest uppercase text-text-dim mt-[3px]">
-              {trip.title}
-            </div>
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <div>
+          <div className="font-heading text-sm font-extrabold text-text">Share trip</div>
+          <div className="font-mono text-label tracking-widest uppercase text-text-dim mt-[3px]">
+            {trip.title}
           </div>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-2 border border-border cursor-pointer text-text-dim hover:text-text transition-colors duration-100"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5" style={{ strokeWidth: 2 }}>
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
         </div>
+        <button
+          onClick={onClose}
+          className="w-7 h-7 rounded-sm flex items-center justify-center bg-surface-2 border border-border cursor-pointer text-text-dim hover:text-text transition-colors duration-100"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5" style={{ strokeWidth: 2 }}>
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
 
-        {/* People with access */}
-        <div className="px-5 pt-4 pb-3 border-b border-border">
-          <div className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-3">
-            People with access
-          </div>
-          {collaborators.length === 0 ? (
-            <p className="font-mono text-caption text-text-dim italic">No collaborators yet</p>
-          ) : (
-            <div className="flex flex-col gap-1">
-              {collaborators.map((c) => (
-                <div key={c.sub} className="flex items-center gap-2.5 py-1">
-                  <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-mono text-label font-bold"
-                    style={{ background: 'var(--amber-dim)', color: 'var(--amber)' }}
-                  >
-                    {initials(c.name)}
-                  </div>
-                  <span className="flex-1 font-sans text-body text-text">{c.name}</span>
-                  <span className="font-mono text-label text-text-dim mr-1">
-                    {c.role === 'read' ? 'Viewer' : 'Editor'}
-                  </span>
-                  <button
-                    onClick={() => handleRemove(c.sub)}
-                    className="font-mono text-label text-text-dim hover:text-red transition-colors duration-100"
-                    title="Remove access"
-                  >
-                    Remove
-                  </button>
+      {/* People with access */}
+      <div className="px-5 pt-4 pb-3 border-b border-border">
+        <div className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-3">
+          People with access
+        </div>
+        {collaborators.length === 0 ? (
+          <p className="font-mono text-caption text-text-dim italic">No collaborators yet</p>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {collaborators.map((c) => (
+              <div key={c.sub} className="flex items-center gap-2.5 py-1">
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-mono text-label font-bold"
+                  style={{ background: 'var(--amber-dim)', color: 'var(--amber)' }}
+                >
+                  {initials(c.name)}
                 </div>
-              ))}
+                <span className="flex-1 font-sans text-body text-text">{c.name}</span>
+                <span className="font-mono text-label text-text-dim mr-1">
+                  {c.role === 'read' ? 'Viewer' : 'Editor'}
+                </span>
+                <button
+                  onClick={() => handleRemove(c.sub)}
+                  className="font-mono text-label text-text-dim hover:text-red transition-colors duration-100"
+                  title="Remove access"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Invite */}
+      <div className="px-5 py-4 border-b border-border">
+        <div className="flex items-center justify-between mb-2">
+          <div className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">
+            Invite someone
+          </div>
+          <div className="flex gap-1">
+            {(['edit', 'read'] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setInviteRole(r)}
+                className="px-2 py-[3px] font-mono text-label rounded-sm border transition-colors duration-100"
+                style={{
+                  background:   inviteRole === r ? 'var(--amber-dim)'    : 'var(--surface-2)',
+                  borderColor:  inviteRole === r ? 'var(--amber-border)' : 'var(--border)',
+                  color:        inviteRole === r ? 'var(--amber)'        : 'var(--text-dim)',
+                }}
+              >
+                {r === 'edit' ? 'Can edit' : 'Can view'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="relative">
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setInviteError(null) }}
+            onKeyDown={handleKeyDown}
+            onFocus={() => { if (results.length > 0) setDropdownOpen(true) }}
+            placeholder="Search by name or email…"
+            className="w-full px-3 py-2 border border-border focus:border-border-mid rounded-sm text-body-sm bg-surface-2 text-text outline-none transition-[border-color] duration-[140ms] placeholder:text-text-dim"
+            autoComplete="off"
+          />
+          {showDropdown && (
+            <div
+              ref={dropdownRef}
+              className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border-mid rounded-md overflow-hidden z-10 shadow-lg"
+            >
+              {isSearching ? (
+                <div className="px-3 py-2.5 font-mono text-caption text-text-dim">Searching…</div>
+              ) : results.length > 0 ? (
+                results.map((user) => (
+                  <button
+                    key={user.sub}
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); handleInvite(user) }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-surface-2 transition-colors duration-100"
+                  >
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-mono text-label font-bold"
+                      style={{ background: 'var(--amber-dim)', color: 'var(--amber)' }}
+                    >
+                      {initials(user.name)}
+                    </div>
+                    <span className="font-sans text-body-sm font-medium text-text truncate">{user.name}</span>
+                  </button>
+                ))
+              ) : (
+                <div className="px-3 py-2.5 font-mono text-caption text-text-dim">No users found</div>
+              )}
             </div>
           )}
         </div>
+        {inviteError && <p className="font-mono text-caption text-red mt-2">{inviteError}</p>}
+        {inviteSuccess && <p className="font-mono text-caption mt-2" style={{ color: 'var(--pine)' }}>✓ {inviteSuccess}</p>}
+      </div>
 
-        {/* Invite */}
-        <div className="px-5 py-4 border-b border-border">
-          <div className="flex items-center justify-between mb-2">
-            <div className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">
-              Invite someone
-            </div>
-            <div className="flex gap-1">
-              {(['edit', 'read'] as const).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => setInviteRole(r)}
-                  className="px-2 py-[3px] font-mono text-label rounded-sm border transition-colors duration-100"
-                  style={{
-                    background:   inviteRole === r ? 'var(--amber-dim)'    : 'var(--surface-2)',
-                    borderColor:  inviteRole === r ? 'var(--amber-border)' : 'var(--border)',
-                    color:        inviteRole === r ? 'var(--amber)'        : 'var(--text-dim)',
-                  }}
-                >
-                  {r === 'edit' ? 'Can edit' : 'Can view'}
-                </button>
-              ))}
-            </div>
+      {/* Utilities */}
+      <div className="px-5 py-3 flex flex-col gap-0.5">
+        <div className="flex items-center justify-between py-1.5">
+          <div>
+            <div className="font-sans text-body-sm font-medium text-text">Copy link</div>
+            <div className="font-mono text-label text-text-dim">Share a direct link to this trip</div>
           </div>
-          <div className="relative">
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setInviteError(null) }}
-              onKeyDown={handleKeyDown}
-              onFocus={() => { if (results.length > 0) setDropdownOpen(true) }}
-              placeholder="Search by name or email…"
-              className="w-full px-3 py-2 border border-border focus:border-border-mid rounded-sm text-body-sm bg-surface-2 text-text outline-none transition-[border-color] duration-[140ms] placeholder:text-text-dim"
-              autoComplete="off"
-            />
-            {showDropdown && (
-              <div
-                ref={dropdownRef}
-                className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border-mid rounded-md overflow-hidden z-10 shadow-lg"
-              >
-                {isSearching ? (
-                  <div className="px-3 py-2.5 font-mono text-caption text-text-dim">Searching…</div>
-                ) : results.length > 0 ? (
-                  results.map((user) => (
-                    <button
-                      key={user.sub}
-                      type="button"
-                      onMouseDown={(e) => { e.preventDefault(); handleInvite(user) }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-surface-2 transition-colors duration-100"
-                    >
-                      <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 font-mono text-label font-bold"
-                        style={{ background: 'var(--amber-dim)', color: 'var(--amber)' }}
-                      >
-                        {initials(user.name)}
-                      </div>
-                      <span className="font-sans text-body-sm font-medium text-text truncate">{user.name}</span>
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-3 py-2.5 font-mono text-caption text-text-dim">No users found</div>
-                )}
-              </div>
+          <button onClick={copyLink} className={`btn btn-sm shrink-0 ${copied ? 'btn-ghost' : 'btn-sky'}`}>
+            {copied ? (
+              <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3 text-pine" style={{ strokeWidth: 2.5 }}><path d="M20 6L9 17l-5-5" /></svg><span className="text-pine">Copied</span></>
+            ) : (
+              <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3" style={{ strokeWidth: 2 }}><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>Copy</>
             )}
-          </div>
-          {inviteError && <p className="font-mono text-caption text-red mt-2">{inviteError}</p>}
-          {inviteSuccess && <p className="font-mono text-caption mt-2" style={{ color: 'var(--pine)' }}>✓ {inviteSuccess}</p>}
+          </button>
         </div>
-
-        {/* Utilities */}
-        <div className="px-5 py-3 flex flex-col gap-0.5">
-          <div className="flex items-center justify-between py-1.5">
-            <div>
-              <div className="font-sans text-body-sm font-medium text-text">Copy link</div>
-              <div className="font-mono text-label text-text-dim">Share a direct link to this trip</div>
-            </div>
-            <button onClick={copyLink} className={`btn btn-sm shrink-0 ${copied ? 'btn-ghost' : 'btn-sky'}`}>
-              {copied ? (
-                <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3 text-pine" style={{ strokeWidth: 2.5 }}><path d="M20 6L9 17l-5-5" /></svg><span className="text-pine">Copied</span></>
-              ) : (
-                <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3" style={{ strokeWidth: 2 }}><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>Copy</>
-              )}
-            </button>
+        <div className="flex items-center justify-between py-1.5 opacity-50">
+          <div>
+            <div className="font-sans text-body-sm font-medium text-text">Export as PDF</div>
+            <div className="font-mono text-label text-text-dim">Styled trip report with journal, map &amp; stats</div>
           </div>
-          <div className="flex items-center justify-between py-1.5 opacity-50">
-            <div>
-              <div className="font-sans text-body-sm font-medium text-text">Export as PDF</div>
-              <div className="font-mono text-label text-text-dim">Styled trip report with journal, map &amp; stats</div>
-            </div>
-            <span className="font-mono text-label tracking-widest uppercase text-text-dim border border-border rounded-[3px] px-[7px] py-[3px] shrink-0">
-              Soon
-            </span>
-          </div>
+          <span className="font-mono text-label tracking-widest uppercase text-text-dim border border-border rounded-[3px] px-[7px] py-[3px] shrink-0">
+            Soon
+          </span>
         </div>
       </div>
-    </div>
+    </Modal>
   )
 }

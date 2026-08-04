@@ -1,6 +1,7 @@
 import type { CheckRow, RoutePreview, SegRow, WaterEntry, MergedRow } from './routeStage.types'
 import type { DetectedWaterSource } from '../../../../lib/waterSources'
 import type { Waypoint } from '../../../../types'
+import { haversineMiles, haversinePathMiles } from '../../../../lib/geo'
 
 export const DEFAULT_CHECKLIST: CheckRow[] = [
   { text: 'Route picked',                  done: false },
@@ -13,7 +14,6 @@ export const DEFAULT_CHECKLIST: CheckRow[] = [
 ]
 
 const AMBER = '#f0a030'
-const EARTH_RADIUS_MI = 3958.8
 
 export const SEG_COLORS = [AMBER, '#4ade80', '#a78bfa', '#f472b6', '#60a5fa', '#34d399', '#fb923c', '#f87171']
 
@@ -30,21 +30,6 @@ export const ACTIVE_BG = 'var(--color-amber-dim)'
 
 export function toLatLngs(coords: [number, number, number][] | undefined): [number, number][] {
   return coords?.map(([lon, lat]) => [lat, lon]) ?? []
-}
-
-function haversineMi(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLon = (lon2 - lon1) * Math.PI / 180
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2
-  return EARTH_RADIUS_MI * 2 * Math.asin(Math.sqrt(a))
-}
-
-export function haversinePathMiles(path: [number, number][]): number {
-  let d = 0
-  for (let i = 1; i < path.length; i++) {
-    d += haversineMi(path[i - 1][0], path[i - 1][1], path[i][0], path[i][1])
-  }
-  return d
 }
 
 export function gpxCoordsToMiles(coords: [number, number, number][]): number {
@@ -156,7 +141,7 @@ export function snapToRouteMi(lat: number, lon: number, coords: [number, number,
   for (let i = 1; i <= best; i++) {
     const [lon1, lat1] = coords[i - 1]
     const [lon2, lat2] = coords[i]
-    d += haversineMi(lat1, lon1, lat2, lon2)
+    d += haversineMiles(lat1, lon1, lat2, lon2)
   }
   return d
 }

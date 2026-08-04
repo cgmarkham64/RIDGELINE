@@ -30,11 +30,18 @@ const MEAL_SLOTS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snacks']
 
 // Rough backpacking calorie-burn model: baseline appetite (the account's daily
 // calorie macro target, or this default) + fixed trail effort from mileage/gain.
-const BASE_KCAL_PER_DAY       = 2600
-const KCAL_PER_MILE           = 100
-const KCAL_PER_1000FT_GAIN    = 150
+const BASE_KCAL_PER_DAY         = 2600
+const KCAL_PER_MILE             = 100
+const KCAL_PER_1000FT_GAIN      = 150
+const FEET_PER_KILOFOOT         = 1000
 const TOUGH_DAY_KCAL_MULTIPLIER = 1.15
-const KCAL_ROUNDING           = 50
+const KCAL_ROUNDING             = 50
+const MS_PER_DAY                = 86_400_000
+const HIGH_KCAL_THRESHOLD       = 3800
+const MODERATE_KCAL_THRESHOLD   = 3000
+const PERCENT_MULTIPLIER        = 100
+const OZ_PER_LB                 = 16
+const COORD_DECIMAL_PLACES      = 4
 
 const TARGET_FIELDS: Array<{ key: TargetField; label: string; placeholder: string }> = [
   { key: 'calories', label: 'Calories / day', placeholder: 'e.g. 3,800' },
@@ -61,6 +68,10 @@ function deepCopyItems(items: Record<MealSlot, MealItem[]>): Record<MealSlot, Me
   ) as Record<MealSlot, MealItem[]>
 }
 
+// Placeholder itinerary shown before the user enters their own meals — every
+// kcal/oz figure below is seed data, not a business threshold, so naming each
+// literal wouldn't add clarity.
+/* eslint-disable @typescript-eslint/no-magic-numbers */
 const DEMO_MEALS: MealRow[] = [
   { n: 1, items: { breakfast: [demoItem('d1b', 'Granola + powder',       700, 3.5)], lunch: [demoItem('d1l', 'Tuna wrap',            875, 5.5)], dinner: [demoItem('d1d', 'Mtn House Beef Stew',  1050, 6.6)], snacks: [demoItem('d1s', '2 bars · gummies',     875, 6.4)] } },
   { n: 2, items: { breakfast: [demoItem('d2b', 'Oats + nut butter',      750, 3.8)], lunch: [demoItem('d2l', 'Salami + cheese',       925, 6.0)], dinner: [demoItem('d2d', 'Pad thai (Backpack)',  1110, 6.8)], snacks: [demoItem('d2s', '2 bars · jerky',        915, 7.4)] } },
@@ -71,12 +82,13 @@ const DEMO_MEALS: MealRow[] = [
   { n: 7, items: { breakfast: [demoItem('d7b', 'Pop-tarts ×2',           760, 3.6)], lunch: [demoItem('d7l', 'Tuna wrap',             950, 6.0)], dinner: [demoItem('d7d', 'Mtn House Lasagna',   1140, 6.8)], snacks: [demoItem('d7s', '3 bars · gummies',     950, 7.6)] } },
   { n: 8, items: { breakfast: [demoItem('d8b', 'Bar + coffee',            300, 1.6)], lunch: [demoItem('d8l', 'Burger @ Portal',      900, 4.2)], dinner: [],                                                   snacks: []                                                     } },
 ]
+/* eslint-enable @typescript-eslint/no-magic-numbers */
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function kcalCls(kcal: number): string {
-  if (kcal >= 3800) return 'text-pine'
-  if (kcal >= 3000) return 'text-text-mid'
+  if (kcal >= HIGH_KCAL_THRESHOLD) return 'text-pine'
+  if (kcal >= MODERATE_KCAL_THRESHOLD) return 'text-text-mid'
   return 'text-amber'
 }
 
@@ -113,7 +125,7 @@ function estimateDayKcalTarget(
   hard?: boolean,
   baseKcalPerDay = BASE_KCAL_PER_DAY
 ): number {
-  const trailEffort = mi * KCAL_PER_MILE + (gainFt / 1000) * KCAL_PER_1000FT_GAIN
+  const trailEffort = mi * KCAL_PER_MILE + (gainFt / FEET_PER_KILOFOOT) * KCAL_PER_1000FT_GAIN
   const base   = baseKcalPerDay + trailEffort
   const scaled = hard ? base * TOUGH_DAY_KCAL_MULTIPLIER : base
   return Math.round(scaled / KCAL_ROUNDING) * KCAL_ROUNDING
@@ -121,7 +133,7 @@ function estimateDayKcalTarget(
 
 function blankMeals(startDate?: string, endDate?: string): MealRow[] {
   if (!startDate || !endDate) return []
-  const days = Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86_400_000) + 1
+  const days = Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / MS_PER_DAY) + 1
   if (days <= 0) return []
   return Array.from({ length: days }, (_, i) => ({
     n: i + 1,
@@ -166,7 +178,7 @@ function computeRowWarnings(row: MealRow, targets: RowTargets): RowWarning[] {
 function warningTooltip(warnings: RowWarning[]): string {
   return warnings.map(({ field, pct, actual, target }) => {
     const unit = field === 'kcal' ? '' : 'g'
-    return `${field} ${pct > 0 ? 'over' : 'under'} ${Math.abs(Math.round(pct * 100))}% (${actual}${unit} vs ${target}${unit} target)`
+    return `${field} ${pct > 0 ? 'over' : 'under'} ${Math.abs(Math.round(pct * PERCENT_MULTIPLIER))}% (${actual}${unit} vs ${target}${unit} target)`
   }).join(' · ')
 }
 
@@ -247,7 +259,7 @@ function MealGrid({ meals, targets, suggestedKcalByDay, toughDayNumbers, onDayCl
           <IconAlertTriangle size={16} />
           <p className="font-mono text-label text-amber">
             {offTargetDays.map(i => `D${meals[i].n}`).join(' · ')}{' '}
-            {offTargetDays.length === 1 ? 'is' : 'are'} more than {TARGET_THRESHOLD * 100}% off target
+            {offTargetDays.length === 1 ? 'is' : 'are'} more than {TARGET_THRESHOLD * PERCENT_MULTIPLIER}% off target
           </p>
         </div>
       )}
@@ -349,7 +361,7 @@ function SegmentStrip({ label, fromDay, toDay, meals }: {
       <span className="font-mono text-label text-text-dim shrink-0">· {days} {days === 1 ? 'day' : 'days'}</span>
       <span className="flex-1" />
       {kcal > 0
-        ? <span className="font-mono text-label text-text-mid shrink-0">{kcal.toLocaleString()} kcal · {(oz / 16).toFixed(1)} lb</span>
+        ? <span className="font-mono text-label text-text-mid shrink-0">{kcal.toLocaleString()} kcal · {(oz / OZ_PER_LB).toFixed(1)} lb</span>
         : <span className="font-mono text-label text-text-dim italic shrink-0">no meals planned</span>
       }
     </div>
@@ -440,7 +452,7 @@ function ResupplySection({
                 </span>
                 <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
                   <span className="font-heading text-body-sm font-extrabold text-text">{item.wp.label}</span>
-                  <span className="font-mono text-label text-text-dim">{item.wp.lat.toFixed(4)}, {item.wp.lon.toFixed(4)}</span>
+                  <span className="font-mono text-label text-text-dim">{item.wp.lat.toFixed(COORD_DECIMAL_PLACES)}, {item.wp.lon.toFixed(COORD_DECIMAL_PLACES)}</span>
                   <div className="flex items-center gap-1.5 ml-auto shrink-0">
                     <span className="font-mono text-label text-text-dim">Day</span>
                     <input
@@ -652,17 +664,18 @@ export function FoodStage({ plan, onChange, onProgress, trip, onJump }: StageBod
     || resupplyWaypoints.every(wp => resupplyStops.find(s => s.id === wp.id)?.status === 'shipped')
   const item4 = bearCanNeed !== ''
   const item5 = mealsLocked
-  const doneCount = [item1, item2, item3, item4, item5].filter(Boolean).length
-  const progress  = Math.round((doneCount / 5) * 100)
+  const checklistItems = [item1, item2, item3, item4, item5]
+  const doneCount = checklistItems.filter(Boolean).length
+  const progress  = Math.round((doneCount / checklistItems.length) * PERCENT_MULTIPLIER)
 
   const onProgressRef = useRef(onProgress)
   useEffect(() => { onProgressRef.current = onProgress })
-  useEffect(() => { onProgressRef.current?.(doneCount, 5) }, [doneCount])
+  useEffect(() => { onProgressRef.current?.(doneCount, checklistItems.length) }, [doneCount, checklistItems.length])
 
   const allItems      = meals.flatMap(m => MEAL_SLOTS.flatMap(s => m.items[s]))
   const kcalTotal     = allItems.reduce((sum, i) => sum + i.kcal     * (i.qty ?? 1), 0)
   const totalWeightOz = allItems.reduce((sum, i) => sum + i.weightOz * (i.qty ?? 1), 0)
-  const foodWeightStr = totalWeightOz > 0 ? `${(totalWeightOz / 16).toFixed(1)} lb` : '—'
+  const foodWeightStr = totalWeightOz > 0 ? `${(totalWeightOz / OZ_PER_LB).toFixed(1)} lb` : '—'
 
   const totals = [
     { value: kcalTotal > 0 ? kcalTotal.toLocaleString() : '—', label: 'kcal total'  },
@@ -720,7 +733,7 @@ export function FoodStage({ plan, onChange, onProgress, trip, onJump }: StageBod
             <CheckItem text="Trail meals locked"  done={item5} onToggle={() => setMealsLocked(v => !v)} />
             <div className="h-px bg-border my-3" />
             <ProgressBar value={progress} tone="amber" />
-            <div className="font-mono text-label text-text-dim text-center mt-1.5">{doneCount} of 5</div>
+            <div className="font-mono text-label text-text-dim text-center mt-1.5">{doneCount} of {checklistItems.length}</div>
           </div>
 
           <div className="bg-surface border border-border rounded-lg p-3.5">

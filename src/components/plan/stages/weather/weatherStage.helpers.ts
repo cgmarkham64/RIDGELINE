@@ -252,8 +252,8 @@ export function avgElevationFt(trip: TripLike): number | null {
 
 // ─── Date utilities ───────────────────────────────────────────────────────────
 
-const FORECAST_WINDOW_DAYS = 14
-const DAY_MS = 86_400_000
+export const FORECAST_WINDOW_DAYS = 14
+export const DAY_MS = 86_400_000
 
 export function daysUntil(dateStr: string): number {
   return Math.ceil(

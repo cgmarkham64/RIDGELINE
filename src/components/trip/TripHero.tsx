@@ -2,6 +2,7 @@ import type { Trip } from '../../types'
 import { useAuthStore } from '../../store/auth'
 import { milesToKm, ftToM, distUnit, elevUnit } from '../../lib/units'
 import { useUnitSystem } from '../../hooks/useUnitSystem'
+import { isOwnedBy } from '../../lib/utils'
 
 interface Props {
   trip: Trip
@@ -25,7 +26,7 @@ function formatDateRange(start: string, end: string) {
 
 export function TripHero({ trip, days, onEdit, onDelete, onShare, onLeave }: Props) {
   const userId = useAuthStore((s) => s.user?.id)
-  const isOwner = !!userId && trip.ownerSub === userId
+  const isOwner = isOwnedBy(trip.ownerSub, userId)
   const sys = useUnitSystem()
 
   return (

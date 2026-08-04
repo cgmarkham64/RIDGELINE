@@ -9,6 +9,7 @@ import {
   isGeocodeCacheValid, isClimateCacheValid, isForecastCacheValid,
   parseClimateNormals, parseForecastDays, calcDepartureRisk,
   avgElevationFt, inForecastWindow, forecastTargetDate, daysUntil,
+  FORECAST_WINDOW_DAYS, DAY_MS,
 } from './weatherStage.helpers'
 import type { ClimateNormals } from './weatherStage.types'
 import { WmoConditionIcon } from './WmoConditionIcon'
@@ -19,6 +20,15 @@ import { useUnitSystem } from '../../../../hooks/useUnitSystem'
 
 const ARCHIVE_URL  = 'https://archive-api.open-meteo.com/v1/archive'
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
+
+const CLIMATE_LOOKBACK_YEARS    = 3
+const DEGREES_PER_TIMEZONE_HOUR = 15
+const MS_PER_HOUR               = 3_600_000
+const HOURS_PER_12H_CLOCK       = 12
+const ISO_DATE_PREFIX_LEN       = 10
+const PRECIP_WARN_THRESHOLD_PCT = 40
+const BOLD_FONT_WEIGHT          = 600
+const PERCENT_MULTIPLIER        = 100
 
 const INITIAL_WEATHER: PlanWeatherData = {
   historicalReviewed: false,
@@ -35,7 +45,7 @@ async function fetchClimateNormals(lat: number, lng: number, month: number): Pro
   const year = new Date().getFullYear()
   const lastDay = new Date(year, month, 0).getDate()
   const results = await Promise.all(
-    [year - 1, year - 2, year - 3].map(y =>
+    Array.from({ length: CLIMATE_LOOKBACK_YEARS }, (_, i) => year - i - 1).map(y =>
       fetch(`${ARCHIVE_URL}?latitude=${lat}&longitude=${lng}&start_date=${y}-${pad(month)}-01&end_date=${y}-${pad(month)}-${pad(lastDay)}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum&timezone=UTC`)
         .then(r => r.json() as Promise<ApiClimateRow>)
     )
@@ -58,9 +68,9 @@ async function fetchForecast(lat: number, lng: number): Promise<NonNullable<Plan
 }
 
 function fmtSolarTime(d: Date, lng: number): string {
-  const local = new Date(d.getTime() + Math.round(lng / 15) * 3_600_000)
+  const local = new Date(d.getTime() + Math.round(lng / DEGREES_PER_TIMEZONE_HOUR) * MS_PER_HOUR)
   const h = local.getUTCHours(), m = local.getUTCMinutes()
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
+  return `${h % HOURS_PER_12H_CLOCK || HOURS_PER_12H_CLOCK}:${String(m).padStart(2, '0')} ${h >= HOURS_PER_12H_CLOCK ? 'PM' : 'AM'}`
 }
 
 function fmtShortDate(s: string): string {
@@ -77,31 +87,38 @@ const RISK_STYLE: Record<'low' | 'moderate' | 'high', { label: string; border: s
 // Maps WMO weather code to a card background/border color.
 // Severity runs: clear (amber-warm) → cloudy/fog (gray) → precip (blue) → storm (red).
 
-function cardTint(code: number): { bg: string; border: string } {
-  if (code === 99) return { bg: 'rgba(127,29,29,0.28)',   border: 'rgba(185,28,28,0.65)'  } // t-storm + heavy hail
-  if (code === 96) return { bg: 'rgba(153,27,27,0.22)',   border: 'rgba(220,38,38,0.55)'  } // t-storm + hail
-  if (code === 95) return { bg: 'rgba(239,68,68,0.18)',   border: 'rgba(239,68,68,0.5)'   } // thunderstorm
-  if (code === 82) return { bg: 'rgba(37,99,235,0.22)',   border: 'rgba(59,130,246,0.55)' } // heavy showers
-  if (code === 86) return { bg: 'rgba(147,197,253,0.22)', border: 'rgba(147,197,253,0.5)' } // heavy snow showers
-  if (code === 75) return { bg: 'rgba(147,197,253,0.2)',  border: 'rgba(147,197,253,0.48)'} // heavy snow
-  if (code === 65) return { bg: 'rgba(37,99,235,0.2)',    border: 'rgba(59,130,246,0.5)'  } // heavy rain
-  if (code === 81) return { bg: 'rgba(59,130,246,0.16)',  border: 'rgba(96,165,250,0.45)' } // showers
-  if (code === 85) return { bg: 'rgba(186,230,253,0.15)', border: 'rgba(147,197,253,0.35)'} // snow showers
-  if (code === 73) return { bg: 'rgba(186,230,253,0.16)', border: 'rgba(147,197,253,0.38)'} // snow
-  if (code === 63) return { bg: 'rgba(59,130,246,0.15)',  border: 'rgba(96,165,250,0.4)'  } // rain
-  if (code === 80) return { bg: 'rgba(96,165,250,0.12)',  border: 'rgba(147,197,253,0.35)'} // rain showers
-  if (code === 71) return { bg: 'rgba(186,230,253,0.1)',  border: 'rgba(186,230,253,0.28)'} // light snow
-  if (code === 77) return { bg: 'rgba(186,230,253,0.1)',  border: 'rgba(186,230,253,0.28)'} // snow grains
-  if (code === 61) return { bg: 'rgba(96,165,250,0.1)',   border: 'rgba(147,197,253,0.3)' } // light rain
-  if (code === 55) return { bg: 'rgba(96,165,250,0.09)',  border: 'rgba(147,197,253,0.28)'} // heavy drizzle
-  if (code === 53) return { bg: 'rgba(147,197,253,0.07)', border: 'rgba(186,230,253,0.24)'} // drizzle
-  if (code === 51) return { bg: 'rgba(186,230,253,0.05)', border: 'rgba(186,230,253,0.18)'} // light drizzle
-  if (code === 48) return { bg: 'rgba(100,116,139,0.13)', border: 'rgba(100,116,139,0.3)' } // icy fog
-  if (code === 45) return { bg: 'rgba(100,116,139,0.1)',  border: 'rgba(100,116,139,0.25)'} // fog
-  if (code === 3)  return { bg: 'rgba(71,85,105,0.1)',    border: 'rgba(100,116,139,0.22)'} // overcast
-  if (code === 2)  return { bg: 'rgba(251,191,36,0.07)',  border: 'rgba(148,163,184,0.22)'} // partly cloudy
-  if (code === 1)  return { bg: 'rgba(251,191,36,0.11)',  border: 'rgba(251,191,36,0.3)'  } // mainly clear
-  return             { bg: 'rgba(251,191,36,0.15)',  border: 'rgba(251,191,36,0.4)'  }       // clear
+type CardTint = { bg: string; border: string }
+
+const DEFAULT_TINT: CardTint = { bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.4)' } // clear
+
+const TINT_BY_WMO_CODE: Record<number, CardTint> = {
+  99: { bg: 'rgba(127,29,29,0.28)',   border: 'rgba(185,28,28,0.65)'  }, // t-storm + heavy hail
+  96: { bg: 'rgba(153,27,27,0.22)',   border: 'rgba(220,38,38,0.55)'  }, // t-storm + hail
+  95: { bg: 'rgba(239,68,68,0.18)',   border: 'rgba(239,68,68,0.5)'   }, // thunderstorm
+  82: { bg: 'rgba(37,99,235,0.22)',   border: 'rgba(59,130,246,0.55)' }, // heavy showers
+  86: { bg: 'rgba(147,197,253,0.22)', border: 'rgba(147,197,253,0.5)' }, // heavy snow showers
+  75: { bg: 'rgba(147,197,253,0.2)',  border: 'rgba(147,197,253,0.48)'}, // heavy snow
+  65: { bg: 'rgba(37,99,235,0.2)',    border: 'rgba(59,130,246,0.5)'  }, // heavy rain
+  81: { bg: 'rgba(59,130,246,0.16)',  border: 'rgba(96,165,250,0.45)' }, // showers
+  85: { bg: 'rgba(186,230,253,0.15)', border: 'rgba(147,197,253,0.35)'}, // snow showers
+  73: { bg: 'rgba(186,230,253,0.16)', border: 'rgba(147,197,253,0.38)'}, // snow
+  63: { bg: 'rgba(59,130,246,0.15)',  border: 'rgba(96,165,250,0.4)'  }, // rain
+  80: { bg: 'rgba(96,165,250,0.12)',  border: 'rgba(147,197,253,0.35)'}, // rain showers
+  71: { bg: 'rgba(186,230,253,0.1)',  border: 'rgba(186,230,253,0.28)'}, // light snow
+  77: { bg: 'rgba(186,230,253,0.1)',  border: 'rgba(186,230,253,0.28)'}, // snow grains
+  61: { bg: 'rgba(96,165,250,0.1)',   border: 'rgba(147,197,253,0.3)' }, // light rain
+  55: { bg: 'rgba(96,165,250,0.09)',  border: 'rgba(147,197,253,0.28)'}, // heavy drizzle
+  53: { bg: 'rgba(147,197,253,0.07)', border: 'rgba(186,230,253,0.24)'}, // drizzle
+  51: { bg: 'rgba(186,230,253,0.05)', border: 'rgba(186,230,253,0.18)'}, // light drizzle
+  48: { bg: 'rgba(100,116,139,0.13)', border: 'rgba(100,116,139,0.3)' }, // icy fog
+  45: { bg: 'rgba(100,116,139,0.1)',  border: 'rgba(100,116,139,0.25)'}, // fog
+  3:  { bg: 'rgba(71,85,105,0.1)',    border: 'rgba(100,116,139,0.22)'}, // overcast
+  2:  { bg: 'rgba(251,191,36,0.07)',  border: 'rgba(148,163,184,0.22)'}, // partly cloudy
+  1:  { bg: 'rgba(251,191,36,0.11)',  border: 'rgba(251,191,36,0.3)'  }, // mainly clear
+}
+
+function cardTint(code: number): CardTint {
+  return TINT_BY_WMO_CODE[code] ?? DEFAULT_TINT
 }
 
 const DAYS_PER_PAGE = 7
@@ -115,8 +132,8 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
 
   const tripLoc  = trip?.location ?? ''
   // Normalize to YYYY-MM-DD — API dates may arrive as full ISO strings
-  const startDate = trip?.startDate?.slice(0, 10) ?? ''
-  const endDate   = trip?.endDate?.slice(0, 10) ?? ''
+  const startDate = trip?.startDate?.slice(0, ISO_DATE_PREFIX_LEN) ?? ''
+  const endDate   = trip?.endDate?.slice(0, ISO_DATE_PREFIX_LEN) ?? ''
   const hasDates  = !!(startDate && endDate)
   const tripMonth = hasDates ? new Date(startDate + 'T00:00:00').getMonth() + 1 : null
 
@@ -239,7 +256,7 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
     }
     const map = new Map<string, { sunrise: Date; sunset: Date; daylightHours: number }>()
     tripSunRows(coordsLat, coordsLng, fc.days[0].date, fc.days[fc.days.length - 1].date)
-      .forEach(r => map.set(r.date.toISOString().slice(0, 10), r))
+      .forEach(r => map.set(r.date.toISOString().slice(0, ISO_DATE_PREFIX_LEN), r))
     return map
   }, [coordsLat, coordsLng, wd.cachedForecast])
 
@@ -319,7 +336,7 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
                 {new Date(startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 {' – '}
                 {new Date(endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                {hasDates && ` · ${Math.round((new Date(endDate + 'T00:00:00').getTime() - new Date(startDate + 'T00:00:00').getTime()) / 86400000) + 1} days`}
+                {hasDates && ` · ${Math.round((new Date(endDate + 'T00:00:00').getTime() - new Date(startDate + 'T00:00:00').getTime()) / DAY_MS) + 1} days`}
                 {coordsLat != null ? ` · ${coordsLat.toFixed(2)}°, ${coordsLng!.toFixed(2)}°` : ''}
               </div>
             </div>
@@ -386,7 +403,7 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
                 <div className="font-heading text-[15px] font-bold text-text mb-1">Not in forecast range yet.</div>
                 <div className="font-mono text-fine text-text-mid">
                   Check back <span className="text-amber font-semibold">{forecastTargetDate(startDate)}</span>
-                  {daysAway > 14 ? ` · ${daysAway - 14} days from now` : ''}
+                  {daysAway > FORECAST_WINDOW_DAYS ? ` · ${daysAway - FORECAST_WINDOW_DAYS} days from now` : ''}
                 </div>
               </div>
             )}
@@ -477,7 +494,7 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
                         {/* Precip + wind */}
                         <div className="relative z-10 space-y-0.5">
                           <div className="font-mono text-label leading-none"
-                            style={{ color: d.precipPct >= 40 ? 'var(--sky)' : 'var(--text-dim)', fontWeight: d.precipPct >= 40 ? 600 : undefined }}>
+                            style={{ color: d.precipPct >= PRECIP_WARN_THRESHOLD_PCT ? 'var(--sky)' : 'var(--text-dim)', fontWeight: d.precipPct >= PRECIP_WARN_THRESHOLD_PCT ? BOLD_FONT_WEIGHT : undefined }}>
                             {d.precipPct}%
                           </div>
                           <div className="font-mono text-label text-text-dim leading-none">{fmtWind(d.windMph, sys)} {d.windDir}</div>
@@ -562,7 +579,7 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
               )
             })}
             <div className="h-px bg-border my-3" />
-            <ProgressBar value={(doneCount / checklist.length) * 100} tone="pine" />
+            <ProgressBar value={(doneCount / checklist.length) * PERCENT_MULTIPLIER} tone="pine" />
             <div className="font-mono text-label text-text-dim text-center mt-1.5">{doneCount} of {checklist.length}</div>
           </div>
 

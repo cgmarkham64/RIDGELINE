@@ -6,6 +6,7 @@ import { MoonLoader } from '../ui/MoonLoader'
 import { Pill } from '../plan/Pill'
 import { kmToMiles, mToFt, fmtDist, fmtElevGain, distUnit, elevUnit } from '../../lib/units'
 import { useUnitSystem } from '../../hooks/useUnitSystem'
+import { isOwnedBy } from '../../lib/utils'
 
 interface Props {
   selectedId: string | null
@@ -113,7 +114,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
       const q = search.trim().toLowerCase()
       if (!trip.title.toLowerCase().includes(q) && !trip.location.toLowerCase().includes(q)) return false
     }
-    const isOwner = !!userId && trip.ownerSub === userId
+    const isOwner = isOwnedBy(trip.ownerSub, userId)
     if (ownership === 'mine' && !isOwner) return false
     if (ownership === 'shared' && isOwner) return false
     if (minMiles && trip.distanceMiles != null && trip.distanceMiles < (sys === 'metric' ? kmToMiles(parseFloat(minMiles)) : parseFloat(minMiles))) return false
@@ -304,7 +305,7 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
 
         {filtered.map((trip) => {
           const isSelected = trip._id === selectedId
-          const isOwner = !!userId && trip.ownerSub === userId
+          const isOwner = isOwnedBy(trip.ownerSub, userId)
           return (
             <div
               key={trip._id}

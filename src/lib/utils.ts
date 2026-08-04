@@ -1,3 +1,7 @@
+export function isOwnedBy(ownerSub: string | undefined, userId: string | undefined): boolean {
+  return !!userId && ownerSub === userId
+}
+
 export function initials(name: string | undefined): string {
   if (!name) return '?'
   return name.split(' ').filter(Boolean).map((w) => w[0]).join('').toUpperCase().slice(0, 2)

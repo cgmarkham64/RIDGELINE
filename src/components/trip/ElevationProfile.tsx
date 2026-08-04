@@ -3,6 +3,7 @@ import type { GpxTrack, GpxTrackEntry, Waypoint } from '../../types'
 import { WAYPOINT_COLOR } from '../map/constants'
 import { ftToM, milesToKm } from '../../lib/units'
 import { useUnitSystem } from '../../hooks/useUnitSystem'
+import { haversineMiles } from '../../lib/geo'
 
 // ─── Source resolution ────────────────────────────────────────────────────────
 
@@ -50,18 +51,6 @@ function resolveSource(
 // ─── Geo helpers ──────────────────────────────────────────────────────────────
 
 const M_TO_FT = 3.28084
-
-function haversineMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 3958.8
-  const dLat = ((lat2 - lat1) * Math.PI) / 180
-  const dLon = ((lon2 - lon1) * Math.PI) / 180
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2
-  return R * 2 * Math.asin(Math.sqrt(a))
-}
 
 function downsample<T>(arr: T[], max: number): T[] {
   if (arr.length <= max) return arr

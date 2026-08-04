@@ -3,6 +3,7 @@ import { IconX, IconPlus, IconSearch } from '../../../icons'
 import { lookupMacros } from '../../../../lib/food'
 import type { MacroResult } from '../../../../lib/food'
 import type { MealItem, MealSlot, PlanMealEntry } from '../../types'
+import { Modal } from '../../../ui/Modal'
 
 type MealRow = PlanMealEntry
 type WeightUnit = 'oz' | 'g'
@@ -294,158 +295,151 @@ export function DayMealDialog({ day, dayIndex, totalDays, onSave, onCopyTo, onCl
     : null
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.72)' }}
-      onClick={onClose}
+    <Modal
+      onClose={onClose}
+      panelClassName="bg-surface border border-border rounded-lg w-full max-w-[680px] mx-4 flex flex-col max-h-[82vh]"
     >
-      <div
-        className="bg-surface border border-border rounded-lg w-full max-w-[680px] mx-4 flex flex-col"
-        style={{ maxHeight: '82vh' }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-border shrink-0">
-          <span className="font-mono text-label font-bold text-amber bg-amber-dim border border-amber-border px-2 py-0.5 rounded">
-            D{day.n}
-          </span>
-          <span className="font-heading text-body-sm font-extrabold text-text">Meal plan</span>
-          <div className="ml-auto flex items-center gap-3">
-            <div className="flex rounded border border-border overflow-hidden">
-              {(['oz', 'g'] as const).map(u => (
-                <button
-                  key={u}
-                  type="button"
-                  onClick={() => setWeightUnit(u)}
-                  className={`font-mono text-label px-2.5 py-1 transition-colors cursor-pointer ${
-                    weightUnit === u ? 'bg-amber-dim text-amber' : 'text-text-dim hover:text-text-mid'
-                  }`}
-                >
-                  {u}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-text-dim hover:text-text transition-colors cursor-pointer"
-            >
-              <IconX size={16} />
-            </button>
-          </div>
-        </div>
-
-        <div className="overflow-y-auto p-5 flex flex-col gap-5">
-          {SLOTS.map(slot => (
-            <SlotSection
-              key={slot}
-              slot={slot}
-              items={slots[slot]}
-              loading={loading}
-              weightUnit={weightUnit}
-              pendingCandidates={pendingCandidates}
-              onAdd={() => addItem(slot)}
-              onUpdate={(id, patch) => updateItem(slot, id, patch)}
-              onRemove={id => removeItem(slot, id)}
-              onLookup={lookupItem}
-              onSelectCandidate={(id, c) => selectCandidate(slot, id, c)}
-              onDismissCandidates={id => dismissCandidates(id)}
-            />
-          ))}
-        </div>
-
-        <div className="border-t border-border px-5 pt-2 pb-1 shrink-0">
-          <p className="font-mono text-label text-text-dim">Lookup results are AI-assisted estimates · verify against product label</p>
-        </div>
-
-        {showCopyPicker && (
-          <div className="border-t border-border px-5 py-3 bg-surface-2 shrink-0">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">Copy to days</span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setCopyTargets(new Set(Array.from({ length: totalDays }, (_, i) => i).filter(i => i !== dayIndex)))}
-                  className="font-mono text-label text-text-dim hover:text-text transition-colors cursor-pointer"
-                >
-                  all
-                </button>
-                <span className="font-mono text-label text-text-dim">·</span>
-                <button
-                  type="button"
-                  onClick={() => setCopyTargets(new Set())}
-                  className="font-mono text-label text-text-dim hover:text-text transition-colors cursor-pointer"
-                >
-                  none
-                </button>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {Array.from({ length: totalDays }, (_, i) => i).filter(i => i !== dayIndex).map(i => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => toggleCopyTarget(i)}
-                  className={`font-mono text-label px-2 py-0.5 rounded border transition-colors cursor-pointer ${
-                    copyTargets.has(i)
-                      ? 'border-amber-border bg-amber-dim text-amber'
-                      : 'border-border text-text-dim hover:border-border-mid hover:text-text-mid'
-                  }`}
-                >
-                  D{i + 1}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-border shrink-0">
+        <span className="font-mono text-label font-bold text-amber bg-amber-dim border border-amber-border px-2 py-0.5 rounded">
+          D{day.n}
+        </span>
+        <span className="font-heading text-body-sm font-extrabold text-text">Meal plan</span>
+        <div className="ml-auto flex items-center gap-3">
+          <div className="flex rounded border border-border overflow-hidden">
+            {(['oz', 'g'] as const).map(u => (
               <button
+                key={u}
                 type="button"
-                onClick={applyCopy}
-                disabled={copyTargets.size === 0}
-                className="inline-flex items-center font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-amber-border bg-amber-dim text-amber hover:bg-amber transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                onClick={() => setWeightUnit(u)}
+                className={`font-mono text-label px-2.5 py-1 transition-colors cursor-pointer ${
+                  weightUnit === u ? 'bg-amber-dim text-amber' : 'text-text-dim hover:text-text-mid'
+                }`}
               >
-                Copy to {copyTargets.size > 0 ? `${copyTargets.size} day${copyTargets.size > 1 ? 's' : ''}` : 'days'}
+                {u}
               </button>
-              <button
-                type="button"
-                onClick={() => { setShowCopyPicker(false); setCopyTargets(new Set()) }}
-                className="font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-dim hover:border-border-mid hover:text-text-mid transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
+            ))}
           </div>
-        )}
-
-        <div className="px-5 py-3 flex items-center gap-4 shrink-0 flex-wrap">
-          <span className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">Day totals</span>
-          <span className="font-heading text-body-sm font-extrabold text-amber">
-            {dayKcal > 0 ? dayKcal.toLocaleString() : '—'} kcal
-          </span>
-          {hasMacros && (
-            <span className="font-mono text-fine text-text-mid">
-              {dayProtein}P · {dayFat}F · {dayCarbs}C
-            </span>
-          )}
-          {dayWeightDisplay && (
-            <span className="font-mono text-fine text-text-mid">{dayWeightDisplay}</span>
-          )}
-          {totalDays > 1 && (
-            <button
-              type="button"
-              onClick={() => setShowCopyPicker(v => !v)}
-              className={`font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border transition-colors cursor-pointer ${
-                showCopyPicker
-                  ? 'border-amber-border bg-amber-dim text-amber'
-                  : 'border-border text-text-dim hover:border-border-mid hover:text-text-mid'
-              }`}
-            >
-              Copy to days…
-            </button>
-          )}
-          <button type="button" onClick={onClose} className="ml-auto btn btn-ghost">
-            Done
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-text-dim hover:text-text transition-colors cursor-pointer"
+          >
+            <IconX size={16} />
           </button>
         </div>
       </div>
-    </div>
+
+      <div className="overflow-y-auto p-5 flex flex-col gap-5">
+        {SLOTS.map(slot => (
+          <SlotSection
+            key={slot}
+            slot={slot}
+            items={slots[slot]}
+            loading={loading}
+            weightUnit={weightUnit}
+            pendingCandidates={pendingCandidates}
+            onAdd={() => addItem(slot)}
+            onUpdate={(id, patch) => updateItem(slot, id, patch)}
+            onRemove={id => removeItem(slot, id)}
+            onLookup={lookupItem}
+            onSelectCandidate={(id, c) => selectCandidate(slot, id, c)}
+            onDismissCandidates={id => dismissCandidates(id)}
+          />
+        ))}
+      </div>
+
+      <div className="border-t border-border px-5 pt-2 pb-1 shrink-0">
+        <p className="font-mono text-label text-text-dim">Lookup results are AI-assisted estimates · verify against product label</p>
+      </div>
+
+      {showCopyPicker && (
+        <div className="border-t border-border px-5 py-3 bg-surface-2 shrink-0">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">Copy to days</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setCopyTargets(new Set(Array.from({ length: totalDays }, (_, i) => i).filter(i => i !== dayIndex)))}
+                className="font-mono text-label text-text-dim hover:text-text transition-colors cursor-pointer"
+              >
+                all
+              </button>
+              <span className="font-mono text-label text-text-dim">·</span>
+              <button
+                type="button"
+                onClick={() => setCopyTargets(new Set())}
+                className="font-mono text-label text-text-dim hover:text-text transition-colors cursor-pointer"
+              >
+                none
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {Array.from({ length: totalDays }, (_, i) => i).filter(i => i !== dayIndex).map(i => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => toggleCopyTarget(i)}
+                className={`font-mono text-label px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                  copyTargets.has(i)
+                    ? 'border-amber-border bg-amber-dim text-amber'
+                    : 'border-border text-text-dim hover:border-border-mid hover:text-text-mid'
+                }`}
+              >
+                D{i + 1}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={applyCopy}
+              disabled={copyTargets.size === 0}
+              className="inline-flex items-center font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-amber-border bg-amber-dim text-amber hover:bg-amber transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Copy to {copyTargets.size > 0 ? `${copyTargets.size} day${copyTargets.size > 1 ? 's' : ''}` : 'days'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowCopyPicker(false); setCopyTargets(new Set()) }}
+              className="font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border border-border text-text-dim hover:border-border-mid hover:text-text-mid transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="px-5 py-3 flex items-center gap-4 shrink-0 flex-wrap">
+        <span className="font-mono text-label tracking-[0.12em] uppercase text-text-dim">Day totals</span>
+        <span className="font-heading text-body-sm font-extrabold text-amber">
+          {dayKcal > 0 ? dayKcal.toLocaleString() : '—'} kcal
+        </span>
+        {hasMacros && (
+          <span className="font-mono text-fine text-text-mid">
+            {dayProtein}P · {dayFat}F · {dayCarbs}C
+          </span>
+        )}
+        {dayWeightDisplay && (
+          <span className="font-mono text-fine text-text-mid">{dayWeightDisplay}</span>
+        )}
+        {totalDays > 1 && (
+          <button
+            type="button"
+            onClick={() => setShowCopyPicker(v => !v)}
+            className={`font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border transition-colors cursor-pointer ${
+              showCopyPicker
+                ? 'border-amber-border bg-amber-dim text-amber'
+                : 'border-border text-text-dim hover:border-border-mid hover:text-text-mid'
+            }`}
+          >
+            Copy to days…
+          </button>
+        )}
+        <button type="button" onClick={onClose} className="ml-auto btn btn-ghost">
+          Done
+        </button>
+      </div>
+    </Modal>
   )
 }
