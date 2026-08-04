@@ -34,7 +34,7 @@ async function verifyToken(token: string): Promise<{ sub: string; email: string;
   // Local JWT path — used when running outside Docker (npm run dev:all)
   const secret = process.env.JWT_SECRET
   if (!secret) throw new Error('JWT_SECRET is not set')
-  const payload = jwt.verify(token, secret) as jwt.JwtPayload
+  const payload = jwt.verify(token, secret, { algorithms: ['HS256'] }) as jwt.JwtPayload
   return {
     sub: payload.sub as string,
     email: payload.email as string,
