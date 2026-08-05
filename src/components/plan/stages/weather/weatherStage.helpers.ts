@@ -2,17 +2,27 @@ import type { ClimateNormals, DepartureRiskFactor } from './weatherStage.types'
 import type { PlanWeatherData } from '../../types'
 import { DEFAULT_WEATHER_TOLERANCES } from '../../../../types/auth'
 import type { WeatherTolerances } from '../../../../types/auth'
-import { cToF, kmhToMph } from '../../../../lib/units'
+import { cToF, kmhToMph, mToFt } from '../../../../lib/units'
 
 // ─── Cache TTLs ───────────────────────────────────────────────────────────────
 
-export const CACHE_TTL_GEOCODE_MS  = 12 * 60 * 60 * 1000  // 12 h
-export const CACHE_TTL_CLIMATE_MS  = 24 * 60 * 60 * 1000  // 24 h
-export const CACHE_TTL_FORECAST_MS =  4 * 60 * 60 * 1000  //  4 h
+const MINUTES_PER_HOUR = 60
+const SECONDS_PER_MINUTE = 60
+const MS_PER_SECOND = 1000
+const MS_PER_HOUR = MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MS_PER_SECOND
+
+const GEOCODE_CACHE_HOURS  = 12
+const CLIMATE_CACHE_HOURS  = 24
+const FORECAST_CACHE_HOURS = 4
+
+export const CACHE_TTL_GEOCODE_MS  = GEOCODE_CACHE_HOURS * MS_PER_HOUR
+export const CACHE_TTL_CLIMATE_MS  = CLIMATE_CACHE_HOURS * MS_PER_HOUR
+export const CACHE_TTL_FORECAST_MS = FORECAST_CACHE_HOURS * MS_PER_HOUR
 
 // ─── Risk / correction thresholds ────────────────────────────────────────────
 
 export const LAPSE_RATE_F_PER_1000FT = 3.5  // standard env. lapse rate
+export const LAPSE_RATE_ELEVATION_UNIT_FT = 1000
 export const SAMPLE_COUNT            = 50   // points to sample from GPX for avg elevation
 
 // ─── Cache validity ───────────────────────────────────────────────────────────
@@ -86,9 +96,11 @@ export function wmoLabel(code: number): string {
 // ─── Wind direction ───────────────────────────────────────────────────────────
 
 const CARDINAL_DIRS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const
+const DEGREES_PER_CIRCLE = 360
+const DEGREES_PER_CARDINAL_STEP = DEGREES_PER_CIRCLE / CARDINAL_DIRS.length
 
 export function degToCardinal(deg: number): string {
-  const index = Math.round(((deg % 360) + 360) % 360 / 45) % 8
+  const index = Math.round(((deg % DEGREES_PER_CIRCLE) + DEGREES_PER_CIRCLE) % DEGREES_PER_CIRCLE / DEGREES_PER_CARDINAL_STEP) % CARDINAL_DIRS.length
   return CARDINAL_DIRS[index]
 }
 
@@ -103,6 +115,10 @@ interface ClimateApiResponse {
   }
 }
 
+const PRECIP_DAY_THRESHOLD_MM = 0.5
+const PERCENT_MULTIPLIER = 100
+const SNOW_LIKELY_DAY_FRACTION = 0.2
+
 export function parseClimateNormals(data: ClimateApiResponse): ClimateNormals {
   const { temperature_2m_max, temperature_2m_min, precipitation_sum, snowfall_sum } = data.daily
   const total = temperature_2m_max.length
@@ -110,14 +126,14 @@ export function parseClimateNormals(data: ClimateApiResponse): ClimateNormals {
   const avgHighC = temperature_2m_max.reduce((s, v) => s + v, 0) / total
   const avgLowC  = temperature_2m_min.reduce((s, v) => s + v, 0) / total
 
-  const precipDays  = precipitation_sum.filter(v => v > 0.5).length
+  const precipDays  = precipitation_sum.filter(v => v > PRECIP_DAY_THRESHOLD_MM).length
   const snowDays    = snowfall_sum.filter(v => v > 0).length
 
   return {
     avgHighF:   cToF(avgHighC),
     avgLowF:    cToF(avgLowC),
-    precipPct:  Math.round((precipDays / total) * 100),
-    snowLikely: snowDays / total > 0.2,
+    precipPct:  Math.round((precipDays / total) * PERCENT_MULTIPLIER),
+    snowLikely: snowDays / total > SNOW_LIKELY_DAY_FRACTION,
   }
 }
 
@@ -171,7 +187,7 @@ export function calcDepartureRisk(
   const factors: DepartureRiskFactor[] = []
 
   for (const d of inRange) {
-    const adjustedLowF = d.lowF - ((avgElevFt ?? 0) / 1000) * LAPSE_RATE_F_PER_1000FT
+    const adjustedLowF = d.lowF - ((avgElevFt ?? 0) / LAPSE_RATE_ELEVATION_UNIT_FT) * LAPSE_RATE_F_PER_1000FT
 
     if (tolerances.tempDelayF !== null && adjustedLowF <= tolerances.tempDelayF) {
       factors.push({
@@ -226,8 +242,6 @@ export function calcDepartureRisk(
 
 // ─── GPX average elevation ────────────────────────────────────────────────────
 
-const M_TO_FT = 3.28084
-
 interface TripLike {
   gpxPlanned?: { coordinates: [number, number, number][] }
   gpxTracks?:  { track: { coordinates: [number, number, number][] } }[]
@@ -247,7 +261,7 @@ export function avgElevationFt(trip: TripLike): number | null {
   if (valid.length === 0) return null
 
   const avgM = valid.reduce((s, c) => s + c[2], 0) / valid.length
-  return avgM * M_TO_FT
+  return mToFt(avgM)
 }
 
 // ─── Date utilities ───────────────────────────────────────────────────────────

@@ -5,7 +5,18 @@ import { asyncRoute, HttpError, formatUserResponse } from '../utils/routeHelpers
 
 const router = Router()
 
-const MAX_AVATAR_BYTES = 5 * 1024 * 1024
+const BYTES_PER_KB = 1024
+const KB_PER_MB = 1024
+const MAX_AVATAR_MB = 5
+const MAX_AVATAR_BYTES = MAX_AVATAR_MB * KB_PER_MB * BYTES_PER_KB
+const BASE64_TO_BYTES_RATIO = 0.75
+
+const TEMP_TOLERANCE_MIN_F = -100
+const TEMP_TOLERANCE_MAX_F = 200
+const PERCENT_MIN = 0
+const PERCENT_MAX = 100
+const WIND_TOLERANCE_MIN_MPH = 0
+const WIND_TOLERANCE_MAX_MPH = 300
 
 function validateTimePref(pref: unknown, field: string): void {
   if (!pref || typeof pref !== 'object') throw new HttpError(400, `${field}: must be an object`)
@@ -36,12 +47,12 @@ function validateWeatherTolerances(t: unknown): void {
   if (!t || typeof t !== 'object') throw new HttpError(400, 'weatherTolerances must be an object')
   const w = t as Record<string, unknown>
   const fields: Array<[string, number, number]> = [
-    ['tempCautionF',    -100, 200],
-    ['tempDelayF',      -100, 200],
-    ['precipCautionPct', 0,   100],
-    ['precipDelayPct',   0,   100],
-    ['windCautionMph',   0,   300],
-    ['windDelayMph',     0,   300],
+    ['tempCautionF',    TEMP_TOLERANCE_MIN_F, TEMP_TOLERANCE_MAX_F],
+    ['tempDelayF',      TEMP_TOLERANCE_MIN_F, TEMP_TOLERANCE_MAX_F],
+    ['precipCautionPct', PERCENT_MIN, PERCENT_MAX],
+    ['precipDelayPct',   PERCENT_MIN, PERCENT_MAX],
+    ['windCautionMph',   WIND_TOLERANCE_MIN_MPH, WIND_TOLERANCE_MAX_MPH],
+    ['windDelayMph',     WIND_TOLERANCE_MIN_MPH, WIND_TOLERANCE_MAX_MPH],
   ]
   for (const [field, min, max] of fields) {
     const v = w[field]
@@ -113,7 +124,7 @@ router.put('/me/avatar', asyncRoute(async (req, res) => {
   }
   // Estimate raw byte size from base64 payload length
   const base64 = avatarDataUrl.split(',')[1] ?? ''
-  const rawBytes = Math.ceil(base64.length * 0.75)
+  const rawBytes = Math.ceil(base64.length * BASE64_TO_BYTES_RATIO)
   if (rawBytes > MAX_AVATAR_BYTES) throw new HttpError(413, 'Image exceeds 5 MB limit')
   const { sub, name, email } = req.user
   const profile = await UserProfile.findOneAndUpdate(

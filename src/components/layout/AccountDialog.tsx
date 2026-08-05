@@ -12,12 +12,29 @@ interface Props {
   onClose: () => void
 }
 
+const AVATAR_RESIZE_PX = 200
+const AVATAR_JPEG_QUALITY = 0.85
+const TOOLTIP_HIDE_DELAY_MS = 80
+const PREFS_SAVED_MESSAGE_TIMEOUT_MS = 2500
+const BYTES_PER_KB = 1024
+const KB_PER_MB = 1024
+const MAX_AVATAR_MB = 5
+const MAX_AVATAR_BYTES = MAX_AVATAR_MB * KB_PER_MB * BYTES_PER_KB
+
+const TEMP_MIN_C = -50
+const TEMP_MIN_F = -60
+const TEMP_MAX_C = 50
+const TEMP_MAX_F = 120
+const PRECIP_MAX_PCT = 100
+const WIND_MAX_KMH = 320
+const WIND_MAX_MPH = 200
+
 function resizeImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const url = URL.createObjectURL(file)
     img.onload = () => {
-      const size = 200
+      const size = AVATAR_RESIZE_PX
       const canvas = document.createElement('canvas')
       canvas.width = size
       canvas.height = size
@@ -27,7 +44,7 @@ function resizeImage(file: File): Promise<string> {
       const h = img.height * scale
       ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h)
       URL.revokeObjectURL(url)
-      resolve(canvas.toDataURL('image/jpeg', 0.85))
+      resolve(canvas.toDataURL('image/jpeg', AVATAR_JPEG_QUALITY))
     }
     img.onerror = reject
     img.src = url
@@ -52,7 +69,7 @@ function InfoTooltip({ text, align = 'center' }: { text: string; align?: 'center
     setOpen(true)
   }
   function hide() {
-    timer.current = setTimeout(() => setOpen(false), 80)
+    timer.current = setTimeout(() => setOpen(false), TOOLTIP_HIDE_DELAY_MS)
   }
 
   return (
@@ -143,8 +160,8 @@ const TOLERANCE_ROWS: Array<{
     unitLabel: sys => sys === 'metric' ? '°C' : '°F',
     toDisplay: (v, sys) => sys === 'metric' ? fToC(v) : v,
     fromDisplay: (v, sys) => sys === 'metric' ? cToF(v) : v,
-    min: sys => sys === 'metric' ? -50 : -60,
-    max: sys => sys === 'metric' ? 50 : 120,
+    min: sys => sys === 'metric' ? TEMP_MIN_C : TEMP_MIN_F,
+    max: sys => sys === 'metric' ? TEMP_MAX_C : TEMP_MAX_F,
     dir: '<',
   },
   {
@@ -153,7 +170,7 @@ const TOLERANCE_ROWS: Array<{
     defaultCaution: 40, defaultDelay: 70,
     unitLabel: () => '%',
     toDisplay: v => v, fromDisplay: v => v,
-    min: () => 0, max: () => 100,
+    min: () => 0, max: () => PRECIP_MAX_PCT,
     dir: '>',
   },
   {
@@ -164,7 +181,7 @@ const TOLERANCE_ROWS: Array<{
     toDisplay: (v, sys) => sys === 'metric' ? mphToKmh(v) : v,
     fromDisplay: (v, sys) => sys === 'metric' ? kmhToMph(v) : v,
     min: () => 0,
-    max: sys => sys === 'metric' ? 320 : 200,
+    max: sys => sys === 'metric' ? WIND_MAX_KMH : WIND_MAX_MPH,
     dir: '>',
   },
 ]
@@ -207,7 +224,7 @@ export function AccountDialog({ onClose }: Props) {
       const updated = await updatePreferences(prefs)
       updateUser({ preferences: updated.preferences })
       setPrefsSaved(true)
-      setTimeout(() => setPrefsSaved(false), 2500)
+      setTimeout(() => setPrefsSaved(false), PREFS_SAVED_MESSAGE_TIMEOUT_MS)
     } catch (err: unknown) {
       setPrefsError(apiError(err, 'Save failed. Please try again.'))
     } finally {
@@ -224,9 +241,8 @@ export function AccountDialog({ onClose }: Props) {
       if (fileRef.current) fileRef.current.value = ''
       return
     }
-    const MAX_BYTES = 5 * 1024 * 1024
-    if (file.size > MAX_BYTES) {
-      setAvatarError(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum size is 5 MB.`)
+    if (file.size > MAX_AVATAR_BYTES) {
+      setAvatarError(`File is too large (${(file.size / KB_PER_MB / BYTES_PER_KB).toFixed(1)} MB). Maximum size is ${MAX_AVATAR_MB} MB.`)
       if (fileRef.current) fileRef.current.value = ''
       return
     }

@@ -34,6 +34,16 @@ const VISUAL_RENDERING_FILES = [
   'src/components/trip/ElevationProfile.tsx',
   'src/components/trip/GpxMapSection.tsx',
   'src/components/plan/stages/route/RouteMapCard.tsx',
+  'src/components/plan/PlanAccessError.tsx',
+]
+
+// Files whose numeric literals are coefficients of a transcribed reference
+// formula (astronomical algorithm, unit-conversion factor) — naming each one
+// would fragment a formula meant to be read as a whole. See the file-level
+// comments in each for the source reference.
+const TRANSCRIBED_FORMULA_FILES = [
+  'src/lib/sun.ts',
+  'src/lib/units.ts',
 ]
 
 export default defineConfig([
@@ -71,6 +81,12 @@ export default defineConfig([
   },
   {
     files: VISUAL_RENDERING_FILES,
+    rules: {
+      '@typescript-eslint/no-magic-numbers': 'off',
+    },
+  },
+  {
+    files: TRANSCRIBED_FORMULA_FILES,
     rules: {
       '@typescript-eslint/no-magic-numbers': 'off',
     },

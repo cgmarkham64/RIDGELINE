@@ -3,6 +3,9 @@ export type UnitSystem = 'imperial' | 'metric'
 // ─── Raw conversions ──────────────────────────────────────────────────────────
 // Return unrounded floats so they compose safely (round-trip lossless).
 // Rounding belongs in format helpers or at the display boundary.
+// The literals below (1.60934 km/mi, 3.28084 ft/m, 5/9 °F-°C slope, 32 °F
+// offset) are the conversion factors themselves — naming each one would
+// fragment the formula rather than clarify it.
 
 export const fToC      = (f: number): number => (f - 32) * 5 / 9
 export const cToF      = (c: number): number => c * 9 / 5 + 32

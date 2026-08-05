@@ -2,6 +2,16 @@ import type { CheckRow, RoutePreview, SegRow, WaterEntry, MergedRow } from './ro
 import type { DetectedWaterSource } from '../../../../lib/waterSources'
 import type { Waypoint } from '../../../../types'
 import { haversineMiles, haversinePathMiles } from '../../../../lib/geo'
+import { mToFt } from '../../../../lib/units'
+
+const ELEV_GAIN_ROUND_TO_FT = 10
+const COORD_DISPLAY_DECIMALS = 3
+const DEFAULT_SPLIT_RATIO = 0.5
+const MINUTES_PER_HOUR = 60
+const MINUTES_PER_DAY = 1440
+const SUN_API_COORD_DECIMALS = 4
+const ISO_TIME_SLICE_START = 11
+const ISO_TIME_SLICE_END = 16
 
 export const DEFAULT_CHECKLIST: CheckRow[] = [
   { text: 'Route picked',                  done: false },
@@ -89,9 +99,9 @@ export async function fetchRoutePreview(
       let gain = 0
       for (let i = 1; i < rawElevs.length; i++) {
         const delta = rawElevs[i] - rawElevs[i - 1]
-        if (delta > 0) gain += delta * 3.28084
+        if (delta > 0) gain += mToFt(delta)
       }
-      gain = Math.round(gain / 10) * 10
+      gain = Math.round(gain / ELEV_GAIN_ROUND_TO_FT) * ELEV_GAIN_ROUND_TO_FT
       const SAMPLES = 60
       const step = Math.max(1, Math.floor(rawElevs.length / SAMPLES))
       const sparkElevs = rawElevs.filter((_, i) => i % step === 0 || i === rawElevs.length - 1)
@@ -119,15 +129,15 @@ export async function fetchRoutePreview(
     sparkElevs = (data.results as { elevation: number }[]).map(r => r.elevation)
     for (let i = 1; i < sparkElevs.length; i++) {
       const delta = sparkElevs[i] - sparkElevs[i - 1]
-      if (delta > 0) gain += delta * 3.28084
+      if (delta > 0) gain += mToFt(delta)
     }
-    gain = Math.round(gain / 10) * 10
+    gain = Math.round(gain / ELEV_GAIN_ROUND_TO_FT) * ELEV_GAIN_ROUND_TO_FT
   } catch { /* no elevation data */ }
   return { path, mi, gain, sparkElevs }
 }
 
 export function formatCoord([lat, lng]: [number, number]): string {
-  return `${Math.abs(lat).toFixed(3)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(3)}°${lng >= 0 ? 'E' : 'W'}`
+  return `${Math.abs(lat).toFixed(COORD_DISPLAY_DECIMALS)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lng).toFixed(COORD_DISPLAY_DECIMALS)}°${lng >= 0 ? 'E' : 'W'}`
 }
 
 export function snapToRouteMi(lat: number, lon: number, coords: [number, number, number][]): number {
@@ -157,7 +167,7 @@ export function splitSegmentAt(
   if (pathA.length < 2 || pathB.length < 2) return null
   const miA    = haversinePathMiles(pathA)
   const miB    = haversinePathMiles(pathB)
-  const ratio  = (miA + miB) > 0 ? miA / (miA + miB) : 0.5
+  const ratio  = (miA + miB) > 0 ? miA / (miA + miB) : DEFAULT_SPLIT_RATIO
   return {
     segA: {
       name: seg.name, mi: parseFloat(miA.toFixed(1)),
@@ -186,8 +196,8 @@ export function resolveTimePreference(
 
 export function addMinutesToTime(hhmm: string, minutes: number): string {
   const [h, m] = hhmm.split(':').map(Number)
-  const total = ((h * 60 + m + minutes) % 1440 + 1440) % 1440
-  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+  const total = ((h * MINUTES_PER_HOUR + m + minutes) % MINUTES_PER_DAY + MINUTES_PER_DAY) % MINUTES_PER_DAY
+  return `${String(Math.floor(total / MINUTES_PER_HOUR)).padStart(2, '0')}:${String(total % MINUTES_PER_HOUR).padStart(2, '0')}`
 }
 
 export async function fetchSunTimes(
@@ -196,7 +206,7 @@ export async function fetchSunTimes(
   date: string,
 ): Promise<{ sunrise: string; sunset: string } | null> {
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&daily=sunrise,sunset&timezone=auto&start_date=${date}&end_date=${date}`
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(SUN_API_COORD_DECIMALS)}&longitude=${lng.toFixed(SUN_API_COORD_DECIMALS)}&daily=sunrise,sunset&timezone=auto&start_date=${date}&end_date=${date}`
     const res = await fetch(url)
     if (!res.ok) return null
     const data = await res.json()
@@ -204,7 +214,10 @@ export async function fetchSunTimes(
     const sunset  = (data.daily?.sunset?.[0]  as string | undefined)
     if (!sunrise || !sunset) return null
     // Returned as "2024-07-15T05:23" — extract HH:MM
-    return { sunrise: sunrise.slice(11, 16), sunset: sunset.slice(11, 16) }
+    return {
+      sunrise: sunrise.slice(ISO_TIME_SLICE_START, ISO_TIME_SLICE_END),
+      sunset: sunset.slice(ISO_TIME_SLICE_START, ISO_TIME_SLICE_END),
+    }
   } catch {
     return null
   }

@@ -31,6 +31,11 @@ export interface SunTimes {
 /**
  * Returns sunrise/sunset in UTC for the given lat/lng/date.
  * date should be constructed at noon UTC for the calendar day of interest.
+ *
+ * Coefficients below (0.0009, 0.98560028, 1.9148, 23.4397, etc.) are the
+ * published constants of this algorithm, not independent magic numbers —
+ * naming each one would fragment a formula meant to be read as a whole.
+ * Reference: https://en.wikipedia.org/wiki/Sunrise_equation#Complete_calculation_on_Earth
  */
 export function getSunTimes(lat: number, lng: number, date: Date): SunTimes {
   const jd = julianDay(date)
