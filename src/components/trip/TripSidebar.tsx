@@ -16,9 +16,11 @@ interface Props {
   onDelete: (trip: Trip) => void
 }
 
+const ISO_DATE_LENGTH = 10
+
 function formatDateRange(start: string, end: string) {
   const fmt = (d: string) =>
-    new Date(d.slice(0, 10) + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    new Date(d.slice(0, ISO_DATE_LENGTH) + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   return `${fmt(start)} – ${fmt(end)}`
 }
 
@@ -121,8 +123,8 @@ export function TripSidebar({ selectedId, onSelect, onNew, onEdit, onDelete }: P
     if (maxMiles && trip.distanceMiles != null && trip.distanceMiles > (sys === 'metric' ? kmToMiles(parseFloat(maxMiles)) : parseFloat(maxMiles))) return false
     if (minElev && trip.elevationGainFt != null && trip.elevationGainFt < (sys === 'metric' ? mToFt(parseFloat(minElev)) : parseFloat(minElev))) return false
     if (maxElev && trip.elevationGainFt != null && trip.elevationGainFt > (sys === 'metric' ? mToFt(parseFloat(maxElev)) : parseFloat(maxElev))) return false
-    if (dateFrom && trip.endDate.slice(0, 10) < dateFrom) return false
-    if (dateTo && trip.startDate.slice(0, 10) > dateTo) return false
+    if (dateFrom && trip.endDate.slice(0, ISO_DATE_LENGTH) < dateFrom) return false
+    if (dateTo && trip.startDate.slice(0, ISO_DATE_LENGTH) > dateTo) return false
     if (statusFilter.length > 0 && !statusFilter.includes((trip.status ?? 'complete') as TripStatus)) return false
     return true
   })

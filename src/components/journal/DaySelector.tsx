@@ -14,6 +14,11 @@ interface MonthGroup {
   nextLabel: string | null // trip continues into this month name
 }
 
+const MS_PER_DAY = 86_400_000
+const DAYS_PER_WEEK = 7
+const ISO_DATE_LENGTH = 10
+const STRIP_VIEW_MAX_DAYS = 14
+
 function localDateStr(d: Date): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -23,8 +28,8 @@ function localDateStr(d: Date): string {
 
 function buildDays(startDate: string, endDate: string): DayMeta[] {
   const days: DayMeta[] = []
-  const start = new Date(startDate.slice(0, 10) + 'T00:00:00')
-  const end = new Date(endDate.slice(0, 10) + 'T00:00:00')
+  const start = new Date(startDate.slice(0, ISO_DATE_LENGTH) + 'T00:00:00')
+  const end = new Date(endDate.slice(0, ISO_DATE_LENGTH) + 'T00:00:00')
   let current = new Date(start)
   let dayNum = 1
   while (current <= end) {
@@ -67,14 +72,14 @@ function buildMonthGroups(days: DayMeta[]): MonthGroup[] {
     const gridStart = new Date(firstDt)
     gridStart.setDate(gridStart.getDate() - gridStart.getDay())
     const gridEnd = new Date(lastDt)
-    gridEnd.setDate(gridEnd.getDate() + (6 - gridEnd.getDay()))
+    gridEnd.setDate(gridEnd.getDate() + (DAYS_PER_WEEK - 1 - gridEnd.getDay()))
 
     const weeks: Cell[][] = []
     let current = new Date(gridStart)
 
     while (current <= gridEnd) {
       const cells: Cell[] = []
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < DAYS_PER_WEEK; i++) {
         const dateStr = localDateStr(current)
         const dt = new Date(dateStr + 'T00:00:00')
         if (dt.getFullYear() === year && dt.getMonth() === month) {
@@ -108,12 +113,11 @@ interface Props {
   onSelect: (date: string) => void
 }
 
-const MS_PER_DAY = 86_400_000
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 export function DaySelector({ startDate, endDate, selectedDate, entries, onSelect }: Props) {
   const days = useMemo(() => buildDays(startDate, endDate), [startDate, endDate])
-  const entryDates = useMemo(() => new Set(entries.map((e) => e.date.slice(0, 10))), [entries])
+  const entryDates = useMemo(() => new Set(entries.map((e) => e.date.slice(0, ISO_DATE_LENGTH))), [entries])
   const monthGroups = useMemo(() => buildMonthGroups(days), [days])
   const [visibleMonthIdx, setVisibleMonthIdx] = useState(0)
   const [prevStartDate, setPrevStartDate] = useState(startDate)
@@ -123,7 +127,7 @@ export function DaySelector({ startDate, endDate, selectedDate, entries, onSelec
   }
 
   // ── Strip view (≤ 14 days) ───────────────────────────────────────────────
-  if (days.length <= 14) {
+  if (days.length <= STRIP_VIEW_MAX_DAYS) {
     return (
       <div className="day-selector">
         {days.map(({ dayNumber, date }) => {

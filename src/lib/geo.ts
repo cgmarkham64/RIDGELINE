@@ -1,11 +1,13 @@
 const EARTH_RADIUS_M = 6_371_000
 const METERS_PER_MILE = 1_609.344
+const DEGREES_PER_HALF_CIRCLE = 180
+export const DEG_TO_RAD = Math.PI / DEGREES_PER_HALF_CIRCLE
 
 export function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLon = (lon2 - lon1) * Math.PI / 180
+  const dLat = (lat2 - lat1) * DEG_TO_RAD
+  const dLon = (lon2 - lon1) * DEG_TO_RAD
   const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2
+    Math.cos(lat1 * DEG_TO_RAD) * Math.cos(lat2 * DEG_TO_RAD) * Math.sin(dLon / 2) ** 2
   return EARTH_RADIUS_M * 2 * Math.asin(Math.sqrt(a))
 }
 

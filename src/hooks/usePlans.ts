@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { fetchPlans, fetchPlan, createPlan, updatePlan, deletePlan } from '../lib/plans'
 import type { Trip } from '../types'
 
+const HTTP_FORBIDDEN = 403
+
 export function usePlans() {
   return useQuery({ queryKey: ['plans'], queryFn: fetchPlans })
 }
@@ -11,7 +13,7 @@ export function usePlan(id: string | undefined) {
     queryKey: ['plan', id],
     queryFn: () => fetchPlan(id!),
     enabled: !!id,
-    retry: (_, err) => (err as { response?: { status?: number } })?.response?.status !== 403,
+    retry: (_, err) => (err as { response?: { status?: number } })?.response?.status !== HTTP_FORBIDDEN,
   })
 }
 

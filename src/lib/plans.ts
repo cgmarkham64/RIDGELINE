@@ -1,8 +1,10 @@
 import { api } from './api'
 import type { Trip } from '../types'
 
+const ISO_DATE_LENGTH = 10
+
 function todayIso() {
-  return new Date().toISOString().slice(0, 10)
+  return new Date().toISOString().slice(0, ISO_DATE_LENGTH)
 }
 
 export async function fetchPlans(): Promise<Trip[]> {

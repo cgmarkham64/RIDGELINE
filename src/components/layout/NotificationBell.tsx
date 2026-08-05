@@ -9,6 +9,8 @@ import {
 } from '../../hooks/useNotifications'
 import { NotificationItem } from './NotificationItem'
 
+const MAX_DISPLAYED_BADGE_COUNT = 9
+
 export function NotificationBell() {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -49,7 +51,7 @@ export function NotificationBell() {
         <IconBell size={17} />
         {badgeCount > 0 && (
           <span className="absolute top-1.5 right-1.5 min-w-3.5 h-3.5 rounded-full bg-red flex items-center justify-center font-mono text-label font-bold text-white leading-none px-[3px]">
-            {badgeCount > 9 ? '9+' : badgeCount}
+            {badgeCount > MAX_DISPLAYED_BADGE_COUNT ? `${MAX_DISPLAYED_BADGE_COUNT}+` : badgeCount}
           </span>
         )}
       </button>

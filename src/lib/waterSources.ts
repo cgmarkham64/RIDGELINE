@@ -5,8 +5,13 @@ const OVERPASS_URL     = 'https://overpass-api.de/api/interpreter'
 const MAX_SNAP_DIST_M  = 400
 const MAX_VERT_DROP_M  = 40       // ~130 ft — sources below this are effectively off a cliff
 const CLUSTER_MI       = 0.35     // within 0.35 miles, only the most reliable source shows
-const CACHE_TTL_MS     = 30 * 60 * 1000  // 30 minutes
+const SECONDS_PER_MINUTE = 60
+const MS_PER_SECOND    = 1000
+const MS_PER_MINUTE    = SECONDS_PER_MINUTE * MS_PER_SECOND
+const CACHE_TTL_MINUTES = 30
+const CACHE_TTL_MS     = CACHE_TTL_MINUTES * MS_PER_MINUTE
 const RETRY_DELAY_MS   = 6_000            // wait 6 s before retrying a 429
+const HTTP_TOO_MANY_REQUESTS = 429
 
 export type OsmWaterClass = 'spring' | 'stream' | 'river' | 'lake' | 'drinking_water'
 
@@ -46,7 +51,7 @@ async function overpassFetch(query: string): Promise<Response> {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   }
   const res = await fetch(OVERPASS_URL, opts)
-  if (res.status === 429) {
+  if (res.status === HTTP_TOO_MANY_REQUESTS) {
     await new Promise(r => setTimeout(r, RETRY_DELAY_MS))
     return fetch(OVERPASS_URL, opts)
   }

@@ -13,6 +13,8 @@ import {
   IconPlus, IconCheck, IconTent, IconPencil, IconTrash,
   IconTriangleRight, IconSparkle, IconGrip,
 } from '../../../icons'
+
+const DRAG_Z_INDEX = 10
 import { GRID, DRAG_GRID, ACTIVE_BG, EXP_LABEL, SEG_COLORS } from './routeStage.helpers'
 import type { MergedRow, SegRow } from './routeStage.types'
 import type { StageBodyProps } from '../../types'
@@ -82,7 +84,7 @@ function SortableCampRow({
         transition,
         background: isDragging ? 'var(--surface-2)' : activeRowId === rowId ? ACTIVE_BG : undefined,
         boxShadow: isDragging ? '0 4px 16px rgba(0,0,0,0.4)' : undefined,
-        zIndex: isDragging ? 10 : undefined,
+        zIndex: isDragging ? DRAG_Z_INDEX : undefined,
         position: isDragging ? 'relative' : undefined,
         borderLeft: `3px solid ${segColor}`,
       }}

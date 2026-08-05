@@ -5,12 +5,18 @@ import JwksClient from 'jwks-rsa'
 // Initialized at module load time — dotenv/config runs before this file is required.
 // When KEYCLOAK_JWKS_URI is set, all tokens must be Keycloak RS256 JWTs.
 // When unset, falls back to local HS256 JWTs (dev without Docker).
+const SECONDS_PER_MINUTE = 60
+const MS_PER_SECOND = 1000
+const JWKS_CACHE_MAX_AGE_MINUTES = 10
+const JWKS_CACHE_MAX_AGE_MS = JWKS_CACHE_MAX_AGE_MINUTES * SECONDS_PER_MINUTE * MS_PER_SECOND
+const BEARER_PREFIX_LENGTH = 'Bearer '.length
+
 const jwksClient = process.env.KEYCLOAK_JWKS_URI
   ? JwksClient({
       jwksUri: process.env.KEYCLOAK_JWKS_URI,
       cache: true,
       cacheMaxEntries: 5,
-      cacheMaxAge: 10 * 60 * 1000,
+      cacheMaxAge: JWKS_CACHE_MAX_AGE_MS,
     })
   : null
 
@@ -60,7 +66,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     res.status(401).json({ error: 'Unauthorized' })
     return
   }
-  const token = header.slice(7)
+  const token = header.slice(BEARER_PREFIX_LENGTH)
   try {
     req.user = await verifyToken(token)
     next()

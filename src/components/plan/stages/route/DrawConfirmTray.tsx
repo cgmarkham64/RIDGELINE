@@ -4,6 +4,8 @@ import { EXP_LABEL } from './routeStage.helpers'
 import { milesToKm, ftToM } from '../../../../lib/units'
 import { useUnitSystem } from '../../../../hooks/useUnitSystem'
 
+const SUGGESTED_HARD_SCORE_THRESHOLD = 350
+
 const EXP_CLS: Record<string, string> = {
   low:     'text-pine border-pine-border bg-pine-dim',
   med:     'text-sky border-sky-border bg-sky-dim',
@@ -49,7 +51,7 @@ function set<K extends keyof Extract<DrawState, { phase: 'active' }>>(
 export function DrawConfirmTray({ drawState, setDrawState, onCancel, onConfirm }: DrawConfirmTrayProps) {
   const sys = useUnitSystem()
   const score = drawState.result ? shenandoahScore(drawState.result.mi, drawState.result.gain) : null
-  const suggestedHard = score !== null && score >= 350
+  const suggestedHard = score !== null && score >= SUGGESTED_HARD_SCORE_THRESHOLD
 
   return (
     <div className="mt-3 rounded border border-border bg-surface-2 p-3">

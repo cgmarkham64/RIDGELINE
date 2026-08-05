@@ -9,10 +9,12 @@ import { useAuthStore } from '../store/auth'
 import { MoonLoader } from '../components/ui/MoonLoader'
 import { extractApiError } from '../lib/utils'
 
+const MIN_PASSWORD_LENGTH = 8
+
 const schema = z.object({
   name: z.string().min(1, 'Name required'),
   email: z.string().email('Valid email required'),
-  password: z.string().min(8, 'At least 8 characters'),
+  password: z.string().min(MIN_PASSWORD_LENGTH, `At least ${MIN_PASSWORD_LENGTH} characters`),
 })
 type Fields = z.infer<typeof schema>
 

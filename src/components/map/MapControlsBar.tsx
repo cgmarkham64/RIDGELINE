@@ -3,6 +3,8 @@ import { GpxMapSection } from '../trip/GpxMapSection'
 import { mono } from './constants'
 import { WaypointChip } from './WaypointChip'
 
+const SECTION_MARGIN_PX = 12
+
 export function MapControlsBar({
   trip,
   onTripUpdated,
@@ -40,7 +42,7 @@ export function MapControlsBar({
       <div className="flex-1 min-w-0 bg-surface overflow-y-auto max-h-50 px-4.5 pt-1.5 pb-3.5">
         <div
           className="flex items-center justify-between"
-          style={{ marginBottom: editingId || waypoints.length > 0 ? 12 : 0 }}
+          style={{ marginBottom: editingId || waypoints.length > 0 ? SECTION_MARGIN_PX : 0 }}
         >
           <div className="sec-label m-0 flex-1">Waypoints</div>
           {!addMode && (

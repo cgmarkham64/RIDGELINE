@@ -6,6 +6,8 @@ import { validObjectId } from '../utils/objectId'
 
 const router = Router()
 
+const NOTIFICATION_LIST_LIMIT = 50
+
 router.param('id', (req, res, next, id) => {
   if (!validObjectId(id)) {
     res.status(400).json({ error: 'Invalid id' })
@@ -17,7 +19,7 @@ router.param('id', (req, res, next, id) => {
 router.get('/', asyncRoute(async (req, res) => {
   const notes = await Notification.find({ toSub: req.user.sub })
     .sort({ createdAt: -1 })
-    .limit(50)
+    .limit(NOTIFICATION_LIST_LIMIT)
     .lean()
   res.json(notes)
 }))

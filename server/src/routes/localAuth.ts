@@ -10,18 +10,26 @@ import { asyncRoute, HttpError, formatUserResponse } from '../utils/routeHelpers
 const router = Router()
 
 const MIN_PASSWORD_LENGTH = 8
+const MS_PER_MINUTE = 60_000
+const BCRYPT_SALT_ROUNDS = 10
+
+const LOGIN_WINDOW_MINUTES = 15
+const LOGIN_MAX_ATTEMPTS = 10
+
+const REGISTER_WINDOW_MINUTES = 60
+const REGISTER_MAX_ATTEMPTS = 5
 
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60_000,
-  max: 10,
+  windowMs: LOGIN_WINDOW_MINUTES * MS_PER_MINUTE,
+  max: LOGIN_MAX_ATTEMPTS,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many login attempts — try again in 15 minutes' },
 })
 
 const registerLimiter = rateLimit({
-  windowMs: 60 * 60_000,
-  max: 5,
+  windowMs: REGISTER_WINDOW_MINUTES * MS_PER_MINUTE,
+  max: REGISTER_MAX_ATTEMPTS,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many accounts created from this address — try again in an hour' },
@@ -42,7 +50,7 @@ router.post('/register', registerLimiter, asyncRoute(async (req, res) => {
   if (existing) throw new HttpError(409, 'Email already registered')
 
   const sub = randomUUID()
-  const passwordHash = await bcrypt.hash(password, 10)
+  const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS)
   await LocalUser.create({ sub, email: email.toLowerCase(), name, passwordHash })
   await UserProfile.findOneAndUpdate(
     { sub },

@@ -10,10 +10,14 @@ export const IPW_ZONES           = ipwZonesRaw as unknown as ZoneCollection
 export const ENCHANTMENTS_ZONES  = enchantmentsZonesRaw as unknown as ZoneCollection
 export const MBSW_ZONES          = mbswZonesRaw as unknown as ZoneCollection
 
+const ISO_DATE_LENGTH = 10
+const ISO_YEAR_LENGTH = 4
+const ROUTE_SIGNATURE_COORD_DECIMALS = 5
+
 function addDaysIso(startDate: string, days: number): string {
-  const d = new Date(`${startDate.slice(0, 10)}T00:00:00Z`)
+  const d = new Date(`${startDate.slice(0, ISO_DATE_LENGTH)}T00:00:00Z`)
   d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
+  return d.toISOString().slice(0, ISO_DATE_LENGTH)
 }
 
 /** Camp coordinates come from each segment's last path point — mirrors the camp
@@ -149,7 +153,7 @@ export function buildSelfRegisterPermit(need: PermitNeed): PlanPermitEntry {
  *  auto-detection effect re-run when the route is edited instead of only once ever. */
 export function routeSignature(segments: PlanRouteData['segments'], startDate: string): string {
   return deriveCampNights(segments, startDate)
-    .map(c => `${c.date}:${c.point.lat.toFixed(5)},${c.point.lon.toFixed(5)}`)
+    .map(c => `${c.date}:${c.point.lat.toFixed(ROUTE_SIGNATURE_COORD_DECIMALS)},${c.point.lon.toFixed(ROUTE_SIGNATURE_COORD_DECIMALS)}`)
     .join('|')
 }
 
@@ -164,7 +168,7 @@ export function zoneNeedId(need: PermitNeed): string {
  *  the AI call decides which of the zone's 3 recgov products fits and writes the copy. */
 export function buildZonePermit(need: PermitNeed, party: number, product: ZoneProductResult): PlanPermitEntry {
   const p    = need.zone.properties
-  const year = need.nights[0].date.slice(0, 4)
+  const year = need.nights[0].date.slice(0, ISO_YEAR_LENGTH)
   const id   = zoneNeedId(need)
 
   const criticalDates: PlanCriticalDate[] = [

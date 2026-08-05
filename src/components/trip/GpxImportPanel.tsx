@@ -1,6 +1,8 @@
 import type { GpxTrack, GpxTrackEntry } from '../../types'
 import { PLANNED_COLOR, trackColor, type ImportTarget } from './gpxMapSection.helpers'
 
+const SECTION_MARGIN_PX = 8
+
 function KabobMenu({
   hasTrack,
   importLabel,
@@ -104,7 +106,7 @@ export function GpxImportPanel({
       <div>
         <div
           className="flex items-center justify-between gap-2"
-          style={{ marginBottom: gpxTracks.length > 0 ? 8 : 0 }}
+          style={{ marginBottom: gpxTracks.length > 0 ? SECTION_MARGIN_PX : 0 }}
         >
           <div className="font-heading text-body-sm font-bold text-text">GPS Tracks</div>
           <button

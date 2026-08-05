@@ -17,6 +17,9 @@ type PartnersCardProps = {
   onConfirmParty?: () => void
 }
 
+const SEARCH_DEBOUNCE_MS = 300
+const INVITE_MESSAGE_TIMEOUT_MS = 3000
+
 export function PartnersCard({ trip, canEdit, onInviteSent, onNoPartners, partyConfirmed = false, onConfirmParty }: PartnersCardProps) {
   const qc = useQueryClient()
   const currentUserSub = useAuthStore(s => s.user?.id)
@@ -46,7 +49,7 @@ export function PartnersCard({ trip, canEdit, onInviteSent, onNoPartners, partyC
   // Single state object so the effect never calls setState synchronously
   const [searchResult, setSearchResult] = useState<{ query: string; results: UserSearchResult[] } | null>(null)
 
-  const debouncedInviteQuery = useDebounce(inviteQuery, 300)
+  const debouncedInviteQuery = useDebounce(inviteQuery, SEARCH_DEBOUNCE_MS)
   const trimmedQuery = debouncedInviteQuery.trim()
 
   const soloTrip = partners.length <= 1 && pendingInvites.length === 0
@@ -81,7 +84,7 @@ export function PartnersCard({ trip, canEdit, onInviteSent, onNoPartners, partyC
       setInviteQuery('')
       setSearchResult(null)
       setInviteMsg({ text: `Invite sent to ${user.name}`, tone: 'pine' })
-      setTimeout(() => setInviteMsg(null), 3000)
+      setTimeout(() => setInviteMsg(null), INVITE_MESSAGE_TIMEOUT_MS)
     } catch {
       setInviteMsg({ text: 'Failed to send invite', tone: 'red' })
     }

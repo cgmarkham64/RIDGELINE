@@ -9,6 +9,7 @@ import { useAuthStore } from './store/auth'
 import { getMe } from './lib/auth'
 
 const queryClient = new QueryClient()
+const TOKEN_REFRESH_MIN_VALIDITY_SEC = 30
 
 async function bootstrap() {
   if (LOCAL_AUTH) {
@@ -52,7 +53,7 @@ async function bootstrap() {
 
     keycloak.onTokenExpired = async () => {
       try {
-        await keycloak.updateToken(30)
+        await keycloak.updateToken(TOKEN_REFRESH_MIN_VALIDITY_SEC)
         const { user, setAuth } = useAuthStore.getState()
         if (keycloak.token && user) setAuth(keycloak.token, user)
       } catch {

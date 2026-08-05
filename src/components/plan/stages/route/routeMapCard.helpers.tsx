@@ -4,6 +4,8 @@ import { type LatLngBoundsExpression } from 'leaflet'
 import type { DrawState, SegRow } from './routeStage.types'
 
 const SPLIT_THRESHOLD_PX = 12
+const FIT_BOUNDS_PADDING_PX = 20
+const MIN_SPLITTABLE_PATH_POINTS = 3
 
 function pointToSegDistPx(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
   const dx = bx - ax, dy = by - ay
@@ -17,7 +19,7 @@ export function FitBounds({ positions, fitKey }: { positions: [number, number][]
   const map = useMap()
   useEffect(() => {
     if (positions.length > 1)
-      map.fitBounds(positions as LatLngBoundsExpression, { padding: [20, 20] })
+      map.fitBounds(positions as LatLngBoundsExpression, { padding: [FIT_BOUNDS_PADDING_PX, FIT_BOUNDS_PADDING_PX] })
   // fitKey is the real trigger; positions is read at effect time but intentionally not a dep
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, fitKey])
@@ -64,7 +66,7 @@ export function ContextMenuLayer({
       let bestDist = SPLIT_THRESHOLD_PX + 1
 
       for (const seg of segments) {
-        if (!seg.path || seg.path.length < 3) continue
+        if (!seg.path || seg.path.length < MIN_SPLITTABLE_PATH_POINTS) continue
         for (let i = 0; i < seg.path.length - 1; i++) {
           const pa = map.latLngToContainerPoint(seg.path[i])
           const pb = map.latLngToContainerPoint(seg.path[i + 1])

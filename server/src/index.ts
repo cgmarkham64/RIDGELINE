@@ -15,8 +15,10 @@ import plansRouter from './routes/plans'
 import foodRouter from './routes/food'
 import { requireAuth } from './middleware/auth'
 
+const DEFAULT_PORT = 8000
+
 const app = express()
-const PORT = process.env.PORT ?? 8000
+const PORT = process.env.PORT ?? DEFAULT_PORT
 const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/ridgeline'
 
 app.use(cors({ origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173' }))

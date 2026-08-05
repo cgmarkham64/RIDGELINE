@@ -3,6 +3,8 @@ import type { Waypoint } from '../../types'
 import { WAYPOINT_COLOR, WAYPOINT_LABEL } from './constants'
 import { WaypointIcon } from './WaypointIcon'
 
+const CONTEXT_MENU_OFFSET_PX = 4
+
 export function WaypointChip({
   wp,
   isEditing,
@@ -62,7 +64,7 @@ export function WaypointChip({
           />
           <div
             className="fixed z-[2001] bg-surface border border-border rounded-md overflow-hidden py-0.5"
-            style={{ left: menu.x + 4, top: menu.y + 4, minWidth: 172 }}
+            style={{ left: menu.x + CONTEXT_MENU_OFFSET_PX, top: menu.y + CONTEXT_MENU_OFFSET_PX, minWidth: 172 }}
           >
             <ChipMenuItem
               icon={<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />}

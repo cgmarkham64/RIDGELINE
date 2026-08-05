@@ -53,9 +53,11 @@ async function normalizeQuery(name: string): Promise<string> {
   }
 }
 
+const DEFAULT_SERVING_G = 100
+
 function foodToResult(food: FdcFood): MacroResult {
-  const servingG = food.servingSizeUnit === 'g' && food.servingSize ? food.servingSize : 100
-  const scale    = servingG / 100
+  const servingG = food.servingSizeUnit === 'g' && food.servingSize ? food.servingSize : DEFAULT_SERVING_G
+  const scale    = servingG / DEFAULT_SERVING_G
   return {
     kcal:     Math.round(nutrientPer100g(food.foodNutrients, NID_ENERGY)  * scale),
     proteinG: Math.round(nutrientPer100g(food.foodNutrients, NID_PROTEIN) * scale),

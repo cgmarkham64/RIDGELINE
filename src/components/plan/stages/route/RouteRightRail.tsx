@@ -8,6 +8,8 @@ import type { Trip } from '../../../../types'
 
 type SourceFile = { name: string; meta: string; coords: [number, number, number][] }
 
+const PERCENT_MULTIPLIER = 100
+
 export function RouteRightRail({
   trip,
   canEdit,
@@ -39,7 +41,7 @@ export function RouteRightRail({
         ))}
         <div className="h-px bg-border my-3" />
         <ProgressBar
-          value={checklist.length > 0 ? (doneCount / checklist.length) * 100 : 0}
+          value={checklist.length > 0 ? (doneCount / checklist.length) * PERCENT_MULTIPLIER : 0}
           tone={doneCount === checklist.length && checklist.length > 0 ? 'pine' : 'amber'}
         />
         <div className="font-mono text-label text-text-dim text-center mt-1.5">

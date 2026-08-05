@@ -49,11 +49,14 @@ const CAN_TYPE_CLS: Record<'hard' | 'soft', string> = {
   soft: 'bg-amber-dim border-amber-border text-amber',
 }
 
+const OZ_PER_LB = 16
+const PERCENT_MULTIPLIER = 100
+
 function canWeightOz(weight: string): number {
   const match = weight.match(/^([\d.]+)\s*(lb|oz)$/)
   if (!match) return 0
   const value = parseFloat(match[1])
-  return match[2] === 'lb' ? value * 16 : value
+  return match[2] === 'lb' ? value * OZ_PER_LB : value
 }
 
 const DEFAULT_CATEGORIES: GearCategory[] = [
@@ -320,14 +323,14 @@ export function GearStage({ onJump, plan, onChange, canEdit = true }: StageBodyP
   const selectedCan  = BEAR_CANS.find(c => c.id === selectedCanId)
   const canOz        = selectedCan ? canWeightOz(selectedCan.weight) : 0
   const baseOz       = allItems.filter(i => i.checked).reduce((s, i) => s + i.weight, 0) + canOz
-  const baseLb       = (baseOz / 16).toFixed(1)
+  const baseLb       = (baseOz / OZ_PER_LB).toFixed(1)
 
   // Stub — future: pull from Food stage state
   const foodLb  = '16.4'
-  const totalLb = (baseOz / 16 + parseFloat(foodLb)).toFixed(1)
+  const totalLb = (baseOz / OZ_PER_LB + parseFloat(foodLb)).toFixed(1)
 
   const unlockDone     = unlockChecklist.filter(c => c.done).length
-  const unlockProgress = Math.round((unlockDone / unlockChecklist.length) * 100)
+  const unlockProgress = Math.round((unlockDone / unlockChecklist.length) * PERCENT_MULTIPLIER)
 
   return (
     <div className="flex-1 overflow-y-auto p-8 pb-20">

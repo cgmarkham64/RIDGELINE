@@ -3,6 +3,9 @@ import { useDebounce } from '../../hooks/useDebounce'
 import { searchUsers, type UserSearchResult } from '../../lib/users'
 import { initials } from '../../lib/utils'
 
+const SEARCH_DEBOUNCE_MS = 300
+const BLUR_CLOSE_DELAY_MS = 150
+
 export function CompanionTagInput({
   tags,
   onChange,
@@ -17,7 +20,7 @@ export function CompanionTagInput({
   // Single state object so the effect never calls setState synchronously
   const [searchResult, setSearchResult] = useState<{ query: string; results: UserSearchResult[] } | null>(null)
 
-  const debouncedInput = useDebounce(input, 300)
+  const debouncedInput = useDebounce(input, SEARCH_DEBOUNCE_MS)
   const trimmedInput = debouncedInput.trim()
   const hasQuery = trimmedInput.length >= 2
   const showDropdown = open && hasQuery
@@ -98,7 +101,7 @@ export function CompanionTagInput({
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           onBlur={() => {
-            setTimeout(() => setOpen(false), 150)
+            setTimeout(() => setOpen(false), BLUR_CLOSE_DELAY_MS)
             if (input.trim() && !showDropdown) addTag(input)
           }}
           placeholder={tags.length === 0 ? 'Add names…' : ''}

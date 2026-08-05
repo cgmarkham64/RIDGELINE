@@ -4,6 +4,9 @@ import { PERMIT_TYPES, TONE_CLS, ZONE_STATUS_CLS } from './permitsStage.constant
 import type { Permit } from './permitsStage.types'
 import { isSafeExternalUrl } from '../../../../lib/utils'
 
+const LOTTERY_FIELD_GRID_MAX_COLS = 4
+const RESERVATION_FIELD_GRID_MAX_COLS = 3
+
 export function PermitCard({ permit, onRemove, onEdit, onUpdatePermit, canEdit, partySize }: {
   permit: Permit
   onRemove: () => void
@@ -66,14 +69,14 @@ export function PermitCard({ permit, onRemove, onEdit, onUpdatePermit, canEdit, 
       </div>
 
       {permit.type === 'lottery' && fields.length > 0 && (
-        <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${Math.min(fields.length, 4)}, 1fr)` }}>
+        <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${Math.min(fields.length, LOTTERY_FIELD_GRID_MAX_COLS)}, 1fr)` }}>
           {fields.map(([k, v]) => (
             <Field key={k} label={k} value={v} onChange={canEdit ? val => onUpdatePermit(k, val) : undefined} />
           ))}
         </div>
       )}
       {permit.type === 'reservation' && fields.length > 0 && (
-        <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${Math.min(fields.length, 3)}, 1fr)` }}>
+        <div className="grid gap-2.5" style={{ gridTemplateColumns: `repeat(${Math.min(fields.length, RESERVATION_FIELD_GRID_MAX_COLS)}, 1fr)` }}>
           {fields.map(([k, v]) => (
             <Field key={k} label={k} value={v} onChange={canEdit ? val => onUpdatePermit(k, val) : undefined} />
           ))}

@@ -82,6 +82,8 @@ function trailDomainHints(title?: string, location?: string): string {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const GPX_SIMPLIFY_TARGET_POINTS = 30
+
 function simplifyCoords(
   coords: [number, number, number][],
   target: number,
@@ -103,7 +105,7 @@ function buildUserMessage(trip: TripPermitInput): string {
   )
   if (trip.gpxCoords && trip.gpxCoords.length >= 2) {
     const all        = trip.gpxCoords
-    const simplified = simplifyCoords(all, 30)
+    const simplified = simplifyCoords(all, GPX_SIMPLIFY_TARGET_POINTS)
     lines.push(`Route start: lon=${all[0][0]}, lat=${all[0][1]}, ele=${all[0][2]}m`)
     lines.push(`Route end:   lon=${all[all.length - 1][0]}, lat=${all[all.length - 1][1]}, ele=${all[all.length - 1][2]}m`)
     lines.push(`Route waypoints (lon, lat, ele — ${simplified.length} of ${all.length} total): ${JSON.stringify(simplified)}`)
@@ -237,6 +239,8 @@ function buildLookupMessage(permitName: string, trip: TripPermitInput, links: Pe
   return lines.join('\n')
 }
 
+const HOURS_PER_12H_CLOCK = 12
+
 function normalizeTimeStr(raw: unknown): string | undefined {
   if (typeof raw !== 'string' || !raw) return undefined
   const s = raw.trim()
@@ -249,8 +253,8 @@ function normalizeTimeStr(raw: unknown): string | undefined {
     let hour = Number(ampm[1])
     const min  = ampm[2] ?? '00'
     const isPm = ampm[3].toLowerCase().replace(/\./g, '').startsWith('p')
-    if (isPm && hour < 12) hour += 12
-    if (!isPm && hour === 12) hour = 0
+    if (isPm && hour < HOURS_PER_12H_CLOCK) hour += HOURS_PER_12H_CLOCK
+    if (!isPm && hour === HOURS_PER_12H_CLOCK) hour = 0
     return `${String(hour).padStart(2, '0')}:${min}`
   }
   return undefined
@@ -363,6 +367,7 @@ export interface ZoneProductResult {
 }
 
 const LARGE_GROUP_THRESHOLD = 8
+const SHORT_STAY_MAX_NIGHTS = 3
 
 const ZONE_PRODUCT_SYSTEM_PROMPT = `You are a wilderness permit expert. You are given the exact zone, dates, and
 recreation.gov product IDs already known for an overnight backcountry stay — your only job is to pick which
@@ -401,10 +406,10 @@ function buildZoneProductMessage(input: ZoneProductInput, partySize: number): st
 const ZONE_PRODUCT_FALLBACK = (input: ZoneProductInput, partySize: number): ZoneProductResult => ({
   productId:    partySize >= LARGE_GROUP_THRESHOLD
     ? input.recgov.large_group_day
-    : input.nights <= 3 ? input.recgov.overnight_3day : input.recgov.overnight_full_season,
+    : input.nights <= SHORT_STAY_MAX_NIGHTS ? input.recgov.overnight_3day : input.recgov.overnight_full_season,
   productLabel: partySize >= LARGE_GROUP_THRESHOLD
     ? 'Large-group day permit'
-    : input.nights <= 3 ? '3-day overnight permit' : 'Full-season overnight permit',
+    : input.nights <= SHORT_STAY_MAX_NIGHTS ? '3-day overnight permit' : 'Full-season overnight permit',
   why:          'AI could not confirm details — verify this is the right product before booking.',
   confidence:   'low',
 })

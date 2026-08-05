@@ -16,6 +16,9 @@ import { RouteRightRail } from './RouteRightRail'
 import { suggestHard } from '../../../../lib/trailDifficulty'
 import type { StageBodyProps } from '../../types'
 
+const ISO_DATE_LENGTH = 10
+const TRACK_COLORS = ['#4ade80', '#fb923c', '#a78bfa', '#f472b6', '#34d399']
+
 export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }: StageBodyProps) {
   const [segments,      setSegments]      = useState<SegRow[]>(plan?.route?.segments ?? [])
   const [checklist,     setChecklist]     = useState<CheckRow[]>(() => {
@@ -97,7 +100,7 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
   const tracksWithLatLngs = (trip?.gpxTracks ?? []).map((entry, i) => ({
     entry,
     positions: toLatLngs(entry.track.coordinates),
-    color: ['#4ade80', '#fb923c', '#a78bfa', '#f472b6', '#34d399'][i % 5],
+    color: TRACK_COLORS[i % TRACK_COLORS.length],
   }))
   const allPoints: [number, number][] = [
     ...plannedLatLngs,
@@ -141,10 +144,10 @@ export function RouteStage({ onJump, plan, onChange, onProgress, trip, canEdit }
     const seq = ++sunFetchSeqRef.current
     try {
       // slice(0,10) normalises both "2025-05-25" and "2025-05-25T00:00:00.000Z"
-      const base = (trip?.startDate ?? new Date().toISOString()).slice(0, 10)
+      const base = (trip?.startDate ?? new Date().toISOString()).slice(0, ISO_DATE_LENGTH)
       const d = new Date(base + 'T00:00:00')
       d.setDate(d.getDate() + segN - 1)
-      const date = d.toISOString().slice(0, 10)
+      const date = d.toISOString().slice(0, ISO_DATE_LENGTH)
       const result = await fetchSunTimes(end[0], end[1], date)
       if (sunFetchSeqRef.current !== seq) return
       setDrawState(prev => {

@@ -20,6 +20,9 @@ import { randomPermitSaying } from '../../../ui/sayings'
 import type { Permit } from './permitsStage.types'
 import type { StageBodyProps, PlanCriticalDate } from '../../types'
 
+const CHECKLIST_TOTAL = 3
+const PERCENT_MULTIPLIER = 100
+
 export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true }: StageBodyProps) {
   const permitSaying = useMemo(() => randomPermitSaying(), [])
 
@@ -246,10 +249,10 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
   const item2 = partyConfirmed
   const item3 = backupPlanned
   const doneCount = [item1, item2, item3].filter(Boolean).length
-  const progress  = Math.round((doneCount / 3) * 100)
+  const progress  = Math.round((doneCount / CHECKLIST_TOTAL) * PERCENT_MULTIPLIER)
 
   useEffect(() => {
-    onProgressRef.current?.(permitFree ? 2 : doneCount, permitFree ? 2 : 3)
+    onProgressRef.current?.(permitFree ? 2 : doneCount, permitFree ? 2 : CHECKLIST_TOTAL)
   }, [doneCount, permitFree])
 
   const locationLabel = trip?.location ?? trip?.title ?? ''
@@ -314,9 +317,9 @@ export function PermitsStage({ plan, onChange, onProgress, trip, canEdit = true 
                 </>
               )}
               <div className="h-px bg-border my-3" />
-              <ProgressBar value={permitFree ? 100 : progress} tone={permitFree ? 'pine' : 'amber'} />
+              <ProgressBar value={permitFree ? PERCENT_MULTIPLIER : progress} tone={permitFree ? 'pine' : 'amber'} />
               <div className="font-mono text-label text-text-dim text-center mt-1.5">
-                {permitFree ? '2 of 2 · permit-free' : `${doneCount} of 3`}
+                {permitFree ? '2 of 2 · permit-free' : `${doneCount} of ${CHECKLIST_TOTAL}`}
               </div>
             </div>
 

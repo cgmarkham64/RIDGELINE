@@ -35,6 +35,7 @@ const VISUAL_RENDERING_FILES = [
   'src/components/trip/GpxMapSection.tsx',
   'src/components/plan/stages/route/RouteMapCard.tsx',
   'src/components/plan/PlanAccessError.tsx',
+  'src/components/plan/stages/route/ZonesOverlay.tsx',
 ]
 
 // Files whose numeric literals are coefficients of a transcribed reference

@@ -5,6 +5,8 @@ import { MoonLoader } from '../ui/MoonLoader'
 import { DaySelector } from './DaySelector'
 import { JournalEntryForm } from './JournalEntryForm'
 
+const ISO_DATE_LENGTH = 10
+
 interface Props {
   trip: Trip
   readOnly?: boolean
@@ -14,14 +16,14 @@ export function JournalSection({ trip, readOnly }: Props) {
   // Adjusting state when a prop changes, done during render rather than in an
   // effect — see https://react.dev/learn/you-might-not-need-an-effect
   const [priorTripId, setPriorTripId] = useState(trip._id)
-  const [selectedDate, setSelectedDate] = useState(trip.startDate.slice(0, 10))
+  const [selectedDate, setSelectedDate] = useState(trip.startDate.slice(0, ISO_DATE_LENGTH))
   if (trip._id !== priorTripId) {
     setPriorTripId(trip._id)
-    setSelectedDate(trip.startDate.slice(0, 10))
+    setSelectedDate(trip.startDate.slice(0, ISO_DATE_LENGTH))
   }
 
   const { data: entries = [], isLoading } = useJournalDays(trip._id)
-  const currentEntry = entries.find((e) => e.date.slice(0, 10) === selectedDate)
+  const currentEntry = entries.find((e) => e.date.slice(0, ISO_DATE_LENGTH) === selectedDate)
 
   return (
     <section>

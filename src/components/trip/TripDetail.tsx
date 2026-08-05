@@ -9,8 +9,10 @@ import { MapTab } from '../map/MapTab'
 type Tab = 'journal' | 'map' | 'photos' | 'gear'
 const TABS: Tab[] = ['journal', 'map', 'photos', 'gear']
 
+const DAY_MS = 86_400_000
+
 function tripDays(start: string, end: string) {
-  return Math.round((new Date(end).getTime() - new Date(start).getTime()) / 86_400_000) + 1
+  return Math.round((new Date(end).getTime() - new Date(start).getTime()) / DAY_MS) + 1
 }
 
 interface Props {

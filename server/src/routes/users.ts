@@ -5,6 +5,8 @@ import { asyncRoute } from '../utils/routeHelpers'
 
 const router = Router()
 
+const SEARCH_RESULT_LIMIT = 8
+
 const searchLimiter = rateLimit({
   windowMs: 60_000,
   max: 20,
@@ -28,7 +30,7 @@ router.get('/search', searchLimiter, asyncRoute(async (req, res) => {
     $or: [{ name: regex }, { email: regex }],
   })
     .select('sub name')
-    .limit(8)
+    .limit(SEARCH_RESULT_LIMIT)
     .lean()
   res.json(users)
 }))

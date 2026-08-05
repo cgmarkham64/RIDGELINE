@@ -59,6 +59,9 @@ interface Props {
   readOnly?: boolean
 }
 
+const DAY_MS = 86_400_000
+const SAVED_FEEDBACK_TIMEOUT_MS = 2500
+
 const condInputCls =
   'w-full px-2 py-[6px] border border-border focus:border-border-mid rounded-sm text-body-sm bg-surface text-text outline-none transition-[border-color] duration-[140ms]'
 
@@ -152,7 +155,7 @@ export function JournalEntryForm({ trip, currentEntry, selectedDate, readOnly }:
     if (readOnly) return
     const start = new Date(trip.startDate)
     const sel = new Date(selectedDate)
-    const dayNumber = Math.round((sel.getTime() - start.getTime()) / 86_400_000) + 1
+    const dayNumber = Math.round((sel.getTime() - start.getTime()) / DAY_MS) + 1
 
     setSaving(true)
     saveStartRef.current = Date.now()
@@ -193,7 +196,7 @@ export function JournalEntryForm({ trip, currentEntry, selectedDate, readOnly }:
       }
 
       setSavedFeedback(true)
-      setTimeout(() => setSavedFeedback(false), 2500)
+      setTimeout(() => setSavedFeedback(false), SAVED_FEEDBACK_TIMEOUT_MS)
     } finally {
       setSaving(false)
     }
@@ -248,7 +251,7 @@ export function JournalEntryForm({ trip, currentEntry, selectedDate, readOnly }:
 
   const start = new Date(trip.startDate)
   const sel = new Date(selectedDate)
-  const dayNumber = Math.round((sel.getTime() - start.getTime()) / 86_400_000) + 1
+  const dayNumber = Math.round((sel.getTime() - start.getTime()) / DAY_MS) + 1
 
   const routeSegs = ((trip.planStages as { route?: { segments?: SegmentTimes[] } } | undefined)?.route?.segments ?? [])
   const segTimes = routeSegs.find(s => s.n === dayNumber)

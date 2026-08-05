@@ -12,15 +12,20 @@ function messageFor(n: AppNotification): string {
   }
 }
 
+const MS_PER_MINUTE = 60_000
+const MINUTES_PER_HOUR = 60
+const HOURS_PER_DAY = 24
+const DAYS_PER_WEEK = 7
+
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60_000)
+  const mins = Math.floor(diff / MS_PER_MINUTE)
   if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  if (days < 7) return `${days}d ago`
+  if (mins < MINUTES_PER_HOUR) return `${mins}m ago`
+  const hrs = Math.floor(mins / MINUTES_PER_HOUR)
+  if (hrs < HOURS_PER_DAY) return `${hrs}h ago`
+  const days = Math.floor(hrs / HOURS_PER_DAY)
+  if (days < DAYS_PER_WEEK) return `${days}d ago`
   return new Date(iso).toLocaleDateString()
 }
 

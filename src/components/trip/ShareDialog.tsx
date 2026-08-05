@@ -11,6 +11,9 @@ interface Props {
   onClose: () => void
 }
 
+const SEARCH_DEBOUNCE_MS = 300
+const COPY_FEEDBACK_TIMEOUT_MS = 2500
+
 export function ShareDialog({ trip, onClose }: Props) {
   const [collaborators, setCollaborators] = useState(
     (trip.sharedWith ?? []).filter((c): c is { sub: string; name: string; role?: 'read' | 'edit' } => typeof c === 'object' && c !== null)
@@ -28,7 +31,7 @@ export function ShareDialog({ trip, onClose }: Props) {
   // Single state object so the effect never calls setState synchronously
   const [searchResult, setSearchResult] = useState<{ query: string; results: UserSearchResult[] } | null>(null)
 
-  const debouncedQuery = useDebounce(query, 300)
+  const debouncedQuery = useDebounce(query, SEARCH_DEBOUNCE_MS)
   const trimmedQuery = debouncedQuery.trim()
   const hasQuery = trimmedQuery.length >= 2
   const showDropdown = dropdownOpen && hasQuery
@@ -102,7 +105,7 @@ export function ShareDialog({ trip, onClose }: Props) {
   function copyLink() {
     navigator.clipboard.writeText(window.location.href).then(() => {
       setCopied(true)
-      setTimeout(() => setCopied(false), 2500)
+      setTimeout(() => setCopied(false), COPY_FEEDBACK_TIMEOUT_MS)
     })
   }
 

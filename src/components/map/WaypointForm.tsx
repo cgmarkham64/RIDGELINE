@@ -2,6 +2,8 @@ import type { WaypointType } from '../../types'
 import { WAYPOINT_COLOR, WAYPOINT_LABEL, WAYPOINT_TYPES, inputStyle } from './constants'
 import { WaypointIcon } from './WaypointIcon'
 
+const COORD_DISPLAY_DECIMALS = 5
+
 export interface WaypointFormState {
   label: string
   type: WaypointType
@@ -54,7 +56,7 @@ export function WaypointForm({
     <div className="flex gap-2 flex-wrap items-center">
       {coords && (
         <span className="font-mono text-label tracking-widest uppercase text-amber shrink-0">
-          {coords.lat.toFixed(5)}, {coords.lon.toFixed(5)}
+          {coords.lat.toFixed(COORD_DISPLAY_DECIMALS)}, {coords.lon.toFixed(COORD_DISPLAY_DECIMALS)}
         </span>
       )}
       <TypePills value={form.type} onChange={(t) => onChange({ type: t })} />

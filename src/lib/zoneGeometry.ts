@@ -88,10 +88,14 @@ function pointInPolygon(p: LatLon, poly: number[][][]): boolean {
   return true
 }
 
+const METERS_PER_DEGREE_LAT = 111_320
+const DEGREES_PER_HALF_CIRCLE = 180
+const DEG_TO_RAD = Math.PI / DEGREES_PER_HALF_CIRCLE
+
 /** Approx. distance in meters from a point to a polygon's exterior ring. */
 function distToRingMeters(p: LatLon, ring: number[][]): number {
-  const mLat = 111_320
-  const mLon = 111_320 * Math.cos((p.lat * Math.PI) / 180)
+  const mLat = METERS_PER_DEGREE_LAT
+  const mLon = METERS_PER_DEGREE_LAT * Math.cos(p.lat * DEG_TO_RAD)
   let best = Infinity
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const ax = (ring[j][0] - p.lon) * mLon, ay = (ring[j][1] - p.lat) * mLat
@@ -170,9 +174,11 @@ export interface PermitNeed {
   warnings: string[]
 }
 
+const ISO_YEAR_PREFIX_LENGTH = 5 // length of "YYYY-"
+
 function inWindow(date: string, start: string | undefined, end: string | undefined): boolean {
   if (!start || !end) return false
-  const mmdd = date.slice(5)
+  const mmdd = date.slice(ISO_YEAR_PREFIX_LENGTH)
   return mmdd >= start && mmdd <= end
 }
 
@@ -184,6 +190,10 @@ function inWindow(date: string, start: string | undefined, end: string | undefin
  * self-register wilderness boundary) come back as `selfRegister`, not `needs` —
  * camping there requires only trailhead self-registration, not a bookable permit.
  */
+// Fallback shown when distanceM is 0 (point resolved inside the zone, not measured
+// against the boundary) — matches zoneAt's default toleranceM-adjacent estimate.
+const NEAR_BOUNDARY_FALLBACK_M = 40
+
 export function derivePermitNeeds(
   camps: CampNight[],
   zones: ZoneCollection
@@ -212,7 +222,7 @@ export function derivePermitNeeds(
     }
     if (hit.nearBoundary) {
       current.warnings.push(
-        `${camp.date}: camp is within ~${Math.round(hit.distanceM) || 40} m of a zone boundary — verify zone before booking`
+        `${camp.date}: camp is within ~${Math.round(hit.distanceM) || NEAR_BOUNDARY_FALLBACK_M} m of a zone boundary — verify zone before booking`
       )
     }
   }

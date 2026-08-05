@@ -3,6 +3,8 @@ import type { Waypoint } from '../../types'
 import { WaypointIcon } from '../map/WaypointIcon'
 import { WAYPOINT_COLOR, WAYPOINT_LABEL } from '../map/constants'
 
+const COORD_DISPLAY_DECIMALS = 4
+
 export function WaypointList({
   waypoints,
   activeWaypointId,
@@ -60,7 +62,7 @@ export function WaypointList({
                     {WAYPOINT_LABEL[wp.type]}
                   </span>
                   <span className="font-mono text-label tracking-[0.04em] text-text-dim">
-                    {wp.lat.toFixed(4)}, {wp.lon.toFixed(4)}
+                    {wp.lat.toFixed(COORD_DISPLAY_DECIMALS)}, {wp.lon.toFixed(COORD_DISPLAY_DECIMALS)}
                   </span>
                 </div>
               </div>

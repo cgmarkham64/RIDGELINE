@@ -33,6 +33,8 @@ interface ChecklistItem {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+const PERCENT_MULTIPLIER = 100
+
 const DEFAULT_REMINDERS: Reminder[] = [
   { date: 'Jan 25', description: 'Whitney lottery opens reminder',              tone: 'amber', set: true  },
   { date: 'Mar 24', description: 'Lottery results · expect email by 5PM',       tone: 'amber', set: true  },
@@ -198,7 +200,7 @@ export function DepartStage({ plan, onChange }: StageBodyProps) {
 
   const readyCount = mapLayers.filter(m => m.ok).length
   const doneCount  = checklist.filter(c => c.done).length
-  const progress   = Math.round((doneCount / checklist.length) * 100)
+  const progress   = Math.round((doneCount / checklist.length) * PERCENT_MULTIPLIER)
 
   return (
     <div className="flex-1 overflow-y-auto p-8 pb-20">

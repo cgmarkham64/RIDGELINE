@@ -15,8 +15,13 @@ Return ONLY a valid JSON object with these exact keys (omit any key where the va
 
 Do not include markdown, explanation, or any text outside the JSON object.`
 
+const BYTES_PER_KB = 1024
+const KB_PER_MB = 1024
+const MAX_IMAGE_MB = 5
 // Anthropic's per-image limit is 5 MB of raw image data
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+const MAX_IMAGE_BYTES = MAX_IMAGE_MB * KB_PER_MB * BYTES_PER_KB
+// Base64 is ~4/3 the size of the raw bytes
+const BASE64_TO_BYTES_RATIO = 0.75
 
 const VALID_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const
 type ImageMediaType = (typeof VALID_MEDIA_TYPES)[number]
@@ -32,13 +37,12 @@ export async function scanJournalImage(
   imageBase64: string,
   mediaType?: string,
 ): Promise<Record<string, unknown>> {
-  // Base64 is ~4/3 the size of the raw bytes
-  const estimatedBytes = Math.ceil((imageBase64.length * 3) / 4)
+  const estimatedBytes = Math.ceil(imageBase64.length * BASE64_TO_BYTES_RATIO)
   if (estimatedBytes > MAX_IMAGE_BYTES) {
-    const sizeMB = (estimatedBytes / 1024 / 1024).toFixed(1)
+    const sizeMB = (estimatedBytes / KB_PER_MB / BYTES_PER_KB).toFixed(1)
     throw new HttpError(
       413,
-      `Image is too large (${sizeMB} MB). Please reduce it to under 5 MB before scanning — try lowering the resolution or compressing it first.`,
+      `Image is too large (${sizeMB} MB). Please reduce it to under ${MAX_IMAGE_MB} MB before scanning — try lowering the resolution or compressing it first.`,
     )
   }
 
