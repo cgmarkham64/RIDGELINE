@@ -1,617 +1,72 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
-import type { StageBodyProps, PlanWeatherData } from '../../types'
-import { CheckItem } from '../../CheckItem'
-import { ProgressBar } from '../../ProgressBar'
-import { IconAlertTriangle, IconCalendar, IconCheck, IconChevronLeft, IconChevronRight, IconSun } from '../../../icons'
-import { nominatimGeocode } from '../../../../lib/geocode'
-import { tripSunRows } from '../../../../lib/sun'
-import {
-  isGeocodeCacheValid, isClimateCacheValid, isForecastCacheValid,
-  parseClimateNormals, parseForecastDays, calcDepartureRisk,
-  avgElevationFt, inForecastWindow, forecastTargetDate, daysUntil,
-  FORECAST_WINDOW_DAYS, DAY_MS,
-} from './weatherStage.helpers'
-import type { ClimateNormals } from './weatherStage.types'
-import { WmoConditionIcon } from './WmoConditionIcon'
+import { useState } from 'react'
+import type { StageBodyProps } from '../../types'
 import { useAuthStore } from '../../../../store/auth'
 import { DEFAULT_WEATHER_TOLERANCES } from '../../../../types/auth'
-import { fmtTemp, fmtWind } from '../../../../lib/units'
 import { useUnitSystem } from '../../../../hooks/useUnitSystem'
-
-const ARCHIVE_URL  = 'https://archive-api.open-meteo.com/v1/archive'
-const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
-
-const CLIMATE_LOOKBACK_YEARS    = 3
-const DEGREES_PER_TIMEZONE_HOUR = 15
-const MS_PER_HOUR               = 3_600_000
-const HOURS_PER_12H_CLOCK       = 12
-const ISO_DATE_PREFIX_LEN       = 10
-const PRECIP_WARN_THRESHOLD_PCT = 40
-const BOLD_FONT_WEIGHT          = 600
-const PERCENT_MULTIPLIER        = 100
-
-const INITIAL_WEATHER: PlanWeatherData = {
-  historicalReviewed: false,
-  forecastChecked: false,
-  gearAdjusted: false,
-  departureRisk: null,
-  notes: '',
-}
-
-type ApiClimateRow = { daily?: { temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_sum?: number[]; snowfall_sum?: number[] } }
-
-async function fetchClimateNormals(lat: number, lng: number, month: number): Promise<ClimateNormals> {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const year = new Date().getFullYear()
-  const lastDay = new Date(year, month, 0).getDate()
-  const results = await Promise.all(
-    Array.from({ length: CLIMATE_LOOKBACK_YEARS }, (_, i) => year - i - 1).map(y =>
-      fetch(`${ARCHIVE_URL}?latitude=${lat}&longitude=${lng}&start_date=${y}-${pad(month)}-01&end_date=${y}-${pad(month)}-${pad(lastDay)}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum&timezone=UTC`)
-        .then(r => r.json() as Promise<ApiClimateRow>)
-    )
-  )
-  const combined = {
-    daily: {
-      temperature_2m_max: results.flatMap(d => d.daily?.temperature_2m_max ?? []),
-      temperature_2m_min: results.flatMap(d => d.daily?.temperature_2m_min ?? []),
-      precipitation_sum:  results.flatMap(d => d.daily?.precipitation_sum  ?? []),
-      snowfall_sum:       results.flatMap(d => d.daily?.snowfall_sum        ?? []),
-    },
-  }
-  if (!combined.daily.temperature_2m_max.length) throw new Error('No climate data')
-  return parseClimateNormals(combined)
-}
-
-async function fetchForecast(lat: number, lng: number): Promise<NonNullable<PlanWeatherData['cachedForecast']>['days']> {
-  const data = await fetch(`${FORECAST_URL}?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode,windspeed_10m_max,winddirection_10m_dominant&timezone=auto&forecast_days=14`).then(r => r.json())
-  return parseForecastDays(data)
-}
-
-function fmtSolarTime(d: Date, lng: number): string {
-  const local = new Date(d.getTime() + Math.round(lng / DEGREES_PER_TIMEZONE_HOUR) * MS_PER_HOUR)
-  const h = local.getUTCHours(), m = local.getUTCMinutes()
-  return `${h % HOURS_PER_12H_CLOCK || HOURS_PER_12H_CLOCK}:${String(m).padStart(2, '0')} ${h >= HOURS_PER_12H_CLOCK ? 'PM' : 'AM'}`
-}
-
-function fmtShortDate(s: string): string {
-  return new Date(s + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-}
-
-const RISK_STYLE: Record<'low' | 'moderate' | 'high', { label: string; border: string; bg: string; text: string }> = {
-  low:      { label: 'Go',      border: 'border-pine-border',  bg: 'bg-pine-dim',  text: 'text-pine'  },
-  moderate: { label: 'Caution', border: 'border-amber-border', bg: 'bg-amber-dim', text: 'text-amber' },
-  high:     { label: 'Delay',   border: 'border-red-border',   bg: 'bg-red-dim',   text: 'text-red'   },
-}
-
-// ─── Forecast card tint ───────────────────────────────────────────────────────
-// Maps WMO weather code to a card background/border color.
-// Severity runs: clear (amber-warm) → cloudy/fog (gray) → precip (blue) → storm (red).
-
-type CardTint = { bg: string; border: string }
-
-const DEFAULT_TINT: CardTint = { bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.4)' } // clear
-
-const TINT_BY_WMO_CODE: Record<number, CardTint> = {
-  99: { bg: 'rgba(127,29,29,0.28)',   border: 'rgba(185,28,28,0.65)'  }, // t-storm + heavy hail
-  96: { bg: 'rgba(153,27,27,0.22)',   border: 'rgba(220,38,38,0.55)'  }, // t-storm + hail
-  95: { bg: 'rgba(239,68,68,0.18)',   border: 'rgba(239,68,68,0.5)'   }, // thunderstorm
-  82: { bg: 'rgba(37,99,235,0.22)',   border: 'rgba(59,130,246,0.55)' }, // heavy showers
-  86: { bg: 'rgba(147,197,253,0.22)', border: 'rgba(147,197,253,0.5)' }, // heavy snow showers
-  75: { bg: 'rgba(147,197,253,0.2)',  border: 'rgba(147,197,253,0.48)'}, // heavy snow
-  65: { bg: 'rgba(37,99,235,0.2)',    border: 'rgba(59,130,246,0.5)'  }, // heavy rain
-  81: { bg: 'rgba(59,130,246,0.16)',  border: 'rgba(96,165,250,0.45)' }, // showers
-  85: { bg: 'rgba(186,230,253,0.15)', border: 'rgba(147,197,253,0.35)'}, // snow showers
-  73: { bg: 'rgba(186,230,253,0.16)', border: 'rgba(147,197,253,0.38)'}, // snow
-  63: { bg: 'rgba(59,130,246,0.15)',  border: 'rgba(96,165,250,0.4)'  }, // rain
-  80: { bg: 'rgba(96,165,250,0.12)',  border: 'rgba(147,197,253,0.35)'}, // rain showers
-  71: { bg: 'rgba(186,230,253,0.1)',  border: 'rgba(186,230,253,0.28)'}, // light snow
-  77: { bg: 'rgba(186,230,253,0.1)',  border: 'rgba(186,230,253,0.28)'}, // snow grains
-  61: { bg: 'rgba(96,165,250,0.1)',   border: 'rgba(147,197,253,0.3)' }, // light rain
-  55: { bg: 'rgba(96,165,250,0.09)',  border: 'rgba(147,197,253,0.28)'}, // heavy drizzle
-  53: { bg: 'rgba(147,197,253,0.07)', border: 'rgba(186,230,253,0.24)'}, // drizzle
-  51: { bg: 'rgba(186,230,253,0.05)', border: 'rgba(186,230,253,0.18)'}, // light drizzle
-  48: { bg: 'rgba(100,116,139,0.13)', border: 'rgba(100,116,139,0.3)' }, // icy fog
-  45: { bg: 'rgba(100,116,139,0.1)',  border: 'rgba(100,116,139,0.25)'}, // fog
-  3:  { bg: 'rgba(71,85,105,0.1)',    border: 'rgba(100,116,139,0.22)'}, // overcast
-  2:  { bg: 'rgba(251,191,36,0.07)',  border: 'rgba(148,163,184,0.22)'}, // partly cloudy
-  1:  { bg: 'rgba(251,191,36,0.11)',  border: 'rgba(251,191,36,0.3)'  }, // mainly clear
-}
-
-function cardTint(code: number): CardTint {
-  return TINT_BY_WMO_CODE[code] ?? DEFAULT_TINT
-}
-
-const DAYS_PER_PAGE = 7
-
-// ─── WeatherStage ─────────────────────────────────────────────────────────────
+import { inForecastWindow, RISK_STYLE } from './weatherStage.helpers'
+import { useWeatherTripDates, useWeatherFetching, useWeatherChecklist, useWeatherDerived, useForecastPaging, useToggleWeatherField } from './weatherStage.hooks'
+import { WeatherMissingDatesGate } from './WeatherMissingDatesGate'
+import { WeatherLocationBanner } from './WeatherLocationBanner'
+import { WeatherHistoricalCard } from './WeatherHistoricalCard'
+import { WeatherForecastCard } from './WeatherForecastCard'
+import { WeatherDepartureCard } from './WeatherDepartureCard'
+import { WeatherNotesCard } from './WeatherNotesCard'
+import { WeatherRightRail } from './WeatherRightRail'
 
 export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true, onEditTrip, onJump }: StageBodyProps) {
   const { user } = useAuthStore()
   const tolerances = user?.preferences?.weatherTolerances ?? DEFAULT_WEATHER_TOLERANCES
   const sys = useUnitSystem()
+  const dates = useWeatherTripDates(trip)
+  const { startDate, endDate, hasDates } = dates
 
-  const tripLoc  = trip?.location ?? ''
-  // Normalize to YYYY-MM-DD — API dates may arrive as full ISO strings
-  const startDate = trip?.startDate?.slice(0, ISO_DATE_PREFIX_LEN) ?? ''
-  const endDate   = trip?.endDate?.slice(0, ISO_DATE_PREFIX_LEN) ?? ''
-  const hasDates  = !!(startDate && endDate)
-  const tripMonth = hasDates ? new Date(startDate + 'T00:00:00').getMonth() + 1 : null
+  const { wd, setWd, geoError, climateError, forecastError, coordsLat, coordsLng, geoLoading, climateLoading, forecastLoading } =
+    useWeatherFetching(plan, trip, onChange, dates, tolerances)
+  const checklist = useWeatherChecklist(wd, onProgress)
+  const { elevFt, computedRisk, forecastSunMap, tripWeekPage } = useWeatherDerived(wd, trip, dates, tolerances, coordsLat, coordsLng)
 
-  const [wd, setWd] = useState<PlanWeatherData>(() => {
-    const base = plan?.weather ?? INITIAL_WEATHER
-    // Pre-compute departure risk if cached forecast exists but risk wasn't stored
-    if (base.cachedForecast && base.departureRisk === null && startDate && endDate) {
-      const { overall, factors } = calcDepartureRisk(
-        base.cachedForecast.days, startDate, endDate, trip ? avgElevationFt(trip) : null, tolerances,
-      )
-      return { ...base, departureRisk: overall, departureFactors: factors }
-    }
-    return base
-  })
-
-  // Error flags — set only inside async callbacks to satisfy react-hooks/set-state-in-effect.
-  // Loading state is derived from whether cached data is stale for the current location.
-  const [geoError,      setGeoError]      = useState(false)
-  const [climateError,  setClimateError]  = useState(false)
-  const [forecastError, setForecastError] = useState(false)
-  // null = auto-follow tripWeekPage; number = user has explicitly navigated
   const [weekPage, setWeekPage] = useState<number | null>(null)
+  const toggle = useToggleWeatherField(canEdit, setWd)
+  const { currentPage, totalPages, pagedays, midDaySun, hasForecast } = useForecastPaging(wd.cachedForecast, weekPage, tripWeekPage, forecastSunMap)
 
-  const onChangeRef   = useRef(onChange)
-  const onProgressRef = useRef(onProgress)
-  const isMounted     = useRef(false)
-  const wdRef         = useRef(wd)
+  if (!hasDates) return <WeatherMissingDatesGate onEditTrip={onEditTrip} />
 
-  useEffect(() => { onChangeRef.current   = onChange })
-  useEffect(() => { onProgressRef.current = onProgress })
-  useEffect(() => { wdRef.current = wd }, [wd])
-  const coordsLat = wd.cachedCoords?.lat
-  const coordsLng = wd.cachedCoords?.lng
-
-  // ── Geocode when location changes ────────────────────────────────────────
-  useEffect(() => {
-    if (!tripLoc) return
-    if (isGeocodeCacheValid(wdRef.current.cachedCoords, tripLoc)) return
-    let cancelled = false
-    nominatimGeocode(tripLoc)
-      .then(result => {
-        if (cancelled) return
-        if (!result) { setGeoError(true); return }
-        setGeoError(false)
-        setWd(prev => ({ ...prev, cachedCoords: { ...result, fetchedAt: new Date().toISOString(), forLocation: tripLoc } }))
-      })
-      .catch(() => { if (!cancelled) setGeoError(true) })
-    return () => { cancelled = true }
-  }, [tripLoc])
-
-  // ── Historical climate once coords + month are known ──────────────────────
-  useEffect(() => {
-    if (!coordsLat || !coordsLng || !tripMonth || !tripLoc) return
-    if (isClimateCacheValid(wdRef.current.cachedClimate, tripLoc)) return
-    let cancelled = false
-    fetchClimateNormals(coordsLat, coordsLng, tripMonth)
-      .then(climate => {
-        if (cancelled) return
-        setClimateError(false)
-        setWd(prev => ({ ...prev, cachedClimate: { ...climate, fetchedAt: new Date().toISOString(), forLocation: tripLoc } }))
-      })
-      .catch(() => { if (!cancelled) setClimateError(true) })
-    return () => { cancelled = true }
-  }, [coordsLat, coordsLng, tripMonth, tripLoc])
-
-  // ── Live forecast — only within 14-day window ─────────────────────────────
-  useEffect(() => {
-    if (!coordsLat || !coordsLng || !tripLoc || !hasDates) return
-    if (!inForecastWindow(startDate)) return
-    if (isForecastCacheValid(wdRef.current.cachedForecast, tripLoc)) return
-    const elevFt  = trip ? avgElevationFt(trip) : null
-    let cancelled = false
-    fetchForecast(coordsLat, coordsLng)
-      .then(days => {
-        if (cancelled) return
-        setForecastError(false)
-        const { overall, factors } = calcDepartureRisk(days, startDate, endDate, elevFt, tolerances)
-        setWd(prev => ({
-          ...prev,
-          cachedForecast: { days, fetchedAt: new Date().toISOString(), forLocation: tripLoc },
-          departureRisk: overall,
-          departureFactors: factors,
-        }))
-      })
-      .catch(() => { if (!cancelled) setForecastError(true) })
-    return () => { cancelled = true }
-  }, [coordsLat, coordsLng, tripLoc, hasDates, startDate, endDate, trip, tolerances])
-
-  // ── Persist changes ───────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!isMounted.current) { isMounted.current = true; return }
-    onChangeRef.current?.({ weather: wd })
-  }, [wd])
-
-  const checklist = useMemo(() => [
-    { text: 'Historical climate reviewed', done: wd.historicalReviewed },
-    { text: 'Forecast checked',            done: wd.forecastChecked    },
-    { text: 'Departure window assessed',   done: wd.departureRisk !== null },
-    { text: 'Gear adjusted for conditions', done: wd.gearAdjusted      },
-  ], [wd])
-
-  useEffect(() => {
-    onProgressRef.current?.(checklist.filter(c => c.done).length, checklist.length)
-  }, [checklist])
-
-  const elevFt = useMemo(() => trip ? avgElevationFt(trip) : null, [trip])
-
-  // Factors list for display — recomputed from cached forecast + current trip dates
-  const computedRisk = useMemo(() => {
-    if (!wd.cachedForecast || !hasDates) return null
-    return calcDepartureRisk(wd.cachedForecast.days, startDate, endDate, elevFt, tolerances)
-  }, [wd.cachedForecast, hasDates, startDate, endDate, elevFt, tolerances])
-
-  // Sun times for every forecast day — used in card hover face and nav bar.
-  // Keyed by YYYY-MM-DD for O(1) lookup per card.
-  const forecastSunMap = useMemo(() => {
-    const fc = wd.cachedForecast
-    if (!coordsLat || !coordsLng || !fc || fc.days.length === 0) {
-      return new Map<string, { sunrise: Date; sunset: Date; daylightHours: number }>()
-    }
-    const map = new Map<string, { sunrise: Date; sunset: Date; daylightHours: number }>()
-    tripSunRows(coordsLat, coordsLng, fc.days[0].date, fc.days[fc.days.length - 1].date)
-      .forEach(r => map.set(r.date.toISOString().slice(0, ISO_DATE_PREFIX_LEN), r))
-    return map
-  }, [coordsLat, coordsLng, wd.cachedForecast])
-
-  // Auto-advance to the week containing the trip start date when forecast loads.
-  // Derived via useMemo (not useEffect) to avoid setState-in-effect rule.
-  const tripWeekPage = useMemo(() => {
-    if (!wd.cachedForecast || !startDate) return 0
-    const idx = wd.cachedForecast.days.findIndex(d => d.date >= startDate)
-    return idx >= 0 ? Math.floor(idx / DAYS_PER_PAGE) : 0
-  }, [wd.cachedForecast, startDate])
-
-  function toggle(field: 'historicalReviewed' | 'forecastChecked' | 'gearAdjusted') {
-    if (!canEdit) return
-    setWd(prev => ({ ...prev, [field]: !prev[field] }))
-  }
-
-  // Derived loading indicators — no separate loading state needed
-  const geoLoading      = !!tripLoc && (!wd.cachedCoords  || wd.cachedCoords.forLocation  !== tripLoc) && !geoError
-  const climateLoading  = !!coordsLat && !!tripMonth && (!wd.cachedClimate  || wd.cachedClimate.forLocation  !== tripLoc) && !climateError
-  const forecastLoading = !!coordsLat && inForecastWindow(startDate) && (!wd.cachedForecast || wd.cachedForecast.forLocation !== tripLoc) && !forecastError
-
-  // ── Missing dates gate ────────────────────────────────────────────────────
-  if (!hasDates) {
-    return (
-      <div className="flex-1 overflow-y-auto p-8">
-        <div className="max-w-[480px] mx-auto mt-16">
-          <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-3">Stage 2 · Weather</div>
-          <h2 className="font-heading text-h2 font-extrabold text-text mb-2">Start and end dates required.</h2>
-          <p className="text-body text-text-mid leading-relaxed mb-5">
-            Weather analysis, sunrise/sunset times, and the forecast window all depend on knowing when your trip starts and ends.
-          </p>
-          <div className="flex items-start gap-3 px-4 py-3 bg-red-dim border border-red-border rounded-lg mb-5">
-            <IconAlertTriangle size={14} className="text-red" />
-            <p className="text-body-sm text-text-mid leading-relaxed">
-              <span className="font-semibold text-red">Trip dates are not set.</span>{' '}
-              Add start and end dates to enable this stage.
-            </p>
-          </div>
-          {onEditTrip && (
-            <button type="button" onClick={onEditTrip}
-              className="px-4 py-2 font-heading text-caption font-bold tracking-widest uppercase rounded border cursor-pointer transition-colors"
-              style={{ background: 'var(--amber-dim)', borderColor: 'var(--amber-border)', color: 'var(--amber)' }}>
-              Set trip dates
-            </button>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  const climate     = wd.cachedClimate
-  const forecast    = wd.cachedForecast
-  const currentPage = weekPage ?? tripWeekPage
-  const totalPages  = forecast ? Math.ceil(forecast.days.length / DAYS_PER_PAGE) : 0
-  const pagedays    = forecast ? forecast.days.slice(currentPage * DAYS_PER_PAGE, (currentPage + 1) * DAYS_PER_PAGE) : []
-  const midDay      = pagedays[Math.floor(pagedays.length / 2)]
-  const midDaySun   = midDay ? forecastSunMap.get(midDay.date) : undefined
-  const doneCount   = checklist.filter(c => c.done).length
   const inWindow  = inForecastWindow(startDate)
-  const daysAway  = daysUntil(startDate)
   const risk      = wd.departureRisk
   const riskStyle = risk ? RISK_STYLE[risk] : null
 
   return (
     <div className="flex-1 overflow-y-auto p-8 pb-20">
       <div className="grid gap-7 grid-cols-[1fr_360px]">
-
-        {/* ── Left column ── */}
         <div className="flex flex-col gap-[18px]">
+          <WeatherLocationBanner
+            location={trip!.location || ''} startDate={startDate} endDate={endDate}
+            coordsLat={coordsLat} coordsLng={coordsLng} geoLoading={geoLoading} geoError={geoError}
+          />
 
-          {/* Location + date banner */}
-          <div className="bg-surface border border-border rounded-lg px-4 py-3 flex items-center gap-3">
-            <IconCalendar size={15} />
-            <div className="flex-1 min-w-0">
-              <div className="text-body font-semibold text-text truncate">{trip!.location || '—'}</div>
-              <div className="font-mono text-label text-text-dim mt-0.5">
-                {new Date(startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                {' – '}
-                {new Date(endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                {hasDates && ` · ${Math.round((new Date(endDate + 'T00:00:00').getTime() - new Date(startDate + 'T00:00:00').getTime()) / DAY_MS) + 1} days`}
-                {coordsLat != null ? ` · ${coordsLat.toFixed(2)}°, ${coordsLng!.toFixed(2)}°` : ''}
-              </div>
-            </div>
-            {geoLoading && <span className="font-mono text-label text-text-dim shrink-0">geocoding…</span>}
-            {geoError   && <span className="font-mono text-label text-red shrink-0">location not found</span>}
-          </div>
+          <WeatherHistoricalCard
+            startDate={startDate} canEdit={canEdit} historicalReviewed={wd.historicalReviewed}
+            onToggleReviewed={() => toggle('historicalReviewed')} climateLoading={climateLoading}
+            climateError={climateError} climate={wd.cachedClimate} sys={sys}
+          />
 
-          {/* Historical climate */}
-          <div className="bg-surface border border-border rounded-lg p-[18px]">
-            <div className="flex items-center justify-between mb-3">
-              <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">
-                Typical {new Date(startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long' })} · 3-yr avg
-              </div>
-              {canEdit && (
-                <button type="button" onClick={() => toggle('historicalReviewed')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 font-mono text-label rounded border cursor-pointer transition-colors ${wd.historicalReviewed ? 'bg-pine-dim border-pine-border text-pine' : 'bg-surface-2 border-border text-text-dim hover:border-border-mid'}`}>
-                  {wd.historicalReviewed && <IconCheck size={9} />} Reviewed
-                </button>
-              )}
-            </div>
-            {climateLoading && <div className="font-mono text-fine text-text-dim py-4 text-center">Fetching climate data…</div>}
-            {climateError   && <div className="font-mono text-fine text-red py-4 text-center">Failed to load climate data.</div>}
-            {climate && (
-              <div className="grid grid-cols-4 gap-px bg-border rounded overflow-hidden">
-                {[
-                  { v: fmtTemp(climate.avgHighF, sys), l: 'avg high'    },
-                  { v: fmtTemp(climate.avgLowF, sys),  l: 'avg low'     },
-                  { v: `${climate.precipPct}%`,         l: 'precip days' },
-                  { v: climate.snowLikely ? 'likely' : 'rare', l: 'snow' },
-                ].map(s => (
-                  <div key={s.l} className="bg-surface px-3 py-2">
-                    <div className="font-heading text-body-lg font-extrabold text-amber leading-none">{s.v}</div>
-                    <div className="font-mono text-label tracking-[0.12em] uppercase text-text-dim mt-1">{s.l}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <WeatherForecastCard
+            inWindow={inWindow} canEdit={canEdit} forecastChecked={wd.forecastChecked}
+            onToggleChecked={() => toggle('forecastChecked')} midDaySun={midDaySun} coordsLng={coordsLng}
+            startDate={startDate} forecastLoading={forecastLoading} forecastError={forecastError}
+            pagedays={pagedays} hasForecast={hasForecast} endDate={endDate}
+            sys={sys} currentPage={currentPage} totalPages={totalPages} onPageChange={setWeekPage}
+          />
 
+          <WeatherDepartureCard risk={risk} riskStyle={riskStyle} factors={computedRisk?.factors} elevFt={elevFt} />
 
-          {/* Live forecast / placeholder */}
-          <div className="bg-surface border border-border rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-              <span className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">Forecast</span>
-              {inWindow && canEdit && (
-                <button type="button" onClick={() => toggle('forecastChecked')}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 font-mono text-label rounded border cursor-pointer transition-colors ${wd.forecastChecked ? 'bg-pine-dim border-pine-border text-pine' : 'bg-surface-2 border-border text-text-dim hover:border-border-mid'}`}>
-                  {wd.forecastChecked && <IconCheck size={9} />} Checked
-                </button>
-              )}
-            </div>
-            {inWindow && midDaySun && coordsLng != null && (
-              <div className="flex items-center gap-3 px-4 py-2 border-b border-border">
-                <IconSun size={12} />
-                <div className="flex items-center gap-4">
-                  <span className="font-mono text-label text-text-dim">↑ {fmtSolarTime(midDaySun.sunrise, coordsLng)}</span>
-                  <span className="font-mono text-label text-text-dim">↓ {fmtSolarTime(midDaySun.sunset, coordsLng)}</span>
-                  <span className="font-mono text-label text-text-dim">{midDaySun.daylightHours.toFixed(1)} hrs daylight</span>
-                </div>
-              </div>
-            )}
-            {!inWindow && (
-              <div className="px-4 py-6 text-center">
-                <div className="font-heading text-[15px] font-bold text-text mb-1">Not in forecast range yet.</div>
-                <div className="font-mono text-fine text-text-mid">
-                  Check back <span className="text-amber font-semibold">{forecastTargetDate(startDate)}</span>
-                  {daysAway > FORECAST_WINDOW_DAYS ? ` · ${daysAway - FORECAST_WINDOW_DAYS} days from now` : ''}
-                </div>
-              </div>
-            )}
-            {inWindow && forecastLoading && <div className="font-mono text-fine text-text-dim py-6 text-center">Loading forecast…</div>}
-            {inWindow && forecastError   && <div className="font-mono text-fine text-red py-6 text-center">Failed to load forecast.</div>}
-            {inWindow && forecast && forecast.days.length > 0 && (
-              <>
-                {/* Week pagination controls */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-                    <button
-                      type="button"
-                      onClick={() => setWeekPage(Math.max(0, currentPage - 1))}
-                      disabled={currentPage === 0}
-                      className="p-1 rounded text-text-dim hover:text-text disabled:opacity-25 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                    >
-                      <IconChevronLeft size={13} />
-                    </button>
-                    <div className="flex items-center gap-2.5">
-                      <span className="font-mono text-label text-text-dim">
-                        {pagedays[0] && fmtShortDate(pagedays[0].date)}
-                        {' – '}
-                        {pagedays[pagedays.length - 1] && fmtShortDate(pagedays[pagedays.length - 1].date)}
-                      </span>
-                      <div className="flex gap-1">
-                        {Array.from({ length: totalPages }, (_, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => setWeekPage(i)}
-                            className="rounded-full transition-colors cursor-pointer"
-                            style={{
-                              width: 6, height: 6,
-                              background: i === currentPage ? 'var(--amber)' : 'var(--border-mid)',
-                            }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setWeekPage(Math.min(totalPages - 1, currentPage + 1))}
-                      disabled={currentPage === totalPages - 1}
-                      className="p-1 rounded text-text-dim hover:text-text disabled:opacity-25 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                    >
-                      <IconChevronRight size={13} />
-                    </button>
-                  </div>
-                )}
-                <div className="grid grid-cols-7 gap-2 p-3">
-                  {pagedays.map((d) => {
-                    const { bg, border } = cardTint(d.conditionCode)
-                    const inTrip = d.date >= startDate && d.date <= endDate
-                    const dateObj = new Date(d.date + 'T00:00:00')
-                    return (
-                      <div key={d.date}
-                        className="relative rounded-lg overflow-hidden flex flex-col gap-2 p-2.5"
-                        style={{
-                          background: bg,
-                          border: `1px solid ${inTrip ? 'rgba(245,158,11,0.55)' : border}`,
-                          minHeight: '112px',
-                          boxShadow: inTrip ? 'inset 0 2px 0 rgba(245,158,11,0.45)' : undefined,
-                        }}>
-
-                        {/* Background icon — decorative */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none"
-                          aria-hidden="true" style={{ opacity: 0.13 }}>
-                          <WmoConditionIcon code={d.conditionCode} size={54} />
-                        </div>
-
-                        {/* Date */}
-                        <div className="relative z-10">
-                          <div className="font-mono text-label tracking-[0.08em] uppercase leading-none mb-0.5"
-                            style={{ color: inTrip ? 'var(--amber)' : 'var(--text-dim)' }}>
-                            {dateObj.toLocaleDateString('en-US', { weekday: 'short' })}
-                          </div>
-                          <div className="font-mono text-label text-text-mid leading-none">
-                            {dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </div>
-                        </div>
-
-                        {/* High / low */}
-                        <div className="relative z-10 flex-1 flex items-center gap-1.5">
-                          <span className="font-heading text-body-lg font-extrabold text-text leading-none">{fmtTemp(d.highF, sys)}</span>
-                          <span className="font-mono text-caption text-text-dim leading-none">{fmtTemp(d.lowF, sys)}</span>
-                        </div>
-
-                        {/* Precip + wind */}
-                        <div className="relative z-10 space-y-0.5">
-                          <div className="font-mono text-label leading-none"
-                            style={{ color: d.precipPct >= PRECIP_WARN_THRESHOLD_PCT ? 'var(--sky)' : 'var(--text-dim)', fontWeight: d.precipPct >= PRECIP_WARN_THRESHOLD_PCT ? BOLD_FONT_WEIGHT : undefined }}>
-                            {d.precipPct}%
-                          </div>
-                          <div className="font-mono text-label text-text-dim leading-none">{fmtWind(d.windMph, sys)} {d.windDir}</div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Departure window */}
-          {computedRisk && risk && riskStyle && (
-            <div className={`border rounded-lg overflow-hidden ${riskStyle.border} ${riskStyle.bg}`}>
-              {/* Verdict */}
-              <div className={`flex flex-col items-center gap-1.5 px-[18px] py-5 border-b ${riskStyle.border}`}>
-                <div className={`${riskStyle.text}`}>
-                  {risk === 'low'
-                    ? <IconCheck size={22} />
-                    : <IconAlertTriangle size={22} className={riskStyle.text} />
-                  }
-                </div>
-                <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim">Departure window</div>
-                <div className={`font-heading text-h2 font-extrabold leading-tight ${riskStyle.text}`}>
-                  {riskStyle.label}
-                </div>
-              </div>
-
-              {/* Detail */}
-              <div className="px-[18px] py-3.5">
-                {computedRisk.factors.length === 0
-                  ? <p className="text-body text-text-mid text-center">No significant weather risks in the forecast window.</p>
-                  : (
-                    <>
-                      <ul className="flex flex-col gap-2 text-center">
-                        {computedRisk.factors.map((f, i) => (
-                          <li key={i}>
-                            <span className="font-mono text-caption text-text-dim">{fmtShortDate(f.date)}</span>
-                            <span className="font-mono text-caption text-text-dim mx-1.5">·</span>
-                            <span className="text-body text-text-mid">{f.label}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      {elevFt !== null && (
-                        <p className="font-mono text-label text-text-dim mt-2.5 text-center">
-                          Temps adjusted for avg. trip elevation (~{Math.round(elevFt).toLocaleString()} ft)
-                        </p>
-                      )}
-                    </>
-                  )
-                }
-              </div>
-            </div>
-          )}
-
-          {/* Notes */}
-          <div className="bg-surface border border-border rounded-lg p-[18px]">
-            <label className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2 block">Weather notes</label>
-            <textarea
-              className="w-full px-3 py-2 border border-border rounded-sm text-body-sm bg-surface-2 text-text outline-none focus:border-border-mid transition-colors resize-none leading-relaxed"
-              rows={3}
-              placeholder="Conditions, concerns, or anything worth noting…"
-              value={wd.notes}
-              disabled={!canEdit}
-              onChange={e => setWd(prev => ({ ...prev, notes: e.target.value }))}
-            />
-          </div>
+          <WeatherNotesCard notes={wd.notes} canEdit={canEdit} onChange={notes => setWd(prev => ({ ...prev, notes }))} />
         </div>
 
-        {/* ── Right rail ── */}
-        <aside className="flex flex-col gap-3.5">
-
-          <div className="bg-surface border border-border rounded-lg p-3.5">
-            <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2.5">This stage</div>
-            {checklist.map((c, idx) => {
-              const gated = idx === 1 && !inWindow
-              return (
-                <div key={c.text} title={gated ? `Forecast available ${forecastTargetDate(startDate)}` : undefined} className={gated ? 'opacity-40' : ''}>
-                  <CheckItem text={c.text} done={c.done} />
-                </div>
-              )
-            })}
-            <div className="h-px bg-border my-3" />
-            <ProgressBar value={(doneCount / checklist.length) * PERCENT_MULTIPLIER} tone="pine" />
-            <div className="font-mono text-label text-text-dim text-center mt-1.5">{doneCount} of {checklist.length}</div>
-          </div>
-
-          {wd.forecastChecked && (
-            <div className="flex items-start gap-2.5 px-3 py-3 bg-amber-dim border border-amber-border rounded-lg">
-              <IconAlertTriangle size={12} className="text-amber mt-0.5" />
-              <p className="text-fine text-text-mid leading-relaxed">
-                <span className="font-semibold text-amber block mb-0.5">Re-check forecast 72 hrs before departure.</span>
-                Conditions can shift fast in the mountains.
-              </p>
-            </div>
-          )}
-
-          {risk && risk !== 'low' && riskStyle && (
-            <div className={`border rounded-lg p-3.5 ${riskStyle.border} ${riskStyle.bg}`}>
-              <div className={`flex items-center gap-2 mb-2 ${riskStyle.text}`}>
-                <IconAlertTriangle size={12} className={riskStyle.text} />
-                <span className="font-mono text-label tracking-[0.16em] uppercase">Loadout review needed</span>
-              </div>
-              <p className="text-fine text-text-mid leading-relaxed mb-2.5">
-                Conditions flagged for your trip window. Check your gear is ready for these conditions.
-              </p>
-              {onJump && (
-                <button type="button" onClick={() => onJump('gear')}
-                  className={`w-full flex items-center justify-center gap-1.5 px-3 py-1.5 font-mono text-label rounded border cursor-pointer transition-colors ${riskStyle.border} ${riskStyle.text} bg-transparent hover:opacity-80`}>
-                  Review gear →
-                </button>
-              )}
-            </div>
-          )}
-
-        </aside>
+        <WeatherRightRail
+          checklist={checklist} inWindow={inWindow} startDate={startDate}
+          forecastChecked={wd.forecastChecked} risk={risk} riskStyle={riskStyle} onJump={onJump}
+        />
       </div>
     </div>
   )

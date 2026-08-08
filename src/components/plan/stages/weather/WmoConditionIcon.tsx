@@ -1,18 +1,27 @@
+import type { ReactElement } from 'react'
+
 type WmoClass =
   | 'sun' | 'partly-cloudy' | 'overcast' | 'fog'
   | 'drizzle' | 'rain' | 'snow' | 'showers' | 'snow-showers' | 'thunderstorm'
 
+// Assumes the exact WMO code set parseForecastDays/wmoLabel produce
+// (0,1,2,3,45,48,51,53,55,61,63,65,71,73,75,77,80,81,82,85,86,95,96,99) —
+// unmapped codes inside a range (e.g. 56/57, 66/67) would misclassify here.
+const CLASS_RANGES: { max: number; cls: WmoClass }[] = [
+  { max: 1,  cls: 'sun' },
+  { max: 2,  cls: 'partly-cloudy' },
+  { max: 3,  cls: 'overcast' },
+  { max: 48, cls: 'fog' },
+  { max: 55, cls: 'drizzle' },
+  { max: 65, cls: 'rain' },
+  { max: 77, cls: 'snow' },
+  { max: 82, cls: 'showers' },
+  { max: 86, cls: 'snow-showers' },
+]
+
 function classify(code: number): WmoClass {
-  if (code <= 1)              return 'sun'
-  if (code === 2)             return 'partly-cloudy'
-  if (code === 3)             return 'overcast'
-  if (code === 45 || code === 48) return 'fog'
-  if (code >= 51 && code <= 55)   return 'drizzle'
-  if (code >= 61 && code <= 65)   return 'rain'
-  if (code >= 71 && code <= 77)   return 'snow'
-  if (code >= 80 && code <= 82)   return 'showers'
-  if (code === 85 || code === 86) return 'snow-showers'
-  return 'thunderstorm'
+  const match = CLASS_RANGES.find(r => code <= r.max)
+  return match?.cls ?? 'thunderstorm'
 }
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
@@ -72,10 +81,68 @@ function LightningBolt() {
   return <path d="M12 16.5 L8.5 19.5 H10.5 L9 20 L13 17 H11 Z" fill={AMB} stroke="none" />
 }
 
+// ─── Per-class glyphs ─────────────────────────────────────────────────────────
+
+const SUN_RAY_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315]
+const PARTLY_CLOUDY_RAY_ANGLES = [0, 60, 120, 180, 240, 300]
+const DRIZZLE_DROP_XS = [6, 10, 14]
+
+function Sun() {
+  return (<>
+    <circle cx="10" cy="10" r="4" stroke={AMB} strokeWidth={1.5} />
+    {SUN_RAY_ANGLES.map(deg => (
+      <line key={deg} x1="10" y1="2" x2="10" y2="4.5" stroke={AMB} strokeWidth={1.5} transform={`rotate(${deg} 10 10)`} />
+    ))}
+  </>)
+}
+
+function PartlyCloudy() {
+  return (<>
+    <circle cx="14" cy="6" r="2.8" stroke={AMB} strokeWidth={1.4} />
+    {PARTLY_CLOUDY_RAY_ANGLES.map(deg => (
+      <line key={deg} x1="14" y1="1.5" x2="14" y2="3.2" stroke={AMB} strokeWidth={1.3} transform={`rotate(${deg} 14 6)`} />
+    ))}
+    <CloudSm />
+  </>)
+}
+
+function Fog() {
+  return (<>
+    <line x1="2" y1="6"  x2="18" y2="6"  stroke={CLDS} strokeWidth={1.5} />
+    <line x1="2" y1="10" x2="18" y2="10" stroke={CLDS} strokeWidth={1.5} />
+    <line x1="4" y1="14" x2="16" y2="14" stroke={CLDS} strokeWidth={1.5} />
+  </>)
+}
+
+function Drizzle() {
+  return (<>
+    <Cloud />
+    {DRIZZLE_DROP_XS.map((cx, i) => <circle key={i} cx={cx} cy={19} r={1.2} fill={RAIN} />)}
+  </>)
+}
+
+function Rain()         { return (<><Cloud /><RainDrops xs={RAIN_XS} /></>) }
+function Showers()      { return (<><Cloud /><RainDrops xs={SHOWER_XS} heavy /></>) }
+function Snow()         { return (<><Cloud /><SnowCrystals /></>) }
+function Thunderstorm() { return (<><Cloud /><LightningBolt /></>) }
+
+const GLYPH_BY_CLASS: Record<WmoClass, () => ReactElement> = {
+  'sun': Sun,
+  'partly-cloudy': PartlyCloudy,
+  'overcast': Cloud,
+  'fog': Fog,
+  'drizzle': Drizzle,
+  'rain': Rain,
+  'showers': Showers,
+  'snow': Snow,
+  'snow-showers': Snow,
+  'thunderstorm': Thunderstorm,
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export function WmoConditionIcon({ code, size = 16, title }: { code: number; size?: number; title?: string }) {
-  const type = classify(code)
+  const Glyph = GLYPH_BY_CLASS[classify(code)]
 
   return (
     <svg
@@ -84,81 +151,7 @@ export function WmoConditionIcon({ code, size = 16, title }: { code: number; siz
       aria-label={title} role={title ? 'img' : undefined}
     >
       {title && <title>{title}</title>}
-
-      {type === 'sun' && (
-        <>
-          <circle cx="10" cy="10" r="4" stroke={AMB} strokeWidth={1.5} />
-          {[0, 45, 90, 135, 180, 225, 270, 315].map(deg => (
-            <line key={deg} x1="10" y1="2" x2="10" y2="4.5"
-              stroke={AMB} strokeWidth={1.5} transform={`rotate(${deg} 10 10)`} />
-          ))}
-        </>
-      )}
-
-      {type === 'partly-cloudy' && (
-        <>
-          <circle cx="14" cy="6" r="2.8" stroke={AMB} strokeWidth={1.4} />
-          {[0, 60, 120, 180, 240, 300].map(deg => (
-            <line key={deg} x1="14" y1="1.5" x2="14" y2="3.2"
-              stroke={AMB} strokeWidth={1.3} transform={`rotate(${deg} 14 6)`} />
-          ))}
-          <CloudSm />
-        </>
-      )}
-
-      {type === 'overcast' && <Cloud />}
-
-      {type === 'fog' && (
-        <>
-          <line x1="2"  y1="6"  x2="18" y2="6"  stroke={CLDS} strokeWidth={1.5} />
-          <line x1="2"  y1="10" x2="18" y2="10" stroke={CLDS} strokeWidth={1.5} />
-          <line x1="4"  y1="14" x2="16" y2="14" stroke={CLDS} strokeWidth={1.5} />
-        </>
-      )}
-
-      {type === 'drizzle' && (
-        <>
-          <Cloud />
-          {[6, 10, 14].map((cx, i) => (
-            <circle key={i} cx={cx} cy={19} r={1.2} fill={RAIN} />
-          ))}
-        </>
-      )}
-
-      {type === 'rain' && (
-        <>
-          <Cloud />
-          <RainDrops xs={RAIN_XS} />
-        </>
-      )}
-
-      {type === 'showers' && (
-        <>
-          <Cloud />
-          <RainDrops xs={SHOWER_XS} heavy />
-        </>
-      )}
-
-      {type === 'snow' && (
-        <>
-          <Cloud />
-          <SnowCrystals />
-        </>
-      )}
-
-      {type === 'snow-showers' && (
-        <>
-          <Cloud />
-          <SnowCrystals />
-        </>
-      )}
-
-      {type === 'thunderstorm' && (
-        <>
-          <Cloud />
-          <LightningBolt />
-        </>
-      )}
+      <Glyph />
     </svg>
   )
 }

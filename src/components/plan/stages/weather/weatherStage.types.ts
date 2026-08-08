@@ -12,3 +12,11 @@ export interface DepartureRiskFactor {
   label: string
   severity: 'moderate' | 'high'
 }
+
+export type CardTint = { bg: string; border: string }
+
+export type RiskLevel = 'low' | 'moderate' | 'high'
+
+export type RiskStyle = { label: string; border: string; bg: string; text: string }
+
+export type SunTimes = { sunrise: Date; sunset: Date; daylightHours: number }

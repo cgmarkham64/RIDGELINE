@@ -1,4 +1,4 @@
-import type { ClimateNormals, DepartureRiskFactor } from './weatherStage.types'
+import type { ClimateNormals, DepartureRiskFactor, CardTint, RiskLevel, RiskStyle } from './weatherStage.types'
 import type { PlanWeatherData } from '../../types'
 import { DEFAULT_WEATHER_TOLERANCES } from '../../../../types/auth'
 import type { WeatherTolerances } from '../../../../types/auth'
@@ -176,6 +176,44 @@ export function parseForecastDays(
 
 // ─── Departure risk ───────────────────────────────────────────────────────────
 
+type ForecastDay = NonNullable<PlanWeatherData['cachedForecast']>['days'][number]
+
+function tempFactor(d: ForecastDay, avgElevFt: number | null, tolerances: WeatherTolerances): DepartureRiskFactor | null {
+  const adjustedLowF = d.lowF - ((avgElevFt ?? 0) / LAPSE_RATE_ELEVATION_UNIT_FT) * LAPSE_RATE_F_PER_1000FT
+  if (tolerances.tempDelayF !== null && adjustedLowF <= tolerances.tempDelayF) {
+    return { date: d.date, severity: 'high', label: `Freezing temps (forecast ${Math.round(d.lowF)}°F → ${Math.round(adjustedLowF)}°F at your elevation)` }
+  }
+  if (tolerances.tempCautionF !== null && adjustedLowF <= tolerances.tempCautionF) {
+    return { date: d.date, severity: 'moderate', label: `Cold temps (forecast ${Math.round(d.lowF)}°F → ${Math.round(adjustedLowF)}°F at your elevation)` }
+  }
+  return null
+}
+
+function precipFactor(d: ForecastDay, tolerances: WeatherTolerances): DepartureRiskFactor | null {
+  if (tolerances.precipDelayPct !== null && d.precipPct > tolerances.precipDelayPct) {
+    return { date: d.date, severity: 'high', label: `Very high precip chance (${d.precipPct}%)` }
+  }
+  if (tolerances.precipCautionPct !== null && d.precipPct > tolerances.precipCautionPct) {
+    return { date: d.date, severity: 'moderate', label: `High precip chance (${d.precipPct}%)` }
+  }
+  return null
+}
+
+function windFactor(d: ForecastDay, tolerances: WeatherTolerances): DepartureRiskFactor | null {
+  if (tolerances.windDelayMph !== null && d.windMph >= tolerances.windDelayMph) {
+    return { date: d.date, severity: 'high', label: `Dangerous winds (${d.windMph} mph)` }
+  }
+  if (tolerances.windCautionMph !== null && d.windMph >= tolerances.windCautionMph) {
+    return { date: d.date, severity: 'moderate', label: `High winds (${d.windMph} mph)` }
+  }
+  return null
+}
+
+function dayRiskFactors(d: ForecastDay, avgElevFt: number | null, tolerances: WeatherTolerances): DepartureRiskFactor[] {
+  return [tempFactor(d, avgElevFt, tolerances), precipFactor(d, tolerances), windFactor(d, tolerances)]
+    .filter((f): f is DepartureRiskFactor => f !== null)
+}
+
 export function calcDepartureRisk(
   forecastDays: NonNullable<PlanWeatherData['cachedForecast']>['days'],
   startDate: string,
@@ -184,53 +222,7 @@ export function calcDepartureRisk(
   tolerances: WeatherTolerances = DEFAULT_WEATHER_TOLERANCES,
 ): { overall: 'low' | 'moderate' | 'high'; factors: DepartureRiskFactor[] } {
   const inRange = forecastDays.filter(d => d.date >= startDate && d.date <= endDate)
-  const factors: DepartureRiskFactor[] = []
-
-  for (const d of inRange) {
-    const adjustedLowF = d.lowF - ((avgElevFt ?? 0) / LAPSE_RATE_ELEVATION_UNIT_FT) * LAPSE_RATE_F_PER_1000FT
-
-    if (tolerances.tempDelayF !== null && adjustedLowF <= tolerances.tempDelayF) {
-      factors.push({
-        date:     d.date,
-        label:    `Freezing temps (forecast ${Math.round(d.lowF)}°F → ${Math.round(adjustedLowF)}°F at your elevation)`,
-        severity: 'high',
-      })
-    } else if (tolerances.tempCautionF !== null && adjustedLowF <= tolerances.tempCautionF) {
-      factors.push({
-        date:     d.date,
-        label:    `Cold temps (forecast ${Math.round(d.lowF)}°F → ${Math.round(adjustedLowF)}°F at your elevation)`,
-        severity: 'moderate',
-      })
-    }
-
-    if (tolerances.precipDelayPct !== null && d.precipPct > tolerances.precipDelayPct) {
-      factors.push({
-        date:     d.date,
-        label:    `Very high precip chance (${d.precipPct}%)`,
-        severity: 'high',
-      })
-    } else if (tolerances.precipCautionPct !== null && d.precipPct > tolerances.precipCautionPct) {
-      factors.push({
-        date:     d.date,
-        label:    `High precip chance (${d.precipPct}%)`,
-        severity: 'moderate',
-      })
-    }
-
-    if (tolerances.windDelayMph !== null && d.windMph >= tolerances.windDelayMph) {
-      factors.push({
-        date:     d.date,
-        label:    `Dangerous winds (${d.windMph} mph)`,
-        severity: 'high',
-      })
-    } else if (tolerances.windCautionMph !== null && d.windMph >= tolerances.windCautionMph) {
-      factors.push({
-        date:     d.date,
-        label:    `High winds (${d.windMph} mph)`,
-        severity: 'moderate',
-      })
-    }
-  }
+  const factors = inRange.flatMap(d => dayRiskFactors(d, avgElevFt, tolerances))
 
   const overall: 'low' | 'moderate' | 'high' =
     factors.some(f => f.severity === 'high') ? 'high' :
@@ -283,4 +275,96 @@ export function forecastTargetDate(startDate: string): string {
   return new Date(
     new Date(startDate).getTime() - FORECAST_WINDOW_DAYS * DAY_MS,
   ).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+// ─── Open-Meteo fetchers ──────────────────────────────────────────────────────
+
+const ARCHIVE_URL  = 'https://archive-api.open-meteo.com/v1/archive'
+const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
+const CLIMATE_LOOKBACK_YEARS = 3
+
+type ApiClimateRow = { daily?: { temperature_2m_max?: number[]; temperature_2m_min?: number[]; precipitation_sum?: number[]; snowfall_sum?: number[] } }
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0')
+}
+
+export async function fetchClimateNormals(lat: number, lng: number, month: number): Promise<ClimateNormals> {
+  const year = new Date().getFullYear()
+  const lastDay = new Date(year, month, 0).getDate()
+  const results = await Promise.all(
+    Array.from({ length: CLIMATE_LOOKBACK_YEARS }, (_, i) => year - i - 1).map(y =>
+      fetch(`${ARCHIVE_URL}?latitude=${lat}&longitude=${lng}&start_date=${y}-${pad2(month)}-01&end_date=${y}-${pad2(month)}-${pad2(lastDay)}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum&timezone=UTC`)
+        .then(r => r.json() as Promise<ApiClimateRow>)
+    )
+  )
+  const combined = {
+    daily: {
+      temperature_2m_max: results.flatMap(d => d.daily?.temperature_2m_max ?? []),
+      temperature_2m_min: results.flatMap(d => d.daily?.temperature_2m_min ?? []),
+      precipitation_sum:  results.flatMap(d => d.daily?.precipitation_sum  ?? []),
+      snowfall_sum:       results.flatMap(d => d.daily?.snowfall_sum        ?? []),
+    },
+  }
+  if (!combined.daily.temperature_2m_max.length) throw new Error('No climate data')
+  return parseClimateNormals(combined)
+}
+
+export async function fetchForecast(lat: number, lng: number): Promise<NonNullable<PlanWeatherData['cachedForecast']>['days']> {
+  const data = await fetch(`${FORECAST_URL}?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode,windspeed_10m_max,winddirection_10m_dominant&timezone=auto&forecast_days=14`).then(r => r.json())
+  return parseForecastDays(data)
+}
+
+// ─── Display formatting ───────────────────────────────────────────────────────
+
+const DEGREES_PER_TIMEZONE_HOUR = 15
+const MS_PER_HOUR_DISPLAY       = 3_600_000
+const HOURS_PER_12H_CLOCK       = 12
+
+export function fmtSolarTime(d: Date, lng: number): string {
+  const local = new Date(d.getTime() + Math.round(lng / DEGREES_PER_TIMEZONE_HOUR) * MS_PER_HOUR_DISPLAY)
+  const h = local.getUTCHours(), m = local.getUTCMinutes()
+  return `${h % HOURS_PER_12H_CLOCK || HOURS_PER_12H_CLOCK}:${String(m).padStart(2, '0')} ${h >= HOURS_PER_12H_CLOCK ? 'PM' : 'AM'}`
+}
+
+export function fmtShortDate(s: string): string {
+  return new Date(s + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+const DEFAULT_TINT: CardTint = { bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.4)' } // clear
+
+const TINT_BY_WMO_CODE: Record<number, CardTint> = {
+  99: { bg: 'rgba(127,29,29,0.28)',   border: 'rgba(185,28,28,0.65)'  }, // t-storm + heavy hail
+  96: { bg: 'rgba(153,27,27,0.22)',   border: 'rgba(220,38,38,0.55)'  }, // t-storm + hail
+  95: { bg: 'rgba(239,68,68,0.18)',   border: 'rgba(239,68,68,0.5)'   }, // thunderstorm
+  82: { bg: 'rgba(37,99,235,0.22)',   border: 'rgba(59,130,246,0.55)' }, // heavy showers
+  86: { bg: 'rgba(147,197,253,0.22)', border: 'rgba(147,197,253,0.5)' }, // heavy snow showers
+  75: { bg: 'rgba(147,197,253,0.2)',  border: 'rgba(147,197,253,0.48)'}, // heavy snow
+  65: { bg: 'rgba(37,99,235,0.2)',    border: 'rgba(59,130,246,0.5)'  }, // heavy rain
+  81: { bg: 'rgba(59,130,246,0.16)',  border: 'rgba(96,165,250,0.45)' }, // showers
+  85: { bg: 'rgba(186,230,253,0.15)', border: 'rgba(147,197,253,0.35)'}, // snow showers
+  73: { bg: 'rgba(186,230,253,0.16)', border: 'rgba(147,197,253,0.38)'}, // snow
+  63: { bg: 'rgba(59,130,246,0.15)',  border: 'rgba(96,165,250,0.4)'  }, // rain
+  80: { bg: 'rgba(96,165,250,0.12)',  border: 'rgba(147,197,253,0.35)'}, // rain showers
+  71: { bg: 'rgba(186,230,253,0.1)',  border: 'rgba(186,230,253,0.28)'}, // light snow
+  77: { bg: 'rgba(186,230,253,0.1)',  border: 'rgba(186,230,253,0.28)'}, // snow grains
+  61: { bg: 'rgba(96,165,250,0.1)',   border: 'rgba(147,197,253,0.3)' }, // light rain
+  55: { bg: 'rgba(96,165,250,0.09)',  border: 'rgba(147,197,253,0.28)'}, // heavy drizzle
+  53: { bg: 'rgba(147,197,253,0.07)', border: 'rgba(186,230,253,0.24)'}, // drizzle
+  51: { bg: 'rgba(186,230,253,0.05)', border: 'rgba(186,230,253,0.18)'}, // light drizzle
+  48: { bg: 'rgba(100,116,139,0.13)', border: 'rgba(100,116,139,0.3)' }, // icy fog
+  45: { bg: 'rgba(100,116,139,0.1)',  border: 'rgba(100,116,139,0.25)'}, // fog
+  3:  { bg: 'rgba(71,85,105,0.1)',    border: 'rgba(100,116,139,0.22)'}, // overcast
+  2:  { bg: 'rgba(251,191,36,0.07)',  border: 'rgba(148,163,184,0.22)'}, // partly cloudy
+  1:  { bg: 'rgba(251,191,36,0.11)',  border: 'rgba(251,191,36,0.3)'  }, // mainly clear
+}
+
+export function cardTint(code: number): CardTint {
+  return TINT_BY_WMO_CODE[code] ?? DEFAULT_TINT
+}
+
+export const RISK_STYLE: Record<RiskLevel, RiskStyle> = {
+  low:      { label: 'Go',      border: 'border-pine-border',  bg: 'bg-pine-dim',  text: 'text-pine'  },
+  moderate: { label: 'Caution', border: 'border-amber-border', bg: 'bg-amber-dim', text: 'text-amber' },
+  high:     { label: 'Delay',   border: 'border-red-border',   bg: 'bg-red-dim',   text: 'text-red'   },
 }
