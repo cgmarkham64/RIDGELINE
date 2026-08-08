@@ -118,23 +118,35 @@ export interface ZoneHit {
   distanceM: number
 }
 
-/** Find the zone containing a point, with a near-boundary fallback. */
-export function zoneAt(p: LatLon, zones: ZoneCollection, toleranceM = 60): ZoneHit {
+function findContainingZone(p: LatLon, zones: ZoneCollection, toleranceM: number): ZoneHit | null {
   for (const f of zones.features) {
     if (pointInPolygon(p, f.geometry.coordinates)) {
       const d = distToRingMeters(p, f.geometry.coordinates[0])
       return { zone: f, nearBoundary: d < toleranceM, distanceM: 0 }
     }
   }
+  return null
+}
+
+function findNearestZone(p: LatLon, zones: ZoneCollection): { f: ZoneFeature; d: number } | null {
   let best: { f: ZoneFeature; d: number } | null = null
   for (const f of zones.features) {
     const d = distToRingMeters(p, f.geometry.coordinates[0])
     if (!best || d < best.d) best = { f, d }
   }
-  if (best && best.d < toleranceM) {
-    return { zone: best.f, nearBoundary: true, distanceM: best.d }
+  return best
+}
+
+/** Find the zone containing a point, with a near-boundary fallback. */
+export function zoneAt(p: LatLon, zones: ZoneCollection, toleranceM = 60): ZoneHit {
+  const contained = findContainingZone(p, zones, toleranceM)
+  if (contained) return contained
+
+  const nearest = findNearestZone(p, zones)
+  if (nearest && nearest.d < toleranceM) {
+    return { zone: nearest.f, nearBoundary: true, distanceM: nearest.d }
   }
-  return { zone: null, nearBoundary: false, distanceM: best?.d ?? Infinity }
+  return { zone: null, nearBoundary: false, distanceM: nearest?.d ?? Infinity }
 }
 
 /** All zones a route passes through, in traversal order (dedup consecutive).
@@ -194,9 +206,28 @@ function inWindow(date: string, start: string | undefined, end: string | undefin
 // against the boundary) — matches zoneAt's default toleranceM-adjacent estimate.
 const NEAR_BOUNDARY_FALLBACK_M = 40
 
-export function derivePermitNeeds(
+// Appends to the in-progress zone stay if the camp is still in the same zone,
+// otherwise starts a new stay (routed to selfRegister when the zone needs no bookable permit).
+function appendCampToStay(
+  current: PermitNeed | null,
+  zone: ZoneFeature,
+  camp: CampNight,
+  needs: PermitNeed[],
+  selfRegister: PermitNeed[],
+): PermitNeed {
+  const p = zone.properties
+  if (current && current.zone.properties.id === p.id) {
+    current.nights.push(camp)
+    return current
+  }
+  const stay: PermitNeed = { zone, nights: [camp], inSeason: false, warnings: [] }
+  ;(p.permit_required === false ? selfRegister : needs).push(stay)
+  return stay
+}
+
+function groupCampsByZoneStay(
   camps: CampNight[],
-  zones: ZoneCollection
+  zones: ZoneCollection,
 ): { needs: PermitNeed[]; selfRegister: PermitNeed[]; unresolved: CampNight[] } {
   const needs: PermitNeed[] = []
   const selfRegister: PermitNeed[] = []
@@ -210,13 +241,8 @@ export function derivePermitNeeds(
       current = null
       continue
     }
+    current = appendCampToStay(current, hit.zone, camp, needs, selfRegister)
     const p = hit.zone.properties
-    if (current && current.zone.properties.id === p.id) {
-      current.nights.push(camp)
-    } else {
-      current = { zone: hit.zone, nights: [camp], inSeason: false, warnings: [] }
-      ;(p.permit_required === false ? selfRegister : needs).push(current)
-    }
     if (inWindow(camp.date, p.overnight_permit.season_start, p.overnight_permit.season_end)) {
       current.inSeason = true
     }
@@ -227,7 +253,11 @@ export function derivePermitNeeds(
     }
   }
 
-  for (const n of [...needs, ...selfRegister]) {
+  return { needs, selfRegister, unresolved }
+}
+
+function annotateZoneWarnings(entries: PermitNeed[]): void {
+  for (const n of entries) {
     const p = n.zone.properties
     if (!p.camping_allowed) {
       n.warnings.unshift(`${p.name} is CLOSED to camping (${p.camping_closure}) — move this camp`)
@@ -248,16 +278,28 @@ export function derivePermitNeeds(
       n.warnings.push(`${p.name}: max group size ${p.group_size_max}`)
     }
   }
+}
 
+// When a wilderness's core/master permit covers camping in more than one zone
+// a trip stays in, note that a single permit suffices instead of one per zone.
+function addCorePermitConsolidationNote(needs: PermitNeed[]): void {
   const zonesInStay = new Map(needs.map(n => [n.zone.properties.id, n.zone.properties]))
   const corePermitZones = [...zonesInStay.values()].filter(p => p.core_permit_valid_here)
-  if (corePermitZones.length > 1) {
-    const note = `A single core permit covers camping in any of: ${corePermitZones.map(p => p.name).join(', ')} — ` +
-      `you may only need one permit for this trip instead of one per zone.`
-    needs.forEach(n => {
-      if (n.zone.properties.core_permit_valid_here) n.warnings.push(note)
-    })
-  }
+  if (corePermitZones.length <= 1) return
 
+  const note = `A single core permit covers camping in any of: ${corePermitZones.map(p => p.name).join(', ')} — ` +
+    `you may only need one permit for this trip instead of one per zone.`
+  needs.forEach(n => {
+    if (n.zone.properties.core_permit_valid_here) n.warnings.push(note)
+  })
+}
+
+export function derivePermitNeeds(
+  camps: CampNight[],
+  zones: ZoneCollection
+): { needs: PermitNeed[]; selfRegister: PermitNeed[]; unresolved: CampNight[] } {
+  const { needs, selfRegister, unresolved } = groupCampsByZoneStay(camps, zones)
+  annotateZoneWarnings([...needs, ...selfRegister])
+  addCorePermitConsolidationNote(needs)
   return { needs, selfRegister, unresolved }
 }

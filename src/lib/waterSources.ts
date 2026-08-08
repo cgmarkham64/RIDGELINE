@@ -175,6 +175,128 @@ function osmLabel(tags: Record<string, string>, osmClass: OsmWaterClass): string
   return defaults[osmClass]
 }
 
+// ─── Overpass query + response parsing ─────────────────────────────────────────
+
+const BBOX_PAD_DEG = 0.01
+
+interface OverpassElement {
+  type: 'node' | 'way'
+  id: number
+  lat?: number
+  lon?: number
+  center?: { lat: number; lon: number }
+  tags?: Record<string, string>
+}
+
+interface OverpassResponse {
+  elements: OverpassElement[]
+}
+
+type Candidate = DetectedWaterSource & { snapEleM: number }
+
+function computeBbox(routeCoords: [number, number, number][]): string {
+  const lats = routeCoords.map(c => c[1])
+  const lons = routeCoords.map(c => c[0])
+  const south = Math.min(...lats) - BBOX_PAD_DEG
+  const west  = Math.min(...lons) - BBOX_PAD_DEG
+  const north = Math.max(...lats) + BBOX_PAD_DEG
+  const east  = Math.max(...lons) + BBOX_PAD_DEG
+  return `${south},${west},${north},${east}`
+}
+
+function buildOverpassQuery(bbox: string): string {
+  return `[out:json][timeout:25];
+(
+  node["natural"="spring"](${bbox});
+  node["amenity"="drinking_water"](${bbox});
+  way["waterway"="stream"](${bbox});
+  way["waterway"="river"](${bbox});
+);
+out center;`
+}
+
+function classifyOsmElement(tags: Record<string, string>): OsmWaterClass | null {
+  if (tags.natural === 'spring') return 'spring'
+  if (tags.amenity === 'drinking_water') return 'drinking_water'
+  if (tags.waterway === 'stream') return 'stream'
+  if (tags.waterway === 'river') return 'river'
+  return null
+}
+
+function buildCandidate(
+  el: OverpassElement,
+  lat: number,
+  lon: number,
+  osmClass: OsmWaterClass,
+  snap: { distFromStartMi: number; snapDistM: number; snapEleM: number },
+): Candidate {
+  const tags = el.tags ?? {}
+  return {
+    id: `osm-${el.type}-${el.id}`,
+    lat,
+    lon,
+    label: osmLabel(tags, osmClass),
+    osmClass,
+    intermittent: tags.intermittent === 'yes' || tags.seasonal === 'yes',
+    waypointType: classifyType(tags, osmClass),
+    distFromStartMi: snap.distFromStartMi,
+    snapDistM: snap.snapDistM,
+    snapEleM: snap.snapEleM,
+    checkDate: tags['check_date'] ?? tags['survey:date'],
+  }
+}
+
+function resolveLatLon(el: OverpassElement): { lat: number; lon: number } | null {
+  const lat = el.lat ?? el.center?.lat
+  const lon = el.lon ?? el.center?.lon
+  if (lat == null || lon == null) return null
+  return { lat, lon }
+}
+
+function extractCandidates(
+  elements: OverpassElement[],
+  routeCoords: [number, number, number][],
+  cumulDistMi: number[],
+): Candidate[] {
+  const seen = new Set<string>()
+  const candidates: Candidate[] = []
+
+  for (const el of elements) {
+    const point = resolveLatLon(el)
+    if (!point) continue
+
+    const osmClass = classifyOsmElement(el.tags ?? {})
+    if (!osmClass) continue
+
+    const key = `${el.type}-${el.id}`
+    if (seen.has(key)) continue
+    seen.add(key)
+
+    const snap = snapToRoute(point.lat, point.lon, routeCoords, cumulDistMi)
+    if (!snap) continue
+
+    candidates.push(buildCandidate(el, point.lat, point.lon, osmClass, snap))
+  }
+
+  return candidates
+}
+
+// Apply vertical drop filter when the GPX has elevation data.
+// srcEle === 0 means the elevation lookup failed — skip the vert filter for that source.
+async function filterByElevationDrop(
+  candidates: Candidate[],
+  routeHasElevation: boolean,
+): Promise<Candidate[]> {
+  if (!routeHasElevation || candidates.length === 0) return candidates
+
+  const sourceElevations = await fetchElevations(candidates.map(c => ({ lat: c.lat, lon: c.lon })))
+  return candidates.filter((c, i) => {
+    const srcEle = sourceElevations[i]
+    if (srcEle === 0) return true
+    return c.snapEleM - srcEle <= MAX_VERT_DROP_M
+  })
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 // routeCoords: [lon, lat, ele] (GPX convention)
@@ -183,100 +305,21 @@ export async function fetchDetectedWaterSources(
 ): Promise<DetectedWaterSource[]> {
   if (routeCoords.length < 2) return []
 
-  const lats = routeCoords.map(c => c[1])
-  const lons = routeCoords.map(c => c[0])
-  const PAD = 0.01
-  const south = Math.min(...lats) - PAD
-  const west  = Math.min(...lons) - PAD
-  const north = Math.max(...lats) + PAD
-  const east  = Math.max(...lons) + PAD
-  const bbox  = `${south},${west},${north},${east}`
-
-  const query = `[out:json][timeout:25];
-(
-  node["natural"="spring"](${bbox});
-  node["amenity"="drinking_water"](${bbox});
-  way["waterway"="stream"](${bbox});
-  way["waterway"="river"](${bbox});
-);
-out center;`
-
+  const bbox = computeBbox(routeCoords)
   const cacheKey = `ridgeline-water-${bbox}`
   const cached = readCache(cacheKey)
   if (cached) return cached
 
-  const resp = await overpassFetch(query)
+  const resp = await overpassFetch(buildOverpassQuery(bbox))
   if (!resp.ok) throw new Error(`Overpass API returned ${resp.status}`)
-
-  const data = await resp.json() as {
-    elements: Array<{
-      type: 'node' | 'way'
-      id: number
-      lat?: number
-      lon?: number
-      center?: { lat: number; lon: number }
-      tags?: Record<string, string>
-    }>
-  }
+  const data = await resp.json() as OverpassResponse
 
   // Check whether the GPX has real elevation data (non-zero on at least one point).
   const routeHasElevation = routeCoords.some(c => c[2] !== 0)
-
   const cumulDistMi = buildCumulDistMi(routeCoords)
-  const seen = new Set<string>()
+  const candidates = extractCandidates(data.elements, routeCoords, cumulDistMi)
 
-  type Candidate = DetectedWaterSource & { snapEleM: number }
-  const candidates: Candidate[] = []
-
-  for (const el of data.elements) {
-    const lat = el.lat ?? el.center?.lat
-    const lon = el.lon ?? el.center?.lon
-    if (lat == null || lon == null) continue
-
-    const tags = el.tags ?? {}
-    let osmClass: OsmWaterClass
-    if      (tags.natural === 'spring')         osmClass = 'spring'
-    else if (tags.amenity === 'drinking_water')  osmClass = 'drinking_water'
-    else if (tags.waterway === 'stream')         osmClass = 'stream'
-    else if (tags.waterway === 'river')          osmClass = 'river'
-    else continue
-
-    const key = `${el.type}-${el.id}`
-    if (seen.has(key)) continue
-    seen.add(key)
-
-    const snap = snapToRoute(lat, lon, routeCoords, cumulDistMi)
-    if (!snap) continue
-
-    candidates.push({
-      id: `osm-${key}`,
-      lat,
-      lon,
-      label: osmLabel(tags, osmClass),
-      osmClass,
-      intermittent: tags.intermittent === 'yes' || tags.seasonal === 'yes',
-      waypointType: classifyType(tags, osmClass),
-      distFromStartMi: snap.distFromStartMi,
-      snapDistM: snap.snapDistM,
-      snapEleM: snap.snapEleM,
-      checkDate: tags['check_date'] ?? tags['survey:date'],
-    })
-  }
-
-  // Apply vertical drop filter when the GPX has elevation data.
-  let results: DetectedWaterSource[]
-  if (routeHasElevation && candidates.length > 0) {
-    const sourceElevations = await fetchElevations(candidates.map(c => ({ lat: c.lat, lon: c.lon })))
-    results = candidates.filter((c, i) => {
-      const srcEle = sourceElevations[i]
-      // srcEle === 0 means lookup failed — skip the vert filter for that source.
-      if (srcEle === 0) return true
-      return c.snapEleM - srcEle <= MAX_VERT_DROP_M
-    })
-  } else {
-    results = candidates
-  }
-
+  const results = await filterByElevationDrop(candidates, routeHasElevation)
   results.sort((a, b) => a.distFromStartMi - b.distFromStartMi)
   const final = deduplicateWaterSources(results)
   writeCache(cacheKey, final)

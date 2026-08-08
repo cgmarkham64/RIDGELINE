@@ -1,5 +1,17 @@
+import type { CSSProperties } from 'react'
+
 export function isOwnedBy(ownerSub: string | undefined, userId: string | undefined): boolean {
   return !!userId && ownerSub === userId
+}
+
+// Shared amber-highlight styling for toggle/chip-style buttons (filter chips,
+// role selectors) — active state gets the amber treatment, inactive stays neutral.
+export function toggleChipStyle(active: boolean): CSSProperties {
+  return {
+    background:  active ? 'var(--amber-dim)' : 'var(--surface-2)',
+    borderColor: active ? 'var(--amber-border)' : 'var(--border)',
+    color:       active ? 'var(--amber)' : 'var(--text-dim)',
+  }
 }
 
 export function initials(name: string | undefined): string {

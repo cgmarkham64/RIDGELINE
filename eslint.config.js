@@ -72,6 +72,18 @@ export default defineConfig([
     },
   },
   {
+    // JSX markup (verbose className props, nested elements) inflates line
+    // count without the cognitive load of imperative logic — give components
+    // more room than plain .ts logic/utility files.
+    files: ['**/*.tsx'],
+    rules: {
+      'max-lines-per-function': [
+        'warn',
+        { max: 50, skipBlankLines: true, skipComments: true, IIFEs: true },
+      ],
+    },
+  },
+  {
     files: ['server/src/**/*.ts'],
     rules: {
       '@typescript-eslint/no-magic-numbers': [
