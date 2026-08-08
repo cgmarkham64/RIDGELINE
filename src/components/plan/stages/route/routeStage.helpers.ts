@@ -1,8 +1,12 @@
-import type { CheckRow, RoutePreview, SegRow, WaterEntry, MergedRow } from './routeStage.types'
+import type L from 'leaflet'
+import type { LatLngBoundsExpression } from 'leaflet'
+import type { CheckRow, RoutePreview, SegRow, WaterEntry, MergedRow, DrawState } from './routeStage.types'
+import type { DrawPhaseFlags } from './routeMapCard.types'
 import type { DetectedWaterSource } from '../../../../lib/waterSources'
 import type { Waypoint } from '../../../../types'
 import { haversineMiles, haversinePathMiles } from '../../../../lib/geo'
-import { mToFt } from '../../../../lib/units'
+import { mToFt, milesToKm, ftToM } from '../../../../lib/units'
+import type { UnitSystem } from '../../../../lib/units'
 
 const ELEV_GAIN_ROUND_TO_FT = 10
 const COORD_DISPLAY_DECIMALS = 3
@@ -12,6 +16,36 @@ const MINUTES_PER_DAY = 1440
 const SUN_API_COORD_DECIMALS = 4
 const ISO_TIME_SLICE_START = 11
 const ISO_TIME_SLICE_END = 16
+const DEFAULT_MAP_LAT = 40.0
+const DEFAULT_MAP_LON = -105.5
+const DEFAULT_MAP_ZOOM = 5
+const MAP_FIT_PADDING_PX = 20
+
+export function computeDrawPhaseFlags(drawState: DrawState): DrawPhaseFlags {
+  return {
+    isDrawing: drawState.phase !== 'idle',
+    isPlacingPin: drawState.phase === 'placing-start' || drawState.phase === 'placing-end',
+    startPlaced: drawState.phase === 'placing-end' || drawState.phase === 'active',
+    endPlaced: drawState.phase === 'active',
+  }
+}
+
+export function computeMapViewport(bounds: L.LatLngBounds | null) {
+  return bounds
+    ? { bounds: bounds as LatLngBoundsExpression, boundsOptions: { padding: [MAP_FIT_PADDING_PX, MAP_FIT_PADDING_PX] as [number, number] } }
+    : { center: [DEFAULT_MAP_LAT, DEFAULT_MAP_LON] as [number, number], zoom: DEFAULT_MAP_ZOOM }
+}
+
+export function computeShowMap(bounds: L.LatLngBounds | null, isDrawing: boolean, segments: SegRow[]): boolean {
+  return !!bounds || isDrawing || segments.some(s => s.path?.length)
+}
+
+export function formatRouteStats(segmentCount: number, totalMiles: number, totalGain: number, sys: UnitSystem): string {
+  if (segmentCount === 0) return 'No segments added yet'
+  const dist = sys === 'metric' ? `${milesToKm(totalMiles).toFixed(1)} km` : `${totalMiles.toFixed(1)} mi`
+  const gain = sys === 'metric' ? `${ftToM(totalGain).toLocaleString()} m` : `${totalGain.toLocaleString()} ft`
+  return `${dist} · +${gain} gain · ${segmentCount} segment${segmentCount !== 1 ? 's' : ''}`
+}
 
 export const DEFAULT_CHECKLIST: CheckRow[] = [
   { text: 'Route picked',                  done: false },
