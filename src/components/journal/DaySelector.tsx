@@ -1,18 +1,8 @@
 import { useMemo, useState } from 'react'
 import type { JournalDay } from '../../types'
-import { IconChevronLeft, IconChevronRight } from '../icons'
-
-interface DayMeta {
-  dayNumber: number
-  date: string // YYYY-MM-DD, local time
-}
-
-type Cell = DayMeta | null
-interface MonthGroup {
-  label: string
-  weeks: Cell[][]
-  nextLabel: string | null // trip continues into this month name
-}
+import type { DayMeta, Cell, MonthGroup } from './daySelector.types'
+import { DayStrip } from './DayStrip'
+import { DayCalendarGrid } from './DayCalendarGrid'
 
 const MS_PER_DAY = 86_400_000
 const DAYS_PER_WEEK = 7
@@ -113,8 +103,6 @@ interface Props {
   onSelect: (date: string) => void
 }
 
-const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-
 export function DaySelector({ startDate, endDate, selectedDate, entries, onSelect }: Props) {
   const days = useMemo(() => buildDays(startDate, endDate), [startDate, endDate])
   const entryDates = useMemo(() => new Set(entries.map((e) => e.date.slice(0, ISO_DATE_LENGTH))), [entries])
@@ -126,134 +114,18 @@ export function DaySelector({ startDate, endDate, selectedDate, entries, onSelec
     setVisibleMonthIdx(0)
   }
 
-  // ── Strip view (≤ 14 days) ───────────────────────────────────────────────
   if (days.length <= STRIP_VIEW_MAX_DAYS) {
-    return (
-      <div className="day-selector">
-        {days.map(({ dayNumber, date }) => {
-          const isSelected = date === selectedDate
-          const hasEntry = entryDates.has(date)
-          const shortLabel = new Date(date + 'T00:00:00')
-            .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-            .toUpperCase()
-          return (
-            <button
-              key={date}
-              onClick={() => onSelect(date)}
-              className={`day-btn${isSelected ? ' active' : ''}`}
-            >
-              <div className="day-btn-num">{dayNumber}</div>
-              <div className="day-btn-date">{shortLabel}</div>
-              {hasEntry && <div className="day-btn-dot" />}
-            </button>
-          )
-        })}
-      </div>
-    )
+    return <DayStrip days={days} selectedDate={selectedDate} entryDates={entryDates} onSelect={onSelect} />
   }
 
-  // ── Calendar grid with month pagination ──────────────────────────────────
-  const clampedIdx = Math.min(visibleMonthIdx, monthGroups.length - 1)
-  const currentMonth = monthGroups[clampedIdx]
-  const canPrev = clampedIdx > 0
-  const canNext = clampedIdx < monthGroups.length - 1
-
   return (
-    <div className="mb-5.5 w-1/2 mx-auto bg-surface-2 border border-border rounded-md overflow-hidden">
-      {/* Month nav header */}
-      <div className="flex items-center justify-between px-2.5 py-2 border-b border-border">
-        {monthGroups.length > 1 ? (
-          <button
-            onClick={() => setVisibleMonthIdx((i) => Math.max(0, i - 1))}
-            disabled={!canPrev}
-            className="w-6 h-6 flex items-center justify-center rounded-sm text-text-dim hover:text-text hover:bg-surface-3 disabled:opacity-30 disabled:cursor-default transition-colors duration-120 cursor-pointer"
-          >
-            <IconChevronLeft size={14} />
-          </button>
-        ) : <div className="w-6" />}
-        <span className="font-mono text-label tracking-[0.14em] uppercase text-text-mid">
-          {currentMonth?.label}
-        </span>
-        {monthGroups.length > 1 ? (
-          <button
-            onClick={() => setVisibleMonthIdx((i) => Math.min(monthGroups.length - 1, i + 1))}
-            disabled={!canNext}
-            className="w-6 h-6 flex items-center justify-center rounded-sm text-text-dim hover:text-text hover:bg-surface-3 disabled:opacity-30 disabled:cursor-default transition-colors duration-120 cursor-pointer"
-          >
-            <IconChevronRight size={14} />
-          </button>
-        ) : <div className="w-6" />}
-      </div>
-
-      {/* Day-of-week header */}
-      <div className="grid grid-cols-7 border-b border-border">
-        {DOW.map((d, i) => (
-          <div key={i} className="text-center py-1.5 font-mono text-label tracking-widest uppercase text-text-dim">
-            {d}
-          </div>
-        ))}
-      </div>
-
-      {/* Weeks */}
-      {currentMonth?.weeks.map((cells, wi) => (
-        <div key={wi} className="grid grid-cols-7">
-          {cells.map((cell, ci) => {
-            if (!cell) {
-              return <div key={ci} className="py-2.25 border-r border-b border-border last:border-r-0" />
-            }
-            const isSelected = cell.date === selectedDate
-            const hasEntry = entryDates.has(cell.date)
-            const calDate = new Date(cell.date + 'T00:00:00')
-              .toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-              .toUpperCase()
-
-            return (
-              <button
-                key={ci}
-                onClick={() => onSelect(cell.date)}
-                className={[
-                  'relative flex flex-col items-center justify-center py-2.25 gap-0.5 border-r border-b border-border last:border-r-0 transition-colors duration-120 cursor-pointer bg-transparent',
-                  isSelected
-                    ? 'bg-amber-glow shadow-[inset_0_0_0_1px_var(--color-amber-border)]'
-                    : 'hover:bg-surface-3',
-                ].join(' ')}
-              >
-                <span className={[
-                  'font-heading text-body-sm font-extrabold leading-none',
-                  isSelected ? 'text-amber' : 'text-text-mid',
-                ].join(' ')}>
-                  {cell.dayNumber}
-                </span>
-                <span className={[
-                  'font-mono text-label tracking-[0.06em] uppercase leading-none',
-                  isSelected ? 'text-amber/55' : 'text-text-dim',
-                ].join(' ')}>
-                  {calDate}
-                </span>
-                {hasEntry && (
-                  <div className={[
-                    'absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full',
-                    isSelected ? 'bg-amber' : 'bg-text-dim',
-                  ].join(' ')} />
-                )}
-              </button>
-            )
-          })}
-        </div>
-      ))}
-
-      {/* Continues indicator */}
-      {currentMonth?.nextLabel && (
-        <button
-          onClick={() => setVisibleMonthIdx((i) => i + 1)}
-          className="w-full flex items-center justify-end gap-1.5 px-2.5 py-1.5 border-t border-border text-text-dim hover:text-text hover:bg-surface-3 transition-colors duration-120 cursor-pointer"
-        >
-          <span className="font-mono text-label tracking-widest uppercase">
-            Continues in {currentMonth.nextLabel}
-          </span>
-          <IconChevronRight size={12} />
-        </button>
-      )}
-    </div>
+    <DayCalendarGrid
+      monthGroups={monthGroups}
+      visibleMonthIdx={visibleMonthIdx}
+      setVisibleMonthIdx={setVisibleMonthIdx}
+      selectedDate={selectedDate}
+      entryDates={entryDates}
+      onSelect={onSelect}
+    />
   )
 }
