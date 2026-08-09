@@ -1,9 +1,9 @@
 import type { Stage, PlanView } from './types'
 import { stageState } from './constants'
 import { Ring } from './Ring'
-import { IconChevronRight, IconMap, IconPencil } from '../icons'
-import { fmtElevGain, fmtDist } from '../../lib/units'
-import { useUnitSystem } from '../../hooks/useUnitSystem'
+import { IconChevronRight, IconMap } from '../icons'
+import { StageRailHeader } from './StageRailHeader'
+import { StageRailSnapshot } from './StageRailSnapshot'
 
 interface StageRailProps {
   stages: Stage[]
@@ -51,29 +51,10 @@ function StageRailItem({
 
 export function StageRail({ stages, trip, activeStageIdx, view, totalDone, totalAll, onSelectStage, onSelectOverview, onEditDetails }: StageRailProps) {
   const isOverview = view === 'overview'
-  const sys = useUnitSystem()
 
   return (
     <aside className="w-[280px] shrink-0 bg-surface border-r border-border flex flex-col h-full overflow-hidden">
-      {/* Trip identity */}
-      <div className="px-[18px] py-3.5 border-b border-border shrink-0">
-        <div className="flex items-start justify-between gap-1">
-          <div className="min-w-0">
-            <div className="font-mono text-label tracking-[0.16em] uppercase text-amber mb-1.5">{trip.location}</div>
-            <div className="font-heading text-body-lg font-extrabold text-text leading-tight">{trip.title}</div>
-            <div className="font-mono text-label text-text-dim mt-1 italic">{trip.dateRange}</div>
-          </div>
-          {onEditDetails && (
-            <button
-              onClick={onEditDetails}
-              title="Edit trip details"
-              className="shrink-0 mt-0.5 w-6 h-6 flex items-center justify-center rounded text-text-dim hover:text-amber hover:bg-surface-2 transition-colors duration-100"
-            >
-              <IconPencil />
-            </button>
-          )}
-        </div>
-      </div>
+      <StageRailHeader trip={trip} onEditDetails={onEditDetails} />
 
       {/* Plan overview entry */}
       <div className="px-2 pt-2 shrink-0">
@@ -120,23 +101,7 @@ export function StageRail({ stages, trip, activeStageIdx, view, totalDone, total
         ))}
       </div>
 
-      {/* Snapshot stats */}
-      <div className="px-[18px] py-3 border-t border-border shrink-0">
-        <div className="font-mono text-label tracking-[0.16em] uppercase text-text-dim mb-2">Snapshot</div>
-        <div className="grid grid-cols-2 gap-1.5">
-          {[
-            { value: trip.miles != null ? fmtDist(trip.miles, sys) : '—', label: 'dist' },
-            { value: trip.elevGainFt != null ? fmtElevGain(trip.elevGainFt, sys) : '—', label: 'gain' },
-            { value: trip.days || '—',  label: 'days' },
-            { value: trip.weight,       label: 'base' },
-          ].map(({ value, label }) => (
-            <div key={label} className="bg-surface border border-border rounded p-2.5 text-center">
-              <div className="font-heading text-[17px] font-extrabold text-amber leading-none mb-1">{value}</div>
-              <div className="font-mono text-label tracking-[0.14em] uppercase text-text-dim">{label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <StageRailSnapshot trip={trip} />
     </aside>
   )
 }

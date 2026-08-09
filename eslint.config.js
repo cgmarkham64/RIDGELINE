@@ -36,7 +36,7 @@ const VISUAL_RENDERING_FILES = [
   'src/components/trip/ElevationProfile.tsx',
   'src/components/trip/GpxMapSection.tsx',
   'src/components/plan/stages/route/RouteMapCard.tsx',
-  'src/components/plan/PlanAccessError.tsx',
+  'src/components/plan/BearJailIllustration.tsx',
   'src/components/plan/stages/route/ZonesOverlay.tsx',
 ]
 

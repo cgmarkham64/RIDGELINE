@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useUpdatePlan } from '../../hooks/usePlans'
 import { Modal } from '../ui/Modal'
+import { TripSetupFields } from './TripSetupFields'
 
 interface Props {
   tripId: string
@@ -52,9 +53,6 @@ export function TripSetupDialog({
     }
   }
 
-  const inputCls = 'w-full px-3 py-2 border border-border focus:border-border-mid rounded-sm text-body-sm bg-surface-2 text-text outline-none transition-[border-color] duration-[140ms] placeholder:text-text-dim'
-  const labelCls = 'font-mono text-label tracking-[0.12em] uppercase text-text-dim mb-1.5 block'
-
   return (
     <Modal
       zIndexClassName="z-[1200]"
@@ -75,50 +73,12 @@ export function TripSetupDialog({
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="px-5 py-4 flex flex-col gap-4">
-        <div>
-          <label className={labelCls}>Trip name *</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Sierra High Route"
-            className={inputCls}
-            autoFocus
-          />
-        </div>
-
-        <div>
-          <label className={labelCls}>Location</label>
-          <input
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="e.g. John Muir Wilderness, CA"
-            className={inputCls}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={labelCls}>Start date *</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => { setStartDate(e.target.value); if (endDate < e.target.value) setEndDate(e.target.value) }}
-              className={inputCls}
-            />
-          </div>
-          <div>
-            <label className={labelCls}>End date *</label>
-            <input
-              type="date"
-              value={endDate}
-              min={startDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className={inputCls}
-            />
-          </div>
-        </div>
+        <TripSetupFields
+          title={title} setTitle={setTitle}
+          location={location} setLocation={setLocation}
+          startDate={startDate} setStartDate={setStartDate}
+          endDate={endDate} setEndDate={setEndDate}
+        />
 
         {error && <p className="font-mono text-caption text-red -mt-1">{error}</p>}
 
