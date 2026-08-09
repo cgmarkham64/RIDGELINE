@@ -29,6 +29,8 @@ const HTTP_STATUS_CODES = [201, 204, 400, 401, 403, 404, 409, 413, 422, 500, 502
 const VISUAL_RENDERING_FILES = [
   'src/components/map/leafletIcons.ts',
   'src/components/map/MapArea.tsx',
+  'src/components/map/MapCanvas.tsx',
+  'src/components/map/MapContextMenus.tsx',
   'src/components/map/MapHelpers.tsx',
   'src/components/plan/stages/weather/WmoConditionIcon.tsx',
   'src/components/trip/ElevationProfile.tsx',

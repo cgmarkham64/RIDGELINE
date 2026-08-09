@@ -56,30 +56,46 @@ export function WaypointChip({
       </div>
 
       {menu && (
-        <>
-          <div
-            className="fixed inset-0 z-[2000]"
-            onClick={() => setMenu(null)}
-            onContextMenu={(e) => { e.preventDefault(); setMenu(null) }}
-          />
-          <div
-            className="fixed z-[2001] bg-surface border border-border rounded-md overflow-hidden py-0.5"
-            style={{ left: menu.x + CONTEXT_MENU_OFFSET_PX, top: menu.y + CONTEXT_MENU_OFFSET_PX, minWidth: 172 }}
-          >
-            <ChipMenuItem
-              icon={<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />}
-              label="Edit waypoint"
-              onClick={() => { onEdit(); setMenu(null) }}
-            />
-            <ChipMenuItem
-              icon={<><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>}
-              label="Remove waypoint"
-              danger
-              onClick={() => { onDelete(); setMenu(null) }}
-            />
-          </div>
-        </>
+        <ChipContextMenu menu={menu} onDismiss={() => setMenu(null)} onEdit={onEdit} onDelete={onDelete} />
       )}
+    </>
+  )
+}
+
+function ChipContextMenu({
+  menu,
+  onDismiss,
+  onEdit,
+  onDelete,
+}: {
+  menu: { x: number; y: number }
+  onDismiss: () => void
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-[2000]"
+        onClick={onDismiss}
+        onContextMenu={(e) => { e.preventDefault(); onDismiss() }}
+      />
+      <div
+        className="fixed z-[2001] bg-surface border border-border rounded-md overflow-hidden py-0.5"
+        style={{ left: menu.x + CONTEXT_MENU_OFFSET_PX, top: menu.y + CONTEXT_MENU_OFFSET_PX, minWidth: 172 }}
+      >
+        <ChipMenuItem
+          icon={<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />}
+          label="Edit waypoint"
+          onClick={() => { onEdit(); onDismiss() }}
+        />
+        <ChipMenuItem
+          icon={<><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>}
+          label="Remove waypoint"
+          danger
+          onClick={() => { onDelete(); onDismiss() }}
+        />
+      </div>
     </>
   )
 }

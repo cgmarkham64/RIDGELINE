@@ -1,12 +1,10 @@
-import { MapContainer, Marker, Polyline, TileLayer } from 'react-leaflet'
-import 'leaflet/dist/leaflet.css'
-import L, { type LatLngBoundsExpression } from 'leaflet'
+import type L from 'leaflet'
+import type { LatLngBoundsExpression } from 'leaflet'
 import type { GpxTrackEntry, Waypoint, WaypointType } from '../../types'
-import { PLANNED_COLOR, mono, TILE_LAYERS, type TileLayerKey } from './constants'
+import { mono, PLANNED_COLOR, type TileLayerKey } from './constants'
 import { MapTileToggle } from './MapTileToggle'
-import { makeWaypointIcon, makePendingIcon, makeStartIcon, makeEndIcon } from './leafletIcons'
-import { FitBounds, MapClickHandler, MapContextMenuHandler, MapFocuser, MapRefCapture } from './MapHelpers'
-import { MapEmptyState } from './MapEmptyState'
+import { MapCanvas } from './MapCanvas'
+import { MapContextMenus } from './MapContextMenus'
 
 function ZoomControls({
   mapRef,
@@ -105,67 +103,7 @@ function TrackLegend({
   )
 }
 
-function ContextMenu({ x, y, children }: { x: number; y: number; onDismiss: () => void; children: React.ReactNode }) {
-  return (
-    <div
-      className="absolute z-1001 bg-surface border border-border rounded-md overflow-hidden py-0.5"
-      style={{ left: x + 4, top: y + 4, minWidth: 172 }}
-    >
-      {children}
-    </div>
-  )
-}
-
-function ContextMenuItem({
-  icon,
-  label,
-  danger = false,
-  onClick,
-}: {
-  icon: React.ReactNode
-  label: string
-  danger?: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-2 px-3 py-1.75 font-mono text-caption tracking-[0.08em] uppercase transition-colors duration-80 cursor-pointer ${danger ? 'text-text-dim hover:text-red hover:bg-red-dim' : 'text-text-mid hover:text-amber hover:bg-surface-2'}`}
-    >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5 shrink-0" style={{ strokeWidth: 2 }}>
-        {icon}
-      </svg>
-      {label}
-    </button>
-  )
-}
-
-export function MapArea({
-  bounds,
-  allPoints,
-  plannedLatLngs,
-  tracksWithLatLngs,
-  waypoints,
-  editingId,
-  addMode,
-  pendingLatLon,
-  addFormType,
-  focusId,
-  mapRef,
-  startEnd,
-  contextMenu,
-  waypointContextMenu,
-  onMapClick,
-  onMarkerClick,
-  onMarkerContextMenu,
-  onDeleteWaypoint,
-  onFocusDone,
-  onContextMenu,
-  onDismissContextMenu,
-  onDismissWaypointContextMenu,
-  tileLayer,
-  onTileToggle,
-}: {
+interface MapAreaProps {
   bounds: L.LatLngBounds | null
   allPoints: [number, number][]
   plannedLatLngs: [number, number][]
@@ -190,97 +128,27 @@ export function MapArea({
   onDismissWaypointContextMenu: () => void
   tileLayer: TileLayerKey
   onTileToggle: () => void
-}) {
+}
+
+export function MapArea(props: MapAreaProps) {
+  const { addMode, allPoints, plannedLatLngs, tracksWithLatLngs, mapRef, contextMenu, waypointContextMenu, tileLayer } = props
+
   return (
-    <div
-      className="flex-1 min-h-0 relative bg-bg"
-      style={{ cursor: addMode ? 'crosshair' : 'default' }}
-    >
-      {bounds ? (
-        <MapContainer
-          bounds={bounds as LatLngBoundsExpression}
-          boundsOptions={{ padding: [32, 32] }}
-          style={{ height: '100%', width: '100%' }}
-          scrollWheelZoom
-          zoomControl={false}
-          attributionControl={false}
-        >
-          <TileLayer {...TILE_LAYERS[tileLayer]} />
-          {plannedLatLngs.length > 1 && (
-            <Polyline positions={plannedLatLngs} color={PLANNED_COLOR} weight={4} opacity={0.9} dashArray="10 6" />
-          )}
-          {tracksWithLatLngs.map(
-            ({ entry, color, positions }) =>
-              positions.length > 1 && (
-                <Polyline key={entry.id} positions={positions} color={color} weight={3} opacity={0.9} />
-              )
-          )}
-          {waypoints.map((wp) => (
-            <Marker
-              key={wp.id}
-              position={[wp.lat, wp.lon]}
-              icon={makeWaypointIcon(wp.type, editingId === wp.id)}
-              eventHandlers={{
-                click: () => onMarkerClick(wp),
-                contextmenu: (e) => {
-                  e.originalEvent.preventDefault()
-                  e.originalEvent.stopPropagation()
-                  onMarkerContextMenu(wp, e.containerPoint.x, e.containerPoint.y)
-                },
-              }}
-            />
-          ))}
-          {startEnd && (
-            <>
-              <Marker position={startEnd.start} icon={makeStartIcon()} interactive={false} />
-              <Marker position={startEnd.end} icon={makeEndIcon()} interactive={false} />
-            </>
-          )}
-          {pendingLatLon && (
-            <Marker
-              position={[pendingLatLon.lat, pendingLatLon.lon]}
-              icon={makePendingIcon(addFormType)}
-              interactive={false}
-            />
-          )}
-          <MapClickHandler active={addMode} onMapClick={onMapClick} onDismiss={onDismissContextMenu} />
-          <MapContextMenuHandler onContextMenu={onContextMenu} onDismiss={onDismissContextMenu} />
-          {allPoints.length > 1 && <FitBounds positions={allPoints} />}
-          <MapRefCapture mapRef={mapRef} />
-          <MapFocuser waypoints={waypoints} focusId={focusId} onDone={onFocusDone} />
-        </MapContainer>
-      ) : (
-        <MapEmptyState />
-      )}
+    <div className="flex-1 min-h-0 relative bg-bg" style={{ cursor: addMode ? 'crosshair' : 'default' }}>
+      <MapCanvas {...props} />
 
-      {contextMenu && (
-        <ContextMenu x={contextMenu.x} y={contextMenu.y} onDismiss={onDismissContextMenu}>
-          <ContextMenuItem
-            icon={<path d="M12 2C8.686 2 6 4.686 6 8c0 4.5 6 12 6 12s6-7.5 6-12c0-3.314-2.686-6-6-6z" />}
-            label="Add waypoint here"
-            onClick={() => onMapClick(contextMenu.lat, contextMenu.lon)}
-          />
-        </ContextMenu>
-      )}
-
-      {waypointContextMenu && (
-        <ContextMenu x={waypointContextMenu.x} y={waypointContextMenu.y} onDismiss={onDismissWaypointContextMenu}>
-          <ContextMenuItem
-            icon={<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />}
-            label="Edit waypoint"
-            onClick={() => { onMarkerClick(waypointContextMenu.wp); onDismissWaypointContextMenu() }}
-          />
-          <ContextMenuItem
-            icon={<><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></>}
-            label="Remove waypoint"
-            danger
-            onClick={() => { onDeleteWaypoint(waypointContextMenu.wp.id); onDismissWaypointContextMenu() }}
-          />
-        </ContextMenu>
-      )}
+      <MapContextMenus
+        contextMenu={contextMenu}
+        waypointContextMenu={waypointContextMenu}
+        onMapClick={props.onMapClick}
+        onMarkerClick={props.onMarkerClick}
+        onDeleteWaypoint={props.onDeleteWaypoint}
+        onDismissContextMenu={props.onDismissContextMenu}
+        onDismissWaypointContextMenu={props.onDismissWaypointContextMenu}
+      />
 
       <ZoomControls mapRef={mapRef} allPoints={allPoints} />
-      <MapTileToggle current={tileLayer} onToggle={onTileToggle} />
+      <MapTileToggle current={tileLayer} onToggle={props.onTileToggle} />
       {addMode && <AddModeHint />}
       <TrackLegend plannedLatLngs={plannedLatLngs} tracksWithLatLngs={tracksWithLatLngs} />
     </div>
