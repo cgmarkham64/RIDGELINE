@@ -62,6 +62,8 @@ export type WaterEntry = {
   lon: number
 }
 
+export type ReconnectUpdate = { si: number; start: [number, number]; end: [number, number] }
+
 export type MergedRow =
   | { kind: 'start'; toNextCampMi: number | null; toNextWaterMi: number | null; lat: number | null; lon: number | null }
   | {

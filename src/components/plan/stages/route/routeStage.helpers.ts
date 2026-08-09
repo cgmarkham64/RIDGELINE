@@ -1,6 +1,6 @@
 import type L from 'leaflet'
 import type { LatLngBoundsExpression } from 'leaflet'
-import type { CheckRow, RoutePreview, SegRow, WaterEntry, MergedRow, DrawState } from './routeStage.types'
+import type { CheckRow, RoutePreview, SegRow, WaterEntry, MergedRow, DrawState, ReconnectUpdate } from './routeStage.types'
 import type { DrawPhaseFlags } from './routeMapCard.types'
 import type { DetectedWaterSource } from '../../../../lib/waterSources'
 import type { Waypoint } from '../../../../types'
@@ -45,6 +45,118 @@ export function formatRouteStats(segmentCount: number, totalMiles: number, total
   const dist = sys === 'metric' ? `${milesToKm(totalMiles).toFixed(1)} km` : `${totalMiles.toFixed(1)} mi`
   const gain = sys === 'metric' ? `${ftToM(totalGain).toLocaleString()} m` : `${totalGain.toLocaleString()} ft`
   return `${dist} · +${gain} gain · ${segmentCount} segment${segmentCount !== 1 ? 's' : ''}`
+}
+
+// ─── Draw-mode state transitions ───────────────────────────────────────────────
+
+export function computeEditDrawState(editingSeg: SegRow & { path: [number, number][] }): DrawState {
+  const start = editingSeg.path[0]
+  const end = editingSeg.path[editingSeg.path.length - 1]
+  const hasTimes = !!(editingSeg.wakeTime || editingSeg.onTrailTime || editingSeg.campByTime)
+  return {
+    phase: 'active', start, end,
+    loading: false, result: null, error: null,
+    name: editingSeg.name, nameAuto: false, segN: editingSeg.n,
+    notes: editingSeg.notes,
+    showMore: !!(editingSeg.notes || editingSeg.water || editingSeg.exposure) || !hasTimes,
+    sunTimesLoading: !hasTimes,
+    water: editingSeg.water,
+    exposure: editingSeg.exposure,
+    hard: editingSeg.hard,
+    wakeTime: editingSeg.wakeTime,
+    onTrailTime: editingSeg.onTrailTime,
+    campByTime: editingSeg.campByTime,
+    editingSeg,
+  }
+}
+
+export function computeNewSegmentDrawState(segments: SegRow[]): DrawState {
+  const prevPath = segments[segments.length - 1]?.path
+  const snapPoint = prevPath?.length ? prevPath[prevPath.length - 1] : null
+  return snapPoint
+    ? { phase: 'placing-end', start: snapPoint, snappedToPrev: true }
+    : { phase: 'placing-start' }
+}
+
+export function buildActiveDrawStateFromClick(
+  drawState: Extract<DrawState, { phase: 'placing-end' }>, segments: SegRow[], lat: number, lng: number,
+): Extract<DrawState, { phase: 'active' }> {
+  const end: [number, number] = [lat, lng]
+  const segN = drawState.editingSeg?.n ?? ((segments[segments.length - 1]?.n ?? 0) + 1)
+  return {
+    phase: 'active', start: drawState.start, end,
+    loading: true, result: null, error: null,
+    name: `Segment ${segN}`, nameAuto: true, segN,
+    notes: drawState.editingSeg?.notes ?? '',
+    showMore: true,
+    sunTimesLoading: true,
+    water: drawState.editingSeg?.water,
+    exposure: drawState.editingSeg?.exposure,
+    hard: drawState.editingSeg?.hard,
+    wakeTime: undefined,
+    onTrailTime: undefined,
+    campByTime: undefined,
+    editingSeg: drawState.editingSeg,
+  }
+}
+
+// ─── Segment reconnection (adjacent-segment endpoint sync) ─────────────────────
+
+function nextNeighborUpdate(segments: SegRow[], segIdx: number, newPos: [number, number]): ReconnectUpdate | null {
+  const next = segments[segIdx + 1]
+  if (!next?.path?.length) return null
+  return { si: segIdx + 1, start: newPos, end: next.path[next.path.length - 1] }
+}
+
+function prevNeighborUpdate(segments: SegRow[], segIdx: number, newPos: [number, number]): ReconnectUpdate | null {
+  const prev = segments[segIdx - 1]
+  if (!prev?.path?.length) return null
+  return { si: segIdx - 1, start: prev.path[0], end: newPos }
+}
+
+function pointsDiffer(a: [number, number] | undefined, b: [number, number]): boolean {
+  return !!a && (a[0] !== b[0] || a[1] !== b[1])
+}
+
+export function computeEndpointReconnectUpdates(
+  segments: SegRow[], segIdx: number, which: 'start' | 'end', newPos: [number, number],
+): ReconnectUpdate[] {
+  const path = segments[segIdx]?.path
+  if (!path?.length) return []
+
+  const selfUpdate: ReconnectUpdate = {
+    si: segIdx,
+    start: which === 'start' ? newPos : path[0],
+    end: which === 'end' ? newPos : path[path.length - 1],
+  }
+  const neighborUpdate = which === 'end'
+    ? nextNeighborUpdate(segments, segIdx, newPos)
+    : prevNeighborUpdate(segments, segIdx, newPos)
+  return neighborUpdate ? [selfUpdate, neighborUpdate] : [selfUpdate]
+}
+
+export function computeEditReconnectUpdates(
+  segments: SegRow[], editingSeg: SegRow, newStart: [number, number], newEnd: [number, number],
+): ReconnectUpdate[] {
+  const segIdx = segments.findIndex(s => s.n === editingSeg.n)
+  const endUpdate = pointsDiffer(editingSeg.path?.[editingSeg.path.length - 1], newEnd)
+    ? nextNeighborUpdate(segments, segIdx, newEnd)
+    : null
+  const startUpdate = pointsDiffer(editingSeg.path?.[0], newStart)
+    ? prevNeighborUpdate(segments, segIdx, newStart)
+    : null
+  return [endUpdate, startUpdate].filter((u): u is ReconnectUpdate => u !== null)
+}
+
+export function applyReconnectResults(prev: SegRow[], results: { si: number; preview: RoutePreview | null }[]): SegRow[] {
+  let next = [...prev]
+  for (const { si, preview } of results) {
+    if (!preview) continue
+    next = next.map((s, i) =>
+      i === si ? { ...s, mi: parseFloat(preview.mi.toFixed(1)), gain: preview.gain, path: preview.path } : s
+    )
+  }
+  return next
 }
 
 export const DEFAULT_CHECKLIST: CheckRow[] = [
