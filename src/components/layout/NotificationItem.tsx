@@ -29,21 +29,17 @@ function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString()
 }
 
-export function NotificationItem({
-  notification: n,
-  onAccept,
-  onDecline,
-  onDismiss,
-  accepting,
-  declining,
-}: {
+interface NotificationItemProps {
   notification: AppNotification
   onAccept: () => void
   onDecline: () => void
   onDismiss: () => void
   accepting: boolean
   declining: boolean
-}) {
+}
+
+export function NotificationItem(props: NotificationItemProps) {
+  const { notification: n, onAccept, onDecline, onDismiss, accepting, declining } = props
   const isPending = n.type === 'trip_share_invite' && n.status === 'pending'
   const isUnread = !n.read && n.status !== 'pending'
 
