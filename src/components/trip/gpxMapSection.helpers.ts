@@ -1,4 +1,6 @@
-import type { GpxTrack } from '../../types'
+import L from 'leaflet'
+import type { GpxTrack, Trip } from '../../types'
+import { resolveStartEnd } from '../map/constants'
 
 export type ImportTarget =
   | { type: 'planned' }
@@ -24,4 +26,19 @@ export function trackColor(index: number): string {
 
 export function toLatLngs(track: GpxTrack | undefined | null): [number, number][] {
   return track?.coordinates.map(([lon, lat]) => [lat, lon]) ?? []
+}
+
+export function computeGpxGeometry(trip: Trip) {
+  const gpxTracks = trip.gpxTracks ?? []
+  const plannedLatLngs = toLatLngs(trip.gpxPlanned)
+  const tracksWithLatLngs = gpxTracks.map((entry, i) => ({
+    entry,
+    color: trackColor(i),
+    positions: toLatLngs(entry.track),
+  }))
+  const allPoints = [...plannedLatLngs, ...tracksWithLatLngs.flatMap((t) => t.positions)]
+  const startEnd = resolveStartEnd(plannedLatLngs, tracksWithLatLngs)
+  const bounds = allPoints.length > 1 ? L.latLngBounds(allPoints) : null
+  const hasAny = allPoints.length > 1
+  return { gpxTracks, plannedLatLngs, tracksWithLatLngs, allPoints, startEnd, bounds, hasAny }
 }

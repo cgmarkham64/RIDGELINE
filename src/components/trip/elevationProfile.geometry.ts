@@ -1,0 +1,192 @@
+import type { GpxTrack, GpxTrackEntry, Waypoint } from '../../types'
+import { WAYPOINT_COLOR } from '../map/constants'
+import { haversineMiles } from '../../lib/geo'
+
+// ─── Source resolution ────────────────────────────────────────────────────────
+
+function hasElevationData(track: GpxTrack): boolean {
+  return track.coordinates.some((coord) => coord[2] !== 0)
+}
+
+// Entries without a timestamp sort to the end, preserving their original order
+function sortedByTimestamp(entries: GpxTrackEntry[]): GpxTrackEntry[] {
+  return entries.slice().sort((a, b) => {
+    if (!a.firstTimestamp && !b.firstTimestamp) return 0
+    if (!a.firstTimestamp) return 1
+    if (!b.firstTimestamp) return -1
+    return a.firstTimestamp.localeCompare(b.firstTimestamp)
+  })
+}
+
+export interface Source {
+  tracks: GpxTrack[]
+  labels: string[]
+  heading: string
+}
+
+export function resolveSource(
+  planned: GpxTrack | undefined,
+  gpxTracks: GpxTrackEntry[]
+): Source | null {
+  if (planned && planned.coordinates.length >= 2 && hasElevationData(planned)) {
+    return { tracks: [planned], labels: ['Planned Route'], heading: 'Planned Route' }
+  }
+
+  const valid = gpxTracks.filter(
+    (e) => e.track.coordinates.length >= 2 && hasElevationData(e.track)
+  )
+  if (valid.length === 0) return null
+
+  const sorted = sortedByTimestamp(valid)
+  return {
+    tracks: sorted.map((e) => e.track),
+    labels: sorted.map((e) => e.label),
+    heading: sorted.length === 1 ? sorted[0].label : `${sorted.length} GPS Tracks`,
+  }
+}
+
+// ─── Geo helpers ──────────────────────────────────────────────────────────────
+
+const M_TO_FT = 3.28084
+
+function downsample<T>(arr: T[], max: number): T[] {
+  if (arr.length <= max) return arr
+  const stride = Math.ceil(arr.length / max)
+  const result = arr.filter((_, i) => i % stride === 0)
+  if (result[result.length - 1] !== arr[arr.length - 1]) result.push(arr[arr.length - 1])
+  return result
+}
+
+export interface Point { distMi: number; eleFt: number; lat: number; lon: number }
+
+interface CombinedPoints {
+  pts: Point[]
+  /** distMi values where each track after the first begins — used to draw day dividers */
+  boundaries: number[]
+}
+
+function buildCombinedPoints(tracks: GpxTrack[]): CombinedPoints {
+  const perTrack = Math.max(50, Math.ceil(400 / tracks.length))
+  let cumDist = 0
+  const pts: Point[] = []
+  const boundaries: number[] = []
+
+  for (let t = 0; t < tracks.length; t++) {
+    const sampled = downsample(tracks[t].coordinates, perTrack)
+    if (t > 0) boundaries.push(cumDist)
+    for (let i = 0; i < sampled.length; i++) {
+      const [lon, lat, ele] = sampled[i]
+      if (i > 0) {
+        const [pLon, pLat] = sampled[i - 1]
+        cumDist += haversineMiles(pLat, pLon, lat, lon)
+      }
+      pts.push({ distMi: cumDist, eleFt: ele * M_TO_FT, lat, lon })
+    }
+  }
+
+  return { pts, boundaries }
+}
+
+function findNearestPoint(pts: Point[], lat: number, lon: number): Point {
+  let nearest = pts[0]
+  let minDist = Infinity
+  for (const pt of pts) {
+    const d = haversineMiles(pt.lat, pt.lon, lat, lon)
+    if (d < minDist) { minDist = d; nearest = pt }
+  }
+  return nearest
+}
+
+function computeStats(pts: Point[]) {
+  let gain = 0
+  let loss = 0
+  let minEle = pts[0].eleFt
+  let maxEle = pts[0].eleFt
+  for (let i = 1; i < pts.length; i++) {
+    const ele = pts[i].eleFt
+    const delta = ele - pts[i - 1].eleFt
+    if (delta > 0) gain += delta
+    else loss += Math.abs(delta)
+    if (ele < minEle) minEle = ele
+    if (ele > maxEle) maxEle = ele
+  }
+  return {
+    gain: Math.round(gain),
+    loss: Math.round(loss),
+    minEle,
+    maxEle,
+    totalDist: pts[pts.length - 1].distMi,
+  }
+}
+
+// ─── SVG chart layout ─────────────────────────────────────────────────────────
+
+export const VB_W_DEFAULT = 260
+export const VB_H = 90
+export const PAD = { l: 42, r: 2, t: 10, b: 13 }
+export const CH = VB_H - PAD.t - PAD.b
+export const TOOLTIP_H = 13
+export const TOOLTIP_PAD_X = 5
+
+function toSvg(
+  pts: Point[],
+  px: (distMi: number) => number,
+  py: (eleFt: number) => number,
+  totalDist: number,
+  boundaries: number[],
+  labels: string[],
+  cw: number,
+) {
+  const lineD = pts
+    .map((p, i) => `${i === 0 ? 'M' : 'L'}${px(p.distMi).toFixed(1)},${py(p.eleFt).toFixed(1)}`)
+    .join(' ')
+  const areaD = `${lineD} L${(PAD.l + cw).toFixed(1)},${(PAD.t + CH).toFixed(1)} L${PAD.l},${(PAD.t + CH).toFixed(1)} Z`
+
+  const gridLines = [0.25, 0.5, 0.75].map((frac) => ({
+    y: PAD.t + CH - frac * CH,
+  }))
+
+  const distTicks = [0, 0.5, 1].map((frac) => ({
+    x: PAD.l + frac * cw,
+    distLabel: (frac * totalDist).toFixed(1),
+  }))
+
+  // Index i = boundary between track i and i+1, so the label is labels[i+1]
+  const dividers = boundaries.map((distMi, i) => ({
+    x: px(distMi),
+    label: labels[i + 1],
+  }))
+
+  return { lineD, areaD, gridLines, distTicks, dividers }
+}
+
+// ─── Combined geometry ────────────────────────────────────────────────────────
+
+export function buildElevationChartGeometry(source: Source, containerW: number, waypoints: Waypoint[]) {
+  const { tracks, labels } = source
+  const { pts, boundaries } = buildCombinedPoints(tracks)
+  const stats = computeStats(pts)
+  const { minEle, maxEle, totalDist } = stats
+
+  const eleRange = maxEle - minEle || 1
+  const cw = containerW - PAD.l - PAD.r
+  const px = (distMi: number) => PAD.l + (distMi / totalDist) * cw
+  const py = (eleFt: number) => PAD.t + CH - ((eleFt - minEle) / eleRange) * CH
+
+  const { lineD, areaD, gridLines, distTicks, dividers } = toSvg(
+    pts, px, py, totalDist, boundaries, labels, cw
+  )
+
+  const waypointMarkers = waypoints.map((wp) => {
+    const nearest = findNearestPoint(pts, wp.lat, wp.lon)
+    return {
+      id: wp.id,
+      x: px(nearest.distMi),
+      y: py(nearest.eleFt),
+      color: WAYPOINT_COLOR[wp.type],
+      label: wp.label,
+    }
+  })
+
+  return { cw, lineD, areaD, gridLines, distTicks, dividers, waypointMarkers, stats }
+}
