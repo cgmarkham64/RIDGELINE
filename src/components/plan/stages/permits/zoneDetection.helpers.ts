@@ -163,15 +163,8 @@ export function zoneNeedId(need: PermitNeed): string {
   return `zone_${need.zone.properties.id}_${need.nights[0].date}`
 }
 
-/** Builds a zonenights Permit from a geometry-derived zone-stay plus the
- *  AI-picked recreation.gov product — geometry decides zones/nights/warnings,
- *  the AI call decides which of the zone's 3 recgov products fits and writes the copy. */
-export function buildZonePermit(need: PermitNeed, party: number, product: ZoneProductResult): PlanPermitEntry {
-  const p    = need.zone.properties
-  const year = need.nights[0].date.slice(0, ISO_YEAR_LENGTH)
-  const id   = zoneNeedId(need)
-
-  const criticalDates: PlanCriticalDate[] = [
+function buildZonePermitCriticalDates(id: string, year: string, p: ZoneProps): PlanCriticalDate[] {
+  return [
     {
       id: `pcd_${id}_start`, dateMs: toDateMs(`${year}-${p.overnight_permit.season_start}`),
       hasTime: false, label: 'Permit season opens', tone: 'sky', source: 'permit',
@@ -181,6 +174,16 @@ export function buildZonePermit(need: PermitNeed, party: number, product: ZonePr
       hasTime: false, label: 'Permit season closes', tone: 'amber', source: 'permit',
     },
   ]
+}
+
+/** Builds a zonenights Permit from a geometry-derived zone-stay plus the
+ *  AI-picked recreation.gov product — geometry decides zones/nights/warnings,
+ *  the AI call decides which of the zone's 3 recgov products fits and writes the copy. */
+export function buildZonePermit(need: PermitNeed, party: number, product: ZoneProductResult): PlanPermitEntry {
+  const p    = need.zone.properties
+  const year = need.nights[0].date.slice(0, ISO_YEAR_LENGTH)
+  const id   = zoneNeedId(need)
+  const criticalDates = buildZonePermitCriticalDates(id, year, p)
 
   return {
     id,
