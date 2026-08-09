@@ -49,6 +49,7 @@ These principles apply to all new code and refactors across the entire codebase 
 - **Type safety** — no unchecked `as` assertions. Use type guards or Zod schemas at system boundaries (JWT parsing, API responses, user input). Internal code that has already been validated can use type narrowing; it should never need `as never`.
 - **Thin route handlers** — Express route handlers wire HTTP to business logic; they don't contain it. Any logic beyond a single DB call belongs in a service (`server/src/services/`) or utility (`server/src/utils/`).
 - **Handle errors where they can occur** — every async DB call needs a try/catch. Don't leave handlers unwrapped because they "look simple".
+- **Don't over-decompose to satisfy lint metrics** — `complexity`/`max-lines-per-function` warnings are a proxy for readability, not the goal itself. When resolving one, stop once comfortably under the threshold; don't keep splitting until a function hits zero warnings if that means extracting single-call-site one-liners or prop-drilling a simple form across three files. If a single-component refactor is trending past ~8-10 new files, pause and check in with the user before continuing — that's usually a sign the split is chasing the linter rather than tracking real conceptual boundaries.
 
 ## Commands
 
