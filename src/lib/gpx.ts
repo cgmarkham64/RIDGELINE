@@ -8,6 +8,22 @@ export interface ParsedGpx {
 
 const ELEVATION_BATCH = 100
 
+function interpolateElevations(
+  result: [number, number, number][],
+  indices: number[]
+): void {
+  for (let si = 0; si < indices.length - 1; si++) {
+    const i0 = indices[si]
+    const i1 = indices[si + 1]
+    const e0 = result[i0][2]
+    const e1 = result[i1][2]
+    for (let i = i0 + 1; i < i1; i++) {
+      const t = (i - i0) / (i1 - i0)
+      result[i][2] = e0 + t * (e1 - e0)
+    }
+  }
+}
+
 /**
  * Fills in missing elevation data (all-zero ele values) by querying the
  * Open-Meteo elevation API. Samples up to ELEVATION_BATCH evenly-spaced
@@ -42,16 +58,7 @@ export async function enrichWithElevation(
   })
 
   if (coords.length > ELEVATION_BATCH) {
-    for (let si = 0; si < indices.length - 1; si++) {
-      const i0 = indices[si]
-      const i1 = indices[si + 1]
-      const e0 = result[i0][2]
-      const e1 = result[i1][2]
-      for (let i = i0 + 1; i < i1; i++) {
-        const t = (i - i0) / (i1 - i0)
-        result[i][2] = e0 + t * (e1 - e0)
-      }
-    }
+    interpolateElevations(result, indices)
   }
 
   return result

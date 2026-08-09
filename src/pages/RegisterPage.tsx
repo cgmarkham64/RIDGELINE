@@ -7,6 +7,7 @@ import { keycloak, LOCAL_AUTH } from '../lib/keycloak'
 import { localRegister } from '../lib/auth'
 import { useAuthStore } from '../store/auth'
 import { MoonLoader } from '../components/ui/MoonLoader'
+import { AuthFormField } from '../components/ui/AuthFormField'
 import { extractApiError } from '../lib/utils'
 
 const MIN_PASSWORD_LENGTH = 8
@@ -59,42 +60,31 @@ function LocalRegisterForm() {
         >
           <h1 className="font-heading text-lg font-bold tracking-wide text-text">Create account</h1>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-text-mid uppercase tracking-widest">Name</label>
-            <input
-              {...register('name')}
-              type="text"
-              autoComplete="name"
-              className="bg-surface-2 border border-border rounded-[5px] px-3 py-2 text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-amber"
-            />
-            {errors.name && <p className="text-xs text-red-400">{errors.name.message}</p>}
-          </div>
+          <AuthFormField
+            label="Name"
+            type="text"
+            autoComplete="name"
+            registration={register('name')}
+            error={errors.name?.message}
+          />
 
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-text-mid uppercase tracking-widest">Email</label>
-            <input
-              {...register('email')}
-              type="email"
-              autoComplete="email"
-              className="bg-surface-2 border border-border rounded-[5px] px-3 py-2 text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-amber"
-            />
-            {errors.email && <p className="text-xs text-red-400">{errors.email.message}</p>}
-          </div>
+          <AuthFormField
+            label="Email"
+            type="email"
+            autoComplete="email"
+            registration={register('email')}
+            error={errors.email?.message}
+          />
 
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-text-mid uppercase tracking-widest">Password</label>
-            <input
-              {...register('password')}
-              type="password"
-              autoComplete="new-password"
-              className="bg-surface-2 border border-border rounded-[5px] px-3 py-2 text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-amber"
-            />
-            {errors.password && <p className="text-xs text-red-400">{errors.password.message}</p>}
-          </div>
+          <AuthFormField
+            label="Password"
+            type="password"
+            autoComplete="new-password"
+            registration={register('password')}
+            error={errors.password?.message}
+          />
 
-          {errors.root && (
-            <p className="text-xs text-red-400">{errors.root.message}</p>
-          )}
+          {errors.root && <p className="text-xs text-red-400">{errors.root.message}</p>}
 
           <button
             type="submit"
