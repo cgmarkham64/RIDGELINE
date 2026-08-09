@@ -38,7 +38,7 @@ export function WeatherStage({ plan, onChange, onProgress, trip, canEdit = true,
   return (
     <div className="flex-1 overflow-y-auto p-8 pb-20">
       <div className="grid gap-7 grid-cols-[1fr_360px]">
-        <div className="flex flex-col gap-[18px]">
+        <div className="flex flex-col gap-4.5">
           <WeatherLocationBanner
             location={trip!.location || ''} startDate={startDate} endDate={endDate}
             coordsLat={coordsLat} coordsLng={coordsLng} geoLoading={geoLoading} geoError={geoError}
