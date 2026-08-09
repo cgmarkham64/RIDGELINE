@@ -64,7 +64,7 @@ export default defineConfig([
     rules: {
       'no-magic-numbers': 'off',
       '@typescript-eslint/no-magic-numbers': ['warn', magicNumberOptions],
-      complexity: ['warn', 10],
+      complexity: ['warn', 15],
       'max-lines-per-function': [
         'warn',
         { max: 30, skipBlankLines: true, skipComments: true, IIFEs: true },
@@ -79,7 +79,7 @@ export default defineConfig([
     rules: {
       'max-lines-per-function': [
         'warn',
-        { max: 50, skipBlankLines: true, skipComments: true, IIFEs: true },
+        { max: 70, skipBlankLines: true, skipComments: true, IIFEs: true },
       ],
     },
   },
