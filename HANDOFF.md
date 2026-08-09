@@ -1,56 +1,71 @@
-# Handoff — code-quality cleanup (CLOSED)
+# Handoff — code-quality cleanup, round 2
 
-**This effort is done.** Both authorized items (`GearStage.tsx`, `PlanWizard.tsx`) are refactored to zero `complexity`/`max-lines-per-function` warnings and committed. Per the explicit scope decision below (still true, read it before doing anything further), **do not** pick the remaining repo-wide backlog back up without a fresh, explicit ask from the user in a future conversation.
+Prior effort (see `git log` for the full history) took the repo-wide `complexity`/`max-lines-per-function` warning count from 127 → 35 across several sessions, most recently closing out `GearStage.tsx` and `PlanWizard.tsx`. That effort was deliberately stopped there. This round reopens it, explicitly, to clear out what's left for completeness.
 
-Last commit: this session's PlanWizard commit (see `git log`). Working tree: clean after commit. Not pushed (branch is ahead of `origin/main` by many commits — confirm with the user before pushing).
+**Status: not started.** Working tree should be clean before starting each batch below; commit after each batch, not all at once, so a bad extraction in one file doesn't get buried under 20 others.
 
-## STOP — do not sweep the rest of the repo's backlog
+## Ground rules (same as last round — still true)
 
-The user made an explicit call at the end of a prior session: **finish GearStage.tsx and PlanWizard.tsx, then stop this effort entirely.** Both are now done (this session). Do not continue into the rest of the repo's `complexity`/`max-lines-per-function` backlog, even though the pattern is well-established and mechanical at this point — that was a deliberate "we're moving the hell on" decision, not an oversight. If a future session wants to pick the broader backlog back up, that needs a fresh, explicit ask from the user, not an assumption that this handoff authorizes it.
+- Treat `complexity`/`max-lines-per-function` as a readability proxy, not the goal. Stop extracting once comfortably under the threshold; don't manufacture a split just to hit zero.
+- If a single file's decomposition is trending past ~8-10 new files, pause and check in before continuing.
+- For files with real state/effects (not just markup), get an independent cold-review pass on the diff and a live browser check before calling it done. For pure one-line-over-budget files, `tsc`+`eslint`+`build` is enough.
+- Verify current warning counts with `npm run lint` before starting each batch — this doc is a snapshot, not a guarantee; file line numbers will drift as earlier batches land.
 
-## Final status: 35 warnings left repo-wide, 0 of them in scope
+## Batch 1 — Quick wins (6 files, all 1 warning each, none need more than 1-2 extractions)
 
-`npm run lint` warning count: **35 total in the repo** (was 127 at the very start of this multi-session effort; was 41 at the start of this session, before GearStage/PlanWizard). All remaining warnings are `complexity`/`max-lines-per-function` in files that were **never in scope** for this effort (`map/`, `trip/`, `layout/`, `pages/`, `server/`, plus 3 pre-existing `journal/` leftovers). `no-magic-numbers` stays at 0. Frontend build (`npm run build`) is clean.
+All of these are just barely over budget — expect a single helper/subcomponent extraction each, not a full multi-file decomposition.
 
-### This session's work, in order
+- `src/App.tsx` — `App` 90 lines (limit 70)
+- `src/pages/RegisterPage.tsx` — `LocalRegisterForm` 80 lines (limit 70)
+- `src/components/map/MapControlsBar.tsx` — `MapControlsBar` 71 lines (limit 70, 1 over)
+- `src/components/trip/WaypointList.tsx` — `WaypointList` 72 lines (limit 70, 2 over)
+- `src/components/map/leafletIcons.ts` — `waypointSvgString` 51 lines (limit 30 — `.ts` files get the stricter budget)
+- `src/lib/gpx.ts` — `enrichWithElevation` 36 lines (limit 30)
 
-1. **`GearStage.tsx`** (complexity 21 → 0, 214 lines → 0, plus `BearCanCard` 104 lines → 0 — 3 warnings total) — split into `src/components/plan/stages/gear/`: `gearStage.types.ts`, `gearStage.constants.ts`, `gearStage.hooks.ts` (`useGearStageState` aggregator hook, same pattern as `usePermitsStageState`), `BearCanCard.tsx` (further split internally into `BearCanOptionRow`/`BearCanCustomOption` to clear its own line-count warning), `CategoryCard.tsx`, `WeatherRiskBanner.tsx`, `ConditionsCheckCard.tsx`, `GearMainPanel.tsx`, `GearRightRail.tsx` (each with small same-file local subcomponents — `HoldBanner`, `LoadoutPreviewCard`, `UnlockChecklistCard` — to stay under the 70-line `.tsx` budget without adding more files). `GearStage.tsx` itself is now a ~35-line orchestrator. 9 new files total.
-2. **`PlanWizard.tsx`** (complexity 23 → 0, 194 lines → 0, plus a complexity-19 inline arrow function inside a `useMemo` → 0 — 3 warnings total) — split into `planWizard.helpers.ts` (pure functions: `formatDateRange`/`tripDays`/`buildMeta`, `computeStages`/`seedStage`/`routeStageDone`/`weatherStageDone`/`permitsStageProgress` — this is what absorbed the flagged inline arrow function — plus `planFrom`/`isForbiddenError`/`deriveAccess`), `planWizard.hooks.ts` (`useAutosave`, `useStageProgress`, `useCompletionGate` — three focused hooks rather than one big aggregator, since PlanWizard's concerns are less interdependent than Permits'/Gear's), `ConfirmCompleteModal.tsx`, `PlanWizardStageView.tsx` (StageHeader + StageBody), `PlanWizardShell.tsx` (StageRail + TripSetupDialog + overview/stage-view switch, via a same-file local `PlanWizardContent` component). `PlanWizard.tsx` itself is now ~90 lines. 5 new files total.
+## Batch 2 — `layout/` (3 files, 4 warnings)
 
-### Bug found this session (pre-existing, NOT fixed — out of scope)
+- `src/components/layout/AccountDialog.tsx` — `AccountDialog` 303 lines + complexity 16 (limit 70 / 15). **The big one in this batch** — expect a GearStage-sized decomposition (state hook + per-section subcomponents for edit-name/change-password/avatar-upload).
+- `src/components/layout/IconRail.tsx` — `IconRail` 83 lines (limit 70)
+- `src/components/layout/NotificationItem.tsx` — `NotificationItem` 80 lines (limit 70)
 
-While browser-verifying `GearStage.tsx`'s `BearCanCard`, found that typing a second character into the "Custom / other…" canister name field loses focus and drops the rest of the input (only the first character sticks). Root cause: `enteringCustom = selectedId === 'custom' && customName === ''` flips false the instant `customName` becomes non-empty, so the component swaps from an `<input>` to a `<button>` at the same JSX position mid-keystroke, and React unmounts/remounts instead of updating in place. **Confirmed pre-existing**, not introduced by this refactor — reproduced by `git stash`-ing the refactor and testing the exact same flow against the original committed code before restoring. Left untouched since bug fixes were explicitly not part of this session's authorized scope. Worth a fresh, explicit ask if the user wants it fixed — the fix likely needs a separate "isEditingCustom" boolean rather than deriving purely from `customName === ''`.
+## Batch 3 — `map/` (4 files, 4 warnings — `MapControlsBar` already covered in Batch 1)
 
-### Verification approach used this session (for both files)
+- `src/components/map/MapTab.tsx` — `MapTab` 189 lines (limit 70) — top-level map page, likely needs a state hook + panel split
+- `src/components/map/MapArea.tsx` — `MapArea` 143 lines (limit 70)
+- `src/components/map/WaypointIcon.tsx` — `WaypointIcon` 90 lines (limit 70)
+- `src/components/map/WaypointChip.tsx` — `WaypointChip` 76 lines (limit 70)
 
-`npx tsc -b --noEmit` + `npx eslint <folder>` for zero errors/warnings, `npm run build` for a full sanity check, an independent cold-review subagent (fresh context, given the full diff, asked to hunt for behavior changes against a checklist of specific risk areas — prop threading, hook-call ordering, ref/effect timing, cast/helper equivalence) for both files, and a live manual browser pass (MongoDB + dev servers running locally, via Claude-in-Chrome): for GearStage — canister selection, custom-name input/blur/Escape-restore, autosave `PUT` firing; for PlanWizard — stage-rail navigation, header prev/next, checklist-triggered autosave, progress aggregation into the overview, all four status transitions (planning → ready → on_trail → complete), and both branches of the completion-confirm modal. No console errors, no regressions found in either file.
+## Batch 4 — `plan/` leftovers (6 files, 7 warnings — these were never part of the GearStage/PlanWizard scope)
 
-### Reusable patterns from this session (in addition to prior sessions' list, below)
+- `src/components/plan/stages/depart/DepartStage.tsx` — `DepartStage` 155 lines (limit 70) — a full stage component, expect the same treatment as RouteStage/PermitsStage/GearStage got (aggregator hook + section subcomponents)
+- `src/components/plan/PlanOverview.tsx` — `PlanOverview` 142 lines (limit 70)
+- `src/components/plan/TripSetupDialog.tsx` — `TripSetupDialog` 105 lines (limit 70)
+- `src/components/plan/StageHeader.tsx` — `StageHeader` 86 lines + complexity 17 (limit 70 / 15)
+- `src/components/plan/StageRail.tsx` — `StageRail` 86 lines (limit 70)
+- `src/components/plan/PlanAccessError.tsx` — `PlanAccessError` 83 lines (limit 70)
 
-- **Extracting an inline object-type parameter annotation into a named `interface X { ... }` above the function reduces that function's own `max-lines-per-function` count**, even with zero logic change — the rule counts the full span of the function declaration including its parameter type annotation, so a 20-line inline destructured prop type inflates the count same as 20 lines of body. This is a legitimate style improvement (named prop types are more scannable/reusable than sprawling inline ones), not a rule-dodge — but call it out if you use it, since it can look surprising in isolation. Used on `PlanWizardShell.tsx`.
-- **When a component's concerns are genuinely independent (data-fetch-and-save vs. stage-navigation vs. a one-off confirmation gate), prefer 2-3 small focused hooks over one big aggregator hook.** The aggregator-hook pattern (`usePermitsStageState`, `useGearStageState`) is right when a component's hooks are all tangled together (shared derived state, one autosave payload depending on all of it). `PlanWizard`'s three concerns (`useAutosave`, `useStageProgress`, `useCompletionGate`) don't share that coupling, so three separate exported hooks stayed more readable than forcing them through one umbrella hook and object-spreading the result.
-- **`git stash -u` (include untracked new files) + reload + retest, then `git stash pop`, is a fast way to check "is this bug pre-existing or did I just introduce it?"** without a throwaway branch or worktree. Used to confirm the custom-canister-input bug above predates this session's refactor.
+## Batch 5 — `trip/` (3 files, 3 warnings — `WaypointList` already covered in Batch 1)
 
-### Two non-obvious lint-tool findings from prior sessions (still true, still relevant)
+- `src/components/trip/ElevationProfile.tsx` — `ElevationProfile` 195 lines (limit 70) — likely chart/SVG-heavy, check `VISUAL_RENDERING_FILES` in `eslint.config.js` before assuming this needs decomposition rather than a magic-numbers-style exemption
+- `src/components/trip/GpxMapSection.tsx` — `GpxMapSection` 193 lines (limit 70)
+- `src/components/trip/GpxImportPanel.tsx` — `GpxImportPanel` 124 lines (limit 70)
 
-1. **`eslint-plugin-react-hooks` v7's ref-safety analysis** flags `ref={someObject.someRefField}` as "Cannot access ref value during render" specifically when the ref is threaded through a custom hook's *returned object* and consumed via `ref=` in a **different component** than the one that called the hook. It does NOT fire when the hook is called and the ref is consumed in the same component. **Fix pattern**: keep the `useRef()`-owning hook call and the `<input ref={...}>`/`<div ref={...}>` JSX in the same component; if you need to split that component further, keep the ref+its element together and pass everything else down as props.
-2. **The `complexity` rule counts optional-chaining (`?.`) and nullish-coalescing (`??`) as branches**, same as `&&`/`||`/ternaries/`if`. Guard once on the parent being undefined, then access non-optional fields directly instead of chaining `?.`/`??` per field.
+## Batch 6 — `journal/` leftovers (2 files, 2 warnings — explicitly out of scope last round, now candidates)
 
-### Recurring decomposition pattern used across every file this multi-session effort
+- `src/components/journal/DaySelector.tsx` — `DaySelector` 133 lines (limit 70)
+- `src/components/journal/CompanionTagInput.tsx` — `CompanionTagInput` 127 lines (limit 70)
 
-For each God component: pull out (a) an orchestrator that just composes children and holds top-level state, (b) presentational subcomponents per visually-distinct section (each gets `show`/data props, not raw `&&` conditionals wrapping them in the parent), (c) one or more custom hooks for state+handlers that belong together (data fetching, derived values, checklist/progress), and (d) a `*.helpers.ts`/`*.types.ts` pair for pure functions and shared types. When a single component is still over budget after one level of extraction, extract again — same-file local subcomponents (not exported, not a new file) are a good last step to shave the final few lines off a nearly-compliant function. Don't be afraid of ~10 files for a single "God component"; that's the expected shape here, not a sign you've gone too far — but per the Code Quality guardrail in CLAUDE.md, stop once comfortably under threshold and check in with the user before a single-component refactor trends past ~8-10 new files.
+## Batch 7 — `server/` (6 files, 8 warnings — different conventions from the frontend work; these are route handlers/scripts, not React components, so the decomposition pattern will look different — service functions and smaller helpers, not hooks/subcomponents)
 
-Still-open non-complexity items from the original code-quality audit (untouched, carried over from prior handoffs):
-- **Thin route handlers**: `notifications.ts` accept-invite, `auth.ts` `GET /me`, `trips.ts` `PUT /:id` still have multi-step business logic written inline instead of delegated to a service.
-- **Remaining unchecked `as`/`as never` casts**: `ZonesOverlay.tsx:68`, `permits/zone-product` route body cast. (`PlanWizard.tsx`'s 3 casts were fixed this session — see above, now a single `planFrom()` helper with a documented boundary comment.)
-- **The pre-existing `BearCanCard` custom-name-input bug** described above — found, confirmed pre-existing, not fixed (out of scope).
+- `server/scripts/migratePlans.ts` — `main` 57 lines + complexity 16 (limit 30 / 15)
+- `server/src/utils/crudFactory.ts` — `makeOwnerCrudRouter` 39 lines (limit 30), plus an unused `eslint-disable` directive to clean up
+- `server/src/services/scanService.ts` — `scanJournalImage` 43 lines (limit 30)
+- `server/src/services/permitService.ts` — `lookupPermit` 39 lines (limit 30)
+- `server/scripts/migrate-to-keycloak.ts` — `main` 42 lines (limit 30)
+- `server/scripts/remove-stale-route-checklist-items.ts` — `main` 31 lines (limit 30, 1 over) — likely a Batch-1-style quick win, listed here only because it's a server file
 
-## Notes / decisions worth knowing before continuing
+## Suggested order
 
-- Rule severity is `warn` everywhere, not `error` — intentional, so the backlog doesn't block `npm run lint`. Don't ratchet `complexity`/`max-lines-per-function` to `error` — there's no remaining in-scope work driving that, and the rest of the repo's backlog was explicitly not authorized for this effort.
-- `VISUAL_RENDERING_FILES` and `TRANSCRIBED_FORMULA_FILES` in `eslint.config.js` are unrelated to this item (magic-numbers only) — not touched, still accurate per prior handoffs.
-- `Modal.tsx` still has no focus trap / Escape-to-close / focus restoration, per prior user decision — unchanged, still worth knowing for accessibility work.
-- MongoDB + dev servers (`npm run mongodb:start` / `npm run dev:all`) work fine — browser verification via Claude-in-Chrome was used again this session for both files, worth continuing for any future high-risk refactors (state persistence, async data fetching, unit conversion, navigation/routing state).
-- The commit history has diverged from `origin/main` (ahead by many commits, not yet pushed) — confirm with the user before pushing.
-- Every completed folder/file across this multi-session effort (`route/`, `permits/`, `gear/`, `PlanWizard.tsx` + its new siblings) is now at **zero** lint warnings — safe to treat as a clean baseline; any new warning appearing there in the future is a regression, not backlog.
-- **If a future session re-opens the broader backlog**, the remaining 35 warnings are in: `layout/` (AccountDialog, IconRail, NotificationItem), `map/` (MapArea, MapControlsBar, MapTab, WaypointChip, WaypointIcon, leafletIcons.ts), `plan/` (PlanAccessError, PlanOverview, StageHeader, StageRail, TripSetupDialog, DepartStage — none touched this session, all pre-existing), `trip/` (ElevationProfile, GpxImportPanel, GpxMapSection, TripHero, WaypointList), `lib/gpx.ts`, `pages/RegisterPage.tsx`, plus the 3 `journal/` leftovers (`CompanionTagInput.tsx`, `DaySelector.tsx`, `TagInput.tsx`) that were never in scope for this effort in the first place.
+Batch 1 first (fast, builds confidence, clears 6 warnings cheaply). Then whichever of Batches 2-6 the user cares most about seeing clean — they're independent of each other. Batch 7 (server) last, and worth confirming with the user first since server/ was explicitly excluded from the original scope and has different risk characteristics (route handlers, migration scripts) than the frontend component work this pattern was developed against.
+
+**After all 7 batches: expect 0 warnings repo-wide** (aside from anything newly introduced in the meantime). At that point it's worth asking the user whether to ratchet `complexity`/`max-lines-per-function` from `warn` to `error` in `eslint.config.js` to prevent regressions — don't do this unilaterally, it changes CI/build behavior.
