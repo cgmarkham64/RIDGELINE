@@ -40,6 +40,10 @@ export function computeShowMap(bounds: L.LatLngBounds | null, isDrawing: boolean
   return !!bounds || isDrawing || segments.some(s => s.path?.length)
 }
 
+export function fmtMi(mi: number, sys: UnitSystem): string {
+  return sys === 'metric' ? `${milesToKm(mi).toFixed(1)} km` : `${mi.toFixed(1)} mi`
+}
+
 export function formatRouteStats(segmentCount: number, totalMiles: number, totalGain: number, sys: UnitSystem): string {
   if (segmentCount === 0) return 'No segments added yet'
   const dist = sys === 'metric' ? `${milesToKm(totalMiles).toFixed(1)} km` : `${totalMiles.toFixed(1)} mi`
@@ -228,42 +232,40 @@ export function closestGpxIdx(coords: [number, number, number][], pin: [number, 
   return best
 }
 
-export async function fetchRoutePreview(
+function sumElevationGainFt(elevsM: number[]): number {
+  let gain = 0
+  for (let i = 1; i < elevsM.length; i++) {
+    const delta = elevsM[i] - elevsM[i - 1]
+    if (delta > 0) gain += mToFt(delta)
+  }
+  return Math.round(gain / ELEV_GAIN_ROUND_TO_FT) * ELEV_GAIN_ROUND_TO_FT
+}
+
+const GPX_PREVIEW_SPARK_SAMPLES = 60
+
+function previewFromGpx(
+  gpxCoords: [number, number, number][],
   start: [number, number],
   end: [number, number],
-  gpxCoords?: [number, number, number][],
-): Promise<RoutePreview> {
-  if (gpxCoords && gpxCoords.length > 1) {
-    let si = closestGpxIdx(gpxCoords, start)
-    let ei = closestGpxIdx(gpxCoords, end)
-    if (si !== ei) {
-      if (si > ei) [si, ei] = [ei, si]
-      const slice = gpxCoords.slice(si, ei + 1)
-      const path: [number, number][] = slice.map(([lon, lat]) => [lat, lon])
-      const rawElevs = slice.map(([,, ele]) => ele)
-      const mi = haversinePathMiles(path)
-      let gain = 0
-      for (let i = 1; i < rawElevs.length; i++) {
-        const delta = rawElevs[i] - rawElevs[i - 1]
-        if (delta > 0) gain += mToFt(delta)
-      }
-      gain = Math.round(gain / ELEV_GAIN_ROUND_TO_FT) * ELEV_GAIN_ROUND_TO_FT
-      const SAMPLES = 60
-      const step = Math.max(1, Math.floor(rawElevs.length / SAMPLES))
-      const sparkElevs = rawElevs.filter((_, i) => i % step === 0 || i === rawElevs.length - 1)
-      return { path, mi, gain, sparkElevs }
-    }
-  }
+): RoutePreview | null {
+  let si = closestGpxIdx(gpxCoords, start)
+  let ei = closestGpxIdx(gpxCoords, end)
+  if (si === ei) return null
+  if (si > ei) [si, ei] = [ei, si]
 
-  const STEPS = 20
-  const path: [number, number][] = Array.from({ length: STEPS + 1 }, (_, i) => [
-    start[0] + (end[0] - start[0]) * (i / STEPS),
-    start[1] + (end[1] - start[1]) * (i / STEPS),
-  ] as [number, number])
+  const slice = gpxCoords.slice(si, ei + 1)
+  const path: [number, number][] = slice.map(([lon, lat]) => [lat, lon])
+  const rawElevs = slice.map(([,, ele]) => ele)
   const mi = haversinePathMiles(path)
-  const sampled = path.filter((_, i) => i % 2 === 0 || i === path.length - 1)
-  let sparkElevs: number[] = []
-  let gain = 0
+  const gain = sumElevationGainFt(rawElevs)
+  const step = Math.max(1, Math.floor(rawElevs.length / GPX_PREVIEW_SPARK_SAMPLES))
+  const sparkElevs = rawElevs.filter((_, i) => i % step === 0 || i === rawElevs.length - 1)
+  return { path, mi, gain, sparkElevs }
+}
+
+const STRAIGHT_LINE_STEPS = 20
+
+async function fetchElevationLookup(sampled: [number, number][]): Promise<number[]> {
   try {
     const locations = sampled.map(([lat, lng]) => ({ latitude: lat, longitude: lng }))
     const res = await fetch('https://api.open-elevation.com/api/v1/lookup', {
@@ -272,14 +274,31 @@ export async function fetchRoutePreview(
       body: JSON.stringify({ locations }),
     })
     const data = await res.json()
-    sparkElevs = (data.results as { elevation: number }[]).map(r => r.elevation)
-    for (let i = 1; i < sparkElevs.length; i++) {
-      const delta = sparkElevs[i] - sparkElevs[i - 1]
-      if (delta > 0) gain += mToFt(delta)
-    }
-    gain = Math.round(gain / ELEV_GAIN_ROUND_TO_FT) * ELEV_GAIN_ROUND_TO_FT
-  } catch { /* no elevation data */ }
+    return (data.results as { elevation: number }[]).map(r => r.elevation)
+  } catch {
+    return []
+  }
+}
+
+async function previewFromStraightLine(start: [number, number], end: [number, number]): Promise<RoutePreview> {
+  const path: [number, number][] = Array.from({ length: STRAIGHT_LINE_STEPS + 1 }, (_, i) => [
+    start[0] + (end[0] - start[0]) * (i / STRAIGHT_LINE_STEPS),
+    start[1] + (end[1] - start[1]) * (i / STRAIGHT_LINE_STEPS),
+  ] as [number, number])
+  const mi = haversinePathMiles(path)
+  const sampled = path.filter((_, i) => i % 2 === 0 || i === path.length - 1)
+  const sparkElevs = await fetchElevationLookup(sampled)
+  const gain = sparkElevs.length > 0 ? sumElevationGainFt(sparkElevs) : 0
   return { path, mi, gain, sparkElevs }
+}
+
+export async function fetchRoutePreview(
+  start: [number, number],
+  end: [number, number],
+  gpxCoords?: [number, number, number][],
+): Promise<RoutePreview> {
+  const fromGpx = gpxCoords && gpxCoords.length > 1 ? previewFromGpx(gpxCoords, start, end) : null
+  return fromGpx ?? previewFromStraightLine(start, end)
 }
 
 export function formatCoord([lat, lng]: [number, number]): string {
@@ -386,13 +405,12 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
 
 const WATER_TYPES = new Set(['lots-of-water', 'some-water', 'no-water'])
 
-export function buildMergedRows(
-  segments: SegRow[],
+function buildWaterEntries(
   detectedWater: DetectedWaterSource[],
   waypoints: Waypoint[] | undefined,
   routeCoords: [number, number, number][] | undefined,
-): MergedRow[] {
-  const waterEntries: WaterEntry[] = detectedWater.map(d => ({
+): WaterEntry[] {
+  const entries: WaterEntry[] = detectedWater.map(d => ({
     id: d.id, label: d.label, waypointType: d.waypointType,
     distFromStartMi: d.distFromStartMi, snapDistM: d.snapDistM,
     isDetected: true, lat: d.lat, lon: d.lon,
@@ -401,7 +419,7 @@ export function buildMergedRows(
   if (routeCoords && routeCoords.length >= 2) {
     for (const wp of (waypoints ?? [])) {
       if (!WATER_TYPES.has(wp.type)) continue
-      waterEntries.push({
+      entries.push({
         id: wp.id, label: wp.label || wp.type,
         waypointType: wp.type as WaterEntry['waypointType'],
         distFromStartMi: snapToRouteMi(wp.lat, wp.lon, routeCoords),
@@ -409,29 +427,32 @@ export function buildMergedRows(
       })
     }
   }
-  waterEntries.sort((a, b) => a.distFromStartMi - b.distFromStartMi)
 
-  if (segments.length === 0 && waterEntries.length === 0) return []
+  return entries.sort((a, b) => a.distFromStartMi - b.distFromStartMi)
+}
 
+function computeCampDists(segments: SegRow[]): number[] {
   let cumul = 0
-  const campDists: number[] = []
-  for (const seg of segments) { cumul += seg.mi; campDists.push(cumul) }
+  const dists: number[] = []
+  for (const seg of segments) { cumul += seg.mi; dists.push(cumul) }
+  return dists
+}
 
-  const rows: MergedRow[] = []
-
-  if (segments.length > 0) {
-    const firstWater = waterEntries.find(w => w.waypointType !== 'no-water')
-    const thPos = segments[0]?.path?.[0] ?? null
-    rows.push({
-      kind: 'start',
-      toNextCampMi: campDists[0] ?? null,
-      toNextWaterMi: firstWater?.distFromStartMi ?? null,
-      lat: thPos ? thPos[0] : null,
-      lon: thPos ? thPos[1] : null,
-    })
+function buildStartRow(segments: SegRow[], campDists: number[], waterEntries: WaterEntry[]): MergedRow | null {
+  if (segments.length === 0) return null
+  const firstWater = waterEntries.find(w => w.waypointType !== 'no-water')
+  const thPos = segments[0]?.path?.[0] ?? null
+  return {
+    kind: 'start',
+    toNextCampMi: campDists[0] ?? null,
+    toNextWaterMi: firstWater?.distFromStartMi ?? null,
+    lat: thPos ? thPos[0] : null,
+    lon: thPos ? thPos[1] : null,
   }
+}
 
-  for (let i = 0; i < segments.length; i++) {
+function buildCampRows(segments: SegRow[], campDists: number[], waterEntries: WaterEntry[]): MergedRow[] {
+  return segments.map((seg, i) => {
     const dist     = campDists[i]
     const isFinish = i === segments.length - 1
     const nextDist = campDists[i + 1] ?? null
@@ -439,42 +460,72 @@ export function buildMergedRows(
     const dryLeg   = !isFinish && !waterEntries.some(
       w => w.distFromStartMi > dist && nextDist !== null && w.distFromStartMi < nextDist && w.waypointType !== 'no-water'
     )
-    rows.push({
-      kind: 'camp', seg: segments[i], segIdx: i,
+    return {
+      kind: 'camp', seg, segIdx: i,
       distFromStartMi: dist, isFinish,
       toNextCampMi: nextDist !== null ? nextDist - dist : null,
       toNextWaterMi: nextWater ? nextWater.distFromStartMi - dist : null,
       dryLeg,
-    })
-  }
-
-  for (let i = 0; i < waterEntries.length; i++) {
-    const next = waterEntries[i + 1]
-    rows.push({
-      kind: 'water', entry: waterEntries[i],
-      toNextWaterMi: next ? next.distFromStartMi - waterEntries[i].distFromStartMi : null,
-    })
-  }
-
-  if (routeCoords && routeCoords.length >= 2) {
-    for (const wp of (waypoints ?? [])) {
-      if (WATER_TYPES.has(wp.type)) continue
-      rows.push({ kind: 'waypoint', wp, distFromStartMi: snapToRouteMi(wp.lat, wp.lon, routeCoords) })
     }
-  }
+  })
+}
 
-  const rowDist = (r: MergedRow): number =>
-    r.kind === 'start' ? -Infinity
+function buildWaterRows(waterEntries: WaterEntry[]): MergedRow[] {
+  return waterEntries.map((entry, i) => {
+    const next = waterEntries[i + 1]
+    return {
+      kind: 'water', entry,
+      toNextWaterMi: next ? next.distFromStartMi - entry.distFromStartMi : null,
+    }
+  })
+}
+
+function buildWaypointRows(
+  waypoints: Waypoint[] | undefined,
+  routeCoords: [number, number, number][] | undefined,
+): MergedRow[] {
+  if (!routeCoords || routeCoords.length < 2) return []
+  return (waypoints ?? [])
+    .filter(wp => !WATER_TYPES.has(wp.type))
+    .map(wp => ({ kind: 'waypoint' as const, wp, distFromStartMi: snapToRouteMi(wp.lat, wp.lon, routeCoords) }))
+}
+
+function rowDist(r: MergedRow): number {
+  return r.kind === 'start' ? -Infinity
     : r.kind === 'camp' ? r.distFromStartMi
     : r.kind === 'waypoint' ? r.distFromStartMi
     : r.entry.distFromStartMi
-  const rowRank = (r: MergedRow): number =>
-    r.kind === 'camp' ? 0 : r.kind === 'waypoint' ? 1 : r.kind === 'water' ? 2 : -1
+}
 
-  rows.sort((a, b) => {
+function rowRank(r: MergedRow): number {
+  return r.kind === 'camp' ? 0 : r.kind === 'waypoint' ? 1 : r.kind === 'water' ? 2 : -1
+}
+
+function sortMergedRows(rows: MergedRow[]): MergedRow[] {
+  return [...rows].sort((a, b) => {
     const d = rowDist(a) - rowDist(b)
     return d !== 0 ? d : rowRank(a) - rowRank(b)
   })
+}
 
-  return rows
+export function buildMergedRows(
+  segments: SegRow[],
+  detectedWater: DetectedWaterSource[],
+  waypoints: Waypoint[] | undefined,
+  routeCoords: [number, number, number][] | undefined,
+): MergedRow[] {
+  const waterEntries = buildWaterEntries(detectedWater, waypoints, routeCoords)
+  if (segments.length === 0 && waterEntries.length === 0) return []
+
+  const campDists = computeCampDists(segments)
+  const startRow = buildStartRow(segments, campDists, waterEntries)
+
+  const rows: MergedRow[] = [
+    ...(startRow ? [startRow] : []),
+    ...buildCampRows(segments, campDists, waterEntries),
+    ...buildWaterRows(waterEntries),
+    ...buildWaypointRows(waypoints, routeCoords),
+  ]
+
+  return sortMergedRows(rows)
 }
