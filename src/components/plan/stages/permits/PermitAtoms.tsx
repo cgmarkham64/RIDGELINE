@@ -5,18 +5,21 @@ import {
 } from '../../../icons'
 import { PERMIT_TYPES, TONE_CLS } from './permitsStage.constants'
 
+const PERMIT_ICON: Record<PermitTypeName, typeof IconTicket> = {
+  lottery: IconTicket,
+  reservation: IconCalendar,
+  walkup: IconClock,
+  selfissue: IconCheckCircle,
+  zonenights: IconLayers,
+  hut: IconHut,
+  parking: IconParking,
+  fishing: IconFishing,
+  vehicle: IconVehicle,
+}
+
 export function PermitTypeIcon({ type, size = 15 }: { type: PermitTypeName; size?: number }) {
-  switch (type) {
-    case 'lottery':     return <IconTicket size={size} />
-    case 'reservation': return <IconCalendar size={size} />
-    case 'walkup':      return <IconClock size={size} />
-    case 'selfissue':   return <IconCheckCircle size={size} />
-    case 'zonenights':  return <IconLayers size={size} />
-    case 'hut':         return <IconHut size={size} />
-    case 'parking':     return <IconParking size={size} />
-    case 'fishing':     return <IconFishing size={size} />
-    case 'vehicle':     return <IconVehicle size={size} />
-  }
+  const Icon = PERMIT_ICON[type]
+  return <Icon size={size} />
 }
 
 export function TypeChip({ type }: { type: PermitTypeName }) {
