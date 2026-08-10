@@ -1,4 +1,4 @@
-import { OZ_PER_LB, MEAL_SLOTS, rowKcalAndOz } from './foodStage.helpers'
+import { OZ_PER_LB, rowKcalAndOz, itemsInDayRange } from './foodStage.helpers'
 import type { MealRow } from './foodStage.types'
 
 type SegmentStripProps = {
@@ -10,8 +10,7 @@ type SegmentStripProps = {
 
 export function SegmentStrip({ label, fromDay, toDay, meals }: SegmentStripProps) {
   if (toDay < fromDay) return null
-  const segMeals = meals.filter(m => m.n >= fromDay && m.n <= toDay)
-  const { kcal, oz } = rowKcalAndOz(segMeals.flatMap(m => MEAL_SLOTS.flatMap(s => m.items[s])))
+  const { kcal, oz } = rowKcalAndOz(itemsInDayRange(meals, fromDay, toDay))
   const days = toDay - fromDay + 1
   return (
     <div className="flex items-center gap-2.5 px-3.5 py-2 rounded bg-surface-2 border border-border">

@@ -29,11 +29,10 @@ export const TARGET_FIELDS: Array<{ key: TargetField; label: string; placeholder
 ]
 
 export const STOP_TEXT_FIELDS: Array<{
-  key: 'shipBy' | 'daysInBox' | 'holdAddress'; label: string; placeholder: string
+  key: 'shipBy' | 'daysInBox'; label: string; placeholder: string
 }> = [
-  { key: 'shipBy',      label: 'Ship by',      placeholder: 'Aug 1, 2026'            },
-  { key: 'daysInBox',   label: 'Days in box',  placeholder: '4'                       },
-  { key: 'holdAddress', label: 'Hold address', placeholder: 'Bishop PO, 585 Main St'  },
+  { key: 'shipBy',    label: 'Ship by',             placeholder: 'Aug 1, 2026' },
+  { key: 'daysInBox', label: 'Days of food in box', placeholder: '4'          },
 ]
 
 export const BEAR_CAN_NEED_OPTIONS: Array<{ id: 'not_needed' | 'recommended' | 'required'; label: string }> = [
@@ -162,4 +161,8 @@ export function warningTooltip(warnings: RowWarning[]): string {
 
 export function rowKcalAndOz(items: MealItem[]): { kcal: number; oz: number } {
   return { kcal: sumField(items, 'kcal'), oz: sumField(items, 'weightOz') }
+}
+
+export function itemsInDayRange(meals: MealRow[], fromDay: number, toDay: number): MealItem[] {
+  return meals.filter(m => m.n >= fromDay && m.n <= toDay).flatMap(m => MEAL_SLOTS.flatMap(s => m.items[s]))
 }

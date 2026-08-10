@@ -43,6 +43,7 @@ export function FoodStage({ plan, onChange, onProgress, trip, onJump }: StageBod
             waypoints={resupplyWaypoints}
             stops={s.resupplyStops}
             meals={s.meals}
+            tripTitle={trip?.title ?? 'Untitled Trip'}
             onStopsChange={s.setResupplyStops}
             onRemoveWaypoint={handleRemoveWaypoint}
             onAddStop={() => onJump('route')}

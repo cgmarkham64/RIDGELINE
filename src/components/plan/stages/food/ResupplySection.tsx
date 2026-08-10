@@ -10,6 +10,7 @@ type ResupplySectionProps = {
   waypoints: Waypoint[]
   stops: ResupplyStop[]
   meals: MealRow[]
+  tripTitle: string
   onStopsChange: (stops: ResupplyStop[]) => void
   onRemoveWaypoint: (waypointId: string) => void
   onAddStop: () => void
@@ -38,7 +39,7 @@ function boxRange(item: OrderedStop, nextItem: OrderedStop | undefined, totalDay
   return { from, to }
 }
 
-export function ResupplySection({ waypoints, stops, meals, onStopsChange, onRemoveWaypoint, onAddStop }: ResupplySectionProps) {
+export function ResupplySection({ waypoints, stops, meals, tripTitle, onStopsChange, onRemoveWaypoint, onAddStop }: ResupplySectionProps) {
   function updateStop(waypointId: string, patch: Partial<ResupplyStop>) {
     const existing = stops.find(s => s.id === waypointId)
     if (existing) {
@@ -75,7 +76,10 @@ export function ResupplySection({ waypoints, stops, meals, onStopsChange, onRemo
 
         return (
           <Fragment key={item.wp.id}>
-            <ResupplyStopCard item={item} onUpdate={updateStop} onRemove={removeStop} />
+            <ResupplyStopCard
+              item={item} boxLabel={`Box ${i + 1}`} boxFromDay={boxFromDay} boxToDay={boxToDay} meals={meals} tripTitle={tripTitle}
+              onUpdate={updateStop} onRemove={removeStop}
+            />
             {showBox && <SegmentStrip label={`Box ${i + 1}`} fromDay={boxFromDay!} toDay={boxToDay!} meals={meals} />}
           </Fragment>
         )
