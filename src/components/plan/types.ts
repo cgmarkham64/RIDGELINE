@@ -155,7 +155,7 @@ export interface PlanWeatherData {
   notes: string
   cachedCoords?:   { lat: number; lng: number; fetchedAt: string; forLocation: string }
   cachedClimate?:  { avgHighF: number; avgLowF: number; precipPct: number; snowLikely: boolean; fetchedAt: string; forLocation: string }
-  cachedForecast?: { days: WeatherForecastDay[]; fetchedAt: string; forLocation: string }
+  cachedForecast?: { days: WeatherForecastDay[]; elevationFt: number | null; fetchedAt: string; forLocation: string }
 }
 
 // ─── PlanData — top-level shape passed from PlanWizard to each stage ──────────

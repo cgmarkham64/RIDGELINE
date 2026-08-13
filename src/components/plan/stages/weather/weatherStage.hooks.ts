@@ -65,7 +65,8 @@ function initialWeatherState(plan: StageBodyProps['plan'], startDate: string, en
   const base = plan?.weather ?? INITIAL_WEATHER
   if (base.cachedForecast && base.departureRisk === null && startDate && endDate) {
     const { overall, factors } = calcDepartureRisk(
-      base.cachedForecast.days, startDate, endDate, trip ? avgElevationFt(trip) : null, tolerances,
+      base.cachedForecast.days, startDate, endDate,
+      trip ? avgElevationFt(trip) : null, base.cachedForecast.elevationFt, tolerances,
     )
     return { ...base, departureRisk: overall, departureFactors: factors }
   }
@@ -120,13 +121,13 @@ function useForecastEffect(
     const elevFt = trip ? avgElevationFt(trip) : null
     let cancelled = false
     fetchForecast(coordsLat, coordsLng)
-      .then(days => {
+      .then(({ days, elevationFt }) => {
         if (cancelled) return
         setForecastError(false)
-        const { overall, factors } = calcDepartureRisk(days, startDate, endDate, elevFt, tolerances)
+        const { overall, factors } = calcDepartureRisk(days, startDate, endDate, elevFt, elevationFt, tolerances)
         setWd(prev => ({
           ...prev,
-          cachedForecast: { days, fetchedAt: new Date().toISOString(), forLocation: tripLoc },
+          cachedForecast: { days, elevationFt, fetchedAt: new Date().toISOString(), forLocation: tripLoc },
           departureRisk: overall,
           departureFactors: factors,
         }))
@@ -208,7 +209,7 @@ export function useWeatherDerived(
 
   const computedRisk = useMemo(() => {
     if (!wd.cachedForecast || !hasDates) return null
-    return calcDepartureRisk(wd.cachedForecast.days, startDate, endDate, elevFt, tolerances)
+    return calcDepartureRisk(wd.cachedForecast.days, startDate, endDate, elevFt, wd.cachedForecast.elevationFt, tolerances)
   }, [wd.cachedForecast, hasDates, startDate, endDate, elevFt, tolerances])
 
   const forecastSunMap = useMemo(() => {

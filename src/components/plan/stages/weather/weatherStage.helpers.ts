@@ -138,6 +138,7 @@ export function parseClimateNormals(data: ClimateApiResponse): ClimateNormals {
 }
 
 interface ForecastApiResponse {
+  elevation: number  // meters — elevation of the forecast model's grid cell, i.e. what lowF/highF are valid for
   daily: {
     time: string[]
     temperature_2m_max: number[]
@@ -178,8 +179,15 @@ export function parseForecastDays(
 
 type ForecastDay = NonNullable<PlanWeatherData['cachedForecast']>['days'][number]
 
-function tempFactor(d: ForecastDay, avgElevFt: number | null, tolerances: WeatherTolerances): DepartureRiskFactor | null {
-  const adjustedLowF = d.lowF - ((avgElevFt ?? 0) / LAPSE_RATE_ELEVATION_UNIT_FT) * LAPSE_RATE_F_PER_1000FT
+// Forecast lows are already valid for the forecast grid cell's own elevation, so only the
+// elevation *gained* above that point (not the trip's raw elevation) should be lapse-rate corrected.
+function elevGainFt(tripElevFt: number | null, forecastElevFt: number | null): number {
+  if (tripElevFt === null || forecastElevFt === null) return 0
+  return tripElevFt - forecastElevFt
+}
+
+function tempFactor(d: ForecastDay, tripElevFt: number | null, forecastElevFt: number | null, tolerances: WeatherTolerances): DepartureRiskFactor | null {
+  const adjustedLowF = d.lowF - (elevGainFt(tripElevFt, forecastElevFt) / LAPSE_RATE_ELEVATION_UNIT_FT) * LAPSE_RATE_F_PER_1000FT
   if (tolerances.tempDelayF !== null && adjustedLowF <= tolerances.tempDelayF) {
     return { date: d.date, severity: 'high', label: `Freezing temps (forecast ${Math.round(d.lowF)}°F → ${Math.round(adjustedLowF)}°F at your elevation)` }
   }
@@ -209,8 +217,8 @@ function windFactor(d: ForecastDay, tolerances: WeatherTolerances): DepartureRis
   return null
 }
 
-function dayRiskFactors(d: ForecastDay, avgElevFt: number | null, tolerances: WeatherTolerances): DepartureRiskFactor[] {
-  return [tempFactor(d, avgElevFt, tolerances), precipFactor(d, tolerances), windFactor(d, tolerances)]
+function dayRiskFactors(d: ForecastDay, tripElevFt: number | null, forecastElevFt: number | null, tolerances: WeatherTolerances): DepartureRiskFactor[] {
+  return [tempFactor(d, tripElevFt, forecastElevFt, tolerances), precipFactor(d, tolerances), windFactor(d, tolerances)]
     .filter((f): f is DepartureRiskFactor => f !== null)
 }
 
@@ -218,11 +226,12 @@ export function calcDepartureRisk(
   forecastDays: NonNullable<PlanWeatherData['cachedForecast']>['days'],
   startDate: string,
   endDate: string,
-  avgElevFt: number | null,
+  tripElevFt: number | null,
+  forecastElevFt: number | null,
   tolerances: WeatherTolerances = DEFAULT_WEATHER_TOLERANCES,
 ): { overall: 'low' | 'moderate' | 'high'; factors: DepartureRiskFactor[] } {
   const inRange = forecastDays.filter(d => d.date >= startDate && d.date <= endDate)
-  const factors = inRange.flatMap(d => dayRiskFactors(d, avgElevFt, tolerances))
+  const factors = inRange.flatMap(d => dayRiskFactors(d, tripElevFt, forecastElevFt, tolerances))
 
   const overall: 'low' | 'moderate' | 'high' =
     factors.some(f => f.severity === 'high') ? 'high' :
@@ -310,9 +319,14 @@ export async function fetchClimateNormals(lat: number, lng: number, month: numbe
   return parseClimateNormals(combined)
 }
 
-export async function fetchForecast(lat: number, lng: number): Promise<NonNullable<PlanWeatherData['cachedForecast']>['days']> {
-  const data = await fetch(`${FORECAST_URL}?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode,windspeed_10m_max,winddirection_10m_dominant&timezone=auto&forecast_days=14`).then(r => r.json())
-  return parseForecastDays(data)
+export async function fetchForecast(
+  lat: number, lng: number,
+): Promise<{ days: NonNullable<PlanWeatherData['cachedForecast']>['days']; elevationFt: number | null }> {
+  const data: ForecastApiResponse = await fetch(`${FORECAST_URL}?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode,windspeed_10m_max,winddirection_10m_dominant&timezone=auto&forecast_days=14`).then(r => r.json())
+  return {
+    days: parseForecastDays(data),
+    elevationFt: typeof data.elevation === 'number' ? mToFt(data.elevation) : null,
+  }
 }
 
 // ─── Display formatting ───────────────────────────────────────────────────────
