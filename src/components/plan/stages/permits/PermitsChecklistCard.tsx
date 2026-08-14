@@ -31,7 +31,7 @@ export function PermitsChecklistCard({
         </>
       ) : (
         <>
-          <CheckItem text="At least one permit added"  done={item1} />
+          <CheckItem text="Permit added"                done={item1} />
           <CheckItem text="Party size confirmed"       done={item2} onToggle={canEdit ? onTogglePartyConfirmed : undefined} />
           <CheckItem text="Walk-up backup planned"     done={item3} onToggle={canEdit ? onToggleBackupPlanned : undefined} />
         </>
