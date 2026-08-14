@@ -26,14 +26,14 @@ function StageRailItem({
       onClick={onClick}
       className={[
         'w-full flex items-center gap-3 px-2.5 py-2.5 rounded border-l-2 text-left transition-colors mb-0.5',
-        isActive ? 'bg-amber-glow border-l-amber' : 'border-l-transparent hover:bg-surface-2',
+        isActive ? 'bg-pine-glow border-l-pine' : 'border-l-transparent hover:bg-surface-2',
       ].join(' ')}
     >
       <Ring done={stage.done} total={stage.total} blocked={stage.blocked} highlight={isActive} />
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-1.5">
           <span className="font-mono text-label text-text-dim tracking-[0.08em]">{stage.n}</span>
-          <span className={`font-heading text-body-sm font-bold ${isActive ? 'text-amber' : state === 'done' ? 'text-text-mid' : 'text-text'}`}>
+          <span className={`font-heading text-body-sm font-bold ${isActive ? 'text-pine' : state === 'done' ? 'text-text-mid' : 'text-text'}`}>
             {stage.label}
           </span>
         </div>
@@ -63,18 +63,18 @@ export function StageRail({ stages, trip, activeStageIdx, view, totalDone, total
           className={[
             'w-full flex items-center gap-3 px-4 py-3 rounded border text-left transition-colors',
             isOverview
-              ? 'bg-amber-glow border-amber-border'
+              ? 'bg-pine-glow border-pine-border'
               : 'bg-surface-2 border-border hover:border-border-mid',
           ].join(' ')}
         >
           <span className={[
             'w-7 h-7 rounded-md flex items-center justify-center border shrink-0',
-            isOverview ? 'bg-amber-dim border-amber-border text-amber' : 'bg-bg border-border text-text-mid',
+            isOverview ? 'bg-pine-dim border-pine-border text-pine' : 'bg-bg border-border text-text-mid',
           ].join(' ')}>
             <IconMap size={14} />
           </span>
           <div className="flex-1 min-w-0">
-            <div className={`font-heading text-body-sm font-bold ${isOverview ? 'text-amber' : 'text-text'}`}>Plan overview</div>
+            <div className={`font-heading text-body-sm font-bold ${isOverview ? 'text-pine' : 'text-text'}`}>Plan overview</div>
             <div className="font-mono text-label text-text-dim mt-0.5">{totalDone}/{totalAll} items · all stages</div>
           </div>
           {isOverview && <IconChevronRight size={11} />}

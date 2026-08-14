@@ -40,7 +40,7 @@ export function WeatherForecastPagination({ pagedays, currentPage, totalPages, o
               type="button"
               onClick={() => onPageChange(i)}
               className="rounded-full transition-colors cursor-pointer"
-              style={{ width: DOT_SIZE_PX, height: DOT_SIZE_PX, background: i === currentPage ? 'var(--amber)' : 'var(--border-mid)' }}
+              style={{ width: DOT_SIZE_PX, height: DOT_SIZE_PX, background: i === currentPage ? 'var(--pine)' : 'var(--border-mid)' }}
             />
           ))}
         </div>

@@ -41,7 +41,7 @@ export function Ring({ done, total, size = 28, blocked = false, highlight = fals
       </svg>
       <span style={{
         fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: tone,
-        background: highlight ? 'var(--color-amber-glow)' : 'transparent',
+        background: highlight ? 'var(--color-pine-glow)' : 'transparent',
         borderRadius: 99, padding: '0 2px',
       }}>
         {blocked ? '!' : done >= total && total > 0

@@ -18,7 +18,7 @@ function DayChips({ otherDays, copyTargets, onToggleTarget }: { otherDays: numbe
           onClick={() => onToggleTarget(i)}
           className={`font-mono text-label px-2 py-0.5 rounded border transition-colors cursor-pointer ${
             copyTargets.has(i)
-              ? 'border-amber-border bg-amber-dim text-amber'
+              ? 'border-pine-border bg-pine-dim text-pine'
               : 'border-border text-text-dim hover:border-border-mid hover:text-text-mid'
           }`}
         >

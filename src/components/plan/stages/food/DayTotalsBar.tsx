@@ -43,7 +43,7 @@ export function DayTotalsBar({
           onClick={onToggleCopyPicker}
           className={`font-heading text-caption font-bold tracking-[0.08em] uppercase px-2.5 py-1.5 rounded border transition-colors cursor-pointer ${
             showCopyPicker
-              ? 'border-amber-border bg-amber-dim text-amber'
+              ? 'border-pine-border bg-pine-dim text-pine'
               : 'border-border text-text-dim hover:border-border-mid hover:text-text-mid'
           }`}
         >

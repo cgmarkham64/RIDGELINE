@@ -25,7 +25,7 @@ export function DayMealDialogHeader({ dayNumber, weightUnit, onWeightUnitChange,
               type="button"
               onClick={() => onWeightUnitChange(u)}
               className={`font-mono text-label px-2.5 py-1 transition-colors cursor-pointer ${
-                weightUnit === u ? 'bg-amber-dim text-amber' : 'text-text-dim hover:text-text-mid'
+                weightUnit === u ? 'bg-pine-dim text-pine' : 'text-text-dim hover:text-text-mid'
               }`}
             >
               {u}

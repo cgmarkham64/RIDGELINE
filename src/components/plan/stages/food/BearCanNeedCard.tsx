@@ -21,7 +21,7 @@ export function BearCanNeedCard({ need, onChange, onJump }: BearCanNeedCardProps
             type="button"
             onClick={() => onChange(opt.id)}
             className={`flex-1 font-mono text-caption px-2.5 py-2 transition-colors cursor-pointer ${
-              need === opt.id ? 'bg-amber-dim text-amber' : 'text-text-dim hover:text-text-mid'
+              need === opt.id ? 'bg-pine-dim text-pine' : 'text-text-dim hover:text-text-mid'
             }`}
           >
             {opt.label}

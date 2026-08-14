@@ -17,7 +17,7 @@
   /* Text colors */
   --color-text:         #ede5db;
   --color-text-mid:     #9a8878;
-  --color-text-dim:     #836c58;
+  --color-text-dim:     #8f7862;
 
   /* Amber accent */
   --color-amber:        #f0a030;
@@ -33,6 +33,7 @@
   /* Pine accent */
   --color-pine:         #448860;
   --color-pine-dim:     rgba(61, 122, 86, 0.1);
+  --color-pine-glow:    rgba(61, 122, 86, 0.16);
   --color-pine-border:  rgba(61, 122, 86, 0.35);
 
   /* Red / danger */
@@ -86,6 +87,7 @@
   --sky-border:   var(--color-sky-border);
   --pine:         var(--color-pine);
   --pine-dim:     var(--color-pine-dim);
+  --pine-glow:    var(--color-pine-glow);
   --pine-border:  var(--color-pine-border);
   --red:          var(--color-red);
   --red-dim:      var(--color-red-dim);
@@ -218,9 +220,9 @@
   }
   .rail-btn:hover  { background: var(--color-surface-2); color: var(--color-text-mid); }
   .rail-btn.active {
-    background: var(--color-amber-dim);
-    color: var(--color-amber);
-    box-shadow: inset 0 0 0 1px var(--color-amber-border);
+    background: var(--color-pine-dim);
+    color: var(--color-pine);
+    box-shadow: inset 0 0 0 1px var(--color-pine-border);
   }
 
   .rail-logout-btn {
@@ -312,8 +314,8 @@
   .day-btn:last-child { border-right: none; }
   .day-btn:hover      { background: var(--color-surface-3); }
   .day-btn.active     {
-    background: var(--color-amber-glow);
-    box-shadow: inset 0 0 0 1px var(--color-amber-border);
+    background: var(--color-pine-glow);
+    box-shadow: inset 0 0 0 1px var(--color-pine-border);
   }
   .day-btn-num {
     font-family: var(--font-heading), serif;
@@ -323,7 +325,7 @@
     color: var(--color-text-mid);
     margin-bottom: 2px;
   }
-  .day-btn.active .day-btn-num  { color: var(--color-amber); }
+  .day-btn.active .day-btn-num  { color: var(--color-pine); }
   .day-btn-date {
     font-family: var(--font-mono), serif;
     font-size: var(--text-label);
@@ -331,7 +333,7 @@
     text-transform: uppercase;
     color: var(--color-text-dim);
   }
-  .day-btn.active .day-btn-date { color: rgba(240, 160, 48, 0.55); }
+  .day-btn.active .day-btn-date { color: rgba(61, 122, 86, 0.85); }
   .day-btn-dot {
     position: absolute;
     bottom: 4px;
@@ -342,7 +344,7 @@
     border-radius: 50%;
     background: var(--color-text-dim);
   }
-  .day-btn.active .day-btn-dot { background: var(--color-amber); }
+  .day-btn.active .day-btn-dot { background: var(--color-pine); }
 
   /* Section label */
   .sec-label {
@@ -406,7 +408,7 @@
     transition: color 0.12s, border-color 0.12s;
   }
   .tab-btn:hover  { color: var(--color-text-mid); }
-  .tab-btn.active { color: var(--color-amber); border-bottom-color: var(--color-amber); }
+  .tab-btn.active { color: var(--color-pine); border-bottom-color: var(--color-pine); }
 
   /* Empty state */
   .empty-state {

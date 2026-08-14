@@ -13,12 +13,12 @@ function BearCanOptionRow({ can, isSelected, onSelect }: {
       type="button"
       onClick={onSelect}
       className={`flex items-center gap-2.5 px-3 py-2 rounded border text-left transition-colors cursor-pointer w-full ${
-        isSelected ? 'bg-amber-glow border-amber-border' : 'bg-transparent border-border hover:border-border-mid'
+        isSelected ? 'bg-pine-glow border-pine-border' : 'bg-transparent border-border hover:border-border-mid'
       }`}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className={`font-mono text-caption font-bold ${isSelected ? 'text-amber' : 'text-text-mid'}`}>
+          <span className={`font-mono text-caption font-bold ${isSelected ? 'text-pine' : 'text-text-mid'}`}>
             {can.name}
           </span>
           {can.recommended && (
@@ -35,7 +35,7 @@ function BearCanOptionRow({ can, isSelected, onSelect }: {
       <span className={`font-mono text-label tracking-widest uppercase px-1.5 py-0.5 rounded border shrink-0 ${CAN_TYPE_CLS[can.type]}`}>
         {can.type}
       </span>
-      {isSelected && <span className="text-amber shrink-0"><IconCheck size={12} /></span>}
+      {isSelected && <span className="text-pine shrink-0"><IconCheck size={12} /></span>}
     </button>
   )
 }
@@ -54,7 +54,7 @@ function BearCanCustomOption({
 }) {
   if (enteringCustom) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 rounded border border-amber-border bg-amber-glow">
+      <div className="flex items-center gap-2 px-3 py-2 rounded border border-pine-border bg-pine-glow">
         <input
           className="flex-1 bg-transparent border-none text-body-sm text-text outline-none placeholder:text-text-dim font-mono"
           placeholder="Container name or model…"
@@ -64,7 +64,7 @@ function BearCanCustomOption({
           onBlur={onBlur}
           onKeyDown={onKeyDown}
         />
-        {customName && <span className="text-amber shrink-0"><IconCheck size={12} /></span>}
+        {customName && <span className="text-pine shrink-0"><IconCheck size={12} /></span>}
       </div>
     )
   }
@@ -73,14 +73,14 @@ function BearCanCustomOption({
       type="button"
       onClick={selectedId === 'custom' ? onCommittedNameClick : onStartCustom}
       className={`flex items-center gap-2.5 px-3 py-2 rounded border text-left transition-colors cursor-pointer w-full ${
-        selectedId === 'custom' ? 'bg-amber-glow border-amber-border' : 'bg-transparent border-border hover:border-border-mid'
+        selectedId === 'custom' ? 'bg-pine-glow border-pine-border' : 'bg-transparent border-border hover:border-border-mid'
       }`}
     >
-      <span className={`font-mono text-caption ${selectedId === 'custom' ? 'text-amber font-bold' : 'text-text-dim'}`}>
+      <span className={`font-mono text-caption ${selectedId === 'custom' ? 'text-pine font-bold' : 'text-text-dim'}`}>
         {selectedId === 'custom' && customName ? customName : 'Custom / other…'}
       </span>
       {selectedId !== 'custom' && <span className="ml-auto text-text-dim"><IconPlus size={10} /></span>}
-      {selectedId === 'custom' && <span className="ml-auto text-amber"><IconCheck size={12} /></span>}
+      {selectedId === 'custom' && <span className="ml-auto text-pine"><IconCheck size={12} /></span>}
     </button>
   )
 }
