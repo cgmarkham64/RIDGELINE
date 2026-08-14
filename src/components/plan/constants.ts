@@ -3,7 +3,7 @@ import type { Stage, StageId } from './types'
 // Static metadata — use for label/length lookups only, never mutate.
 export const STAGES: Stage[] = [
   { id: 'route',   n: '01', label: 'Route',              sub: 'Where',          done: 0, total: 7 },
-  { id: 'weather', n: '02', label: 'Weather',            sub: 'Forecast',        done: 0, total: 4 },
+  { id: 'weather', n: '02', label: 'Weather',            sub: 'Forecast',        done: 0, total: 3 },
   { id: 'permits', n: '03', label: 'Partners & Permits', sub: 'Party & Access', done: 0, total: 3 },
   { id: 'food',    n: '04', label: 'Food',    sub: 'Calories & resupply',  done: 0, total: 5 },
   { id: 'gear',    n: '05', label: 'Gear',    sub: 'Loadout',         done: 0, total: 5, blocked: true },

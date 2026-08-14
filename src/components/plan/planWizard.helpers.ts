@@ -1,10 +1,12 @@
 import { isOwnedBy } from '../../lib/utils'
 import type { Trip } from '../../types'
 import type { PlanData, PlanMeta, Stage } from './types'
+import { isGearReviewNeeded } from './stages/weather/weatherStage.helpers'
 
 export const ISO_DATE_LENGTH = 10
 const DAY_MS = 86_400_000
 const PERMITS_CHECKLIST_TOTAL = 3
+const WEATHER_CHECKLIST_BASE_TOTAL = 3
 const HTTP_FORBIDDEN = 403
 
 export function isForbiddenError(error: unknown): boolean {
@@ -74,10 +76,12 @@ function routeStageDone(plan: PlanData): number {
   ).length
 }
 
-function weatherStageDone(plan: PlanData): number {
+function weatherStageProgress(plan: PlanData): { done: number; total: number } {
   const w = plan.weather
-  const checks = w ? [w.historicalReviewed, w.forecastChecked, w.gearAdjusted, w.departureRisk !== null] : []
-  return checks.filter(Boolean).length
+  const checks = w ? [w.historicalReviewed, w.forecastChecked, w.departureRisk !== null] : []
+  const gearNeeded = isGearReviewNeeded(w?.departureRisk)
+  if (gearNeeded) checks.push(w?.gearAdjusted ?? false)
+  return { done: checks.filter(Boolean).length, total: gearNeeded ? WEATHER_CHECKLIST_BASE_TOTAL + 1 : WEATHER_CHECKLIST_BASE_TOTAL }
 }
 
 function permitsStageProgress(plan: PlanData): { done: number; total: number } | undefined {
@@ -91,7 +95,7 @@ function permitsStageProgress(plan: PlanData): { done: number; total: number } |
 
 function seedStage(s: Stage, plan: PlanData): Stage {
   if (s.id === 'route')   return { ...s, done: routeStageDone(plan) }
-  if (s.id === 'weather') return { ...s, done: weatherStageDone(plan) }
+  if (s.id === 'weather') return { ...s, ...weatherStageProgress(plan) }
   if (s.id === 'permits') {
     const progress = permitsStageProgress(plan)
     return progress ? { ...s, ...progress } : s

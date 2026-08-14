@@ -386,3 +386,8 @@ export const RISK_STYLE: Record<RiskLevel, RiskStyle> = {
   moderate: { label: 'Caution', border: 'border-amber-border', bg: 'bg-amber-dim', text: 'text-amber' },
   high:     { label: 'Delay',   border: 'border-red-border',   bg: 'bg-red-dim',   text: 'text-red'   },
 }
+
+// A "Go" window has no flagged conditions, so there's nothing for gear to be adjusted against.
+export function isGearReviewNeeded(risk: RiskLevel | null | undefined): boolean {
+  return risk === 'moderate' || risk === 'high'
+}

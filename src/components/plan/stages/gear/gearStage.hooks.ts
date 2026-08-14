@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { PlanData } from '../../types'
 import { BEAR_CANS, DEFAULT_CATEGORIES, DEFAULT_UNLOCK_CHECKLIST, OZ_PER_LB, PERCENT_MULTIPLIER, canWeightOz, fromPlanCategories } from './gearStage.constants'
 import type { GearCategory, UnlockChecklistItem } from './gearStage.types'
+import { isGearReviewNeeded } from '../weather/weatherStage.helpers'
 
 // Stub — future: pull from Food stage state
 const STUB_FOOD_LB = '16.4'
@@ -82,8 +83,7 @@ export function useGearStageState(plan: PlanData | undefined, onChange: ((patch:
 
   const stats = computeGearStats(categories, unlockChecklist, selectedCanId)
 
-  const departureRisk = plan?.weather?.departureRisk
-  const isWeatherRisk = departureRisk === 'moderate' || departureRisk === 'high'
+  const isWeatherRisk = isGearReviewNeeded(plan?.weather?.departureRisk)
 
   return {
     categories, unlockChecklist, selectedCanId, customCanName,

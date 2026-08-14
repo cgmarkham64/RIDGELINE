@@ -5,7 +5,7 @@ import { tripSunRows } from '../../../../lib/sun'
 import type { WeatherTolerances } from '../../../../types/auth'
 import {
   isGeocodeCacheValid, isClimateCacheValid, isForecastCacheValid,
-  calcDepartureRisk, avgElevationFt, inForecastWindow,
+  calcDepartureRisk, avgElevationFt, inForecastWindow, isGearReviewNeeded,
   fetchClimateNormals, fetchForecast,
 } from './weatherStage.helpers'
 import type { SunTimes } from './weatherStage.types'
@@ -185,12 +185,17 @@ export function useWeatherChecklist(wd: PlanWeatherData, onProgress: StageBodyPr
   const onProgressRef = useRef(onProgress)
   useEffect(() => { onProgressRef.current = onProgress })
 
-  const checklist = useMemo(() => [
-    { text: 'Historical climate reviewed', done: wd.historicalReviewed },
-    { text: 'Forecast checked',            done: wd.forecastChecked    },
-    { text: 'Departure window assessed',   done: wd.departureRisk !== null },
-    { text: 'Gear adjusted for conditions', done: wd.gearAdjusted      },
-  ], [wd])
+  const checklist = useMemo(() => {
+    const items = [
+      { text: 'Historical climate reviewed', done: wd.historicalReviewed },
+      { text: 'Forecast checked',            done: wd.forecastChecked    },
+      { text: 'Departure window assessed',   done: wd.departureRisk !== null },
+    ]
+    if (isGearReviewNeeded(wd.departureRisk)) {
+      items.push({ text: 'Gear adjusted for conditions', done: wd.gearAdjusted })
+    }
+    return items
+  }, [wd])
 
   useEffect(() => {
     onProgressRef.current?.(checklist.filter(c => c.done).length, checklist.length)
