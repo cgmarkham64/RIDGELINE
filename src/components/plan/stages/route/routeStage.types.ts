@@ -60,6 +60,8 @@ export type WaterEntry = {
   isDetected: boolean
   lat: number
   lon: number
+  passIndex: number  // 1-based — which time the route passes this point
+  passCount: number  // total passes; >1 means the route revisits this point (e.g. return leg)
 }
 
 export type ReconnectUpdate = { si: number; start: [number, number]; end: [number, number] }

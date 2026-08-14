@@ -425,6 +425,7 @@ function buildWaterEntries(
     id: d.id, label: d.label, waypointType: d.waypointType,
     distFromStartMi: d.distFromStartMi, snapDistM: d.snapDistM,
     isDetected: true, lat: d.lat, lon: d.lon,
+    passIndex: d.passIndex, passCount: d.passCount,
   }))
 
   if (routeCoords && routeCoords.length >= 2) {
@@ -435,6 +436,7 @@ function buildWaterEntries(
         waypointType: wp.type as WaterEntry['waypointType'],
         distFromStartMi: snapToRouteMi(wp.lat, wp.lon, routeCoords),
         isDetected: false, lat: wp.lat, lon: wp.lon,
+        passIndex: 1, passCount: 1,
       })
     }
   }

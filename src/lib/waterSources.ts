@@ -25,6 +25,8 @@ export interface DetectedWaterSource {
   distFromStartMi: number
   snapDistM: number
   checkDate?: string  // OSM check_date or survey:date tag (YYYY-MM-DD)
+  passIndex: number   // 1-based — which time the route passes this point (e.g. 2 = seen again on the way back)
+  passCount: number   // total number of times the route passes within snap distance of this point
 }
 
 // ─── Cache + fetch helpers ────────────────────────────────────────────────────
@@ -75,33 +77,62 @@ function buildCumulDistMi(coords: [number, number, number][]): number[] {
   return d
 }
 
-// Returns snap metadata including interpolated route elevation at the snap point.
-// coords are [lon, lat, ele] (GPX convention). Returns null if >MAX_SNAP_DIST_M off-trail.
-function snapToRoute(
+interface RouteSnapMatch {
+  distFromStartMi: number
+  snapDistM: number
+  snapEleM: number
+}
+
+// Distance from (lat, lon) to route segment [A, B], plus the RouteSnapMatch if it were the pick.
+function segmentSnapMatch(
+  lat: number, lon: number,
+  aLon: number, aLat: number, aEle: number,
+  bLon: number, bLat: number, bEle: number,
+  cumulA: number,
+): { dist: number; match: RouteSnapMatch } {
+  const { t, lat: sLat, lon: sLon } = nearestOnSegment(lat, lon, aLat, aLon, bLat, bLon)
+  const dist = haversineMeters(lat, lon, sLat, sLon)
+  const segMi = haversineMiles(aLat, aLon, bLat, bLon)
+  return {
+    dist,
+    match: {
+      distFromStartMi: cumulA + t * segMi,
+      snapDistM: Math.round(dist),
+      snapEleM: aEle + t * (bEle - aEle),
+    },
+  }
+}
+
+// Finds every distinct pass the route makes within MAX_SNAP_DIST_M of (lat, lon) — a point
+// can be near the track more than once (out-and-back legs, a lollipop's shared stick, a
+// loop that briefly overlaps itself), and each pass should surface as its own entry rather
+// than only the single closest one. Passes are contiguous runs of in-range coordinate
+// segments; the closest point within each run represents that pass.
+// coords are [lon, lat, ele] (GPX convention).
+function findRoutePasses(
   lat: number,
   lon: number,
   coords: [number, number, number][],
   cumulDistMi: number[],
-): { distFromStartMi: number; snapDistM: number; snapEleM: number } | null {
-  let bestDist = Infinity
-  let bestCumul = 0
-  let bestEle = 0
+): RouteSnapMatch[] {
+  const passes: RouteSnapMatch[] = []
+  let bestRawDist = Infinity
+  let best: RouteSnapMatch | null = null
 
   for (let i = 0; i < coords.length - 1; i++) {
     const [aLon, aLat, aEle] = coords[i]
     const [bLon, bLat, bEle] = coords[i + 1]
-    const { t, lat: sLat, lon: sLon } = nearestOnSegment(lat, lon, aLat, aLon, bLat, bLon)
-    const dist = haversineMeters(lat, lon, sLat, sLon)
-    if (dist < bestDist) {
-      bestDist = dist
-      const segMi = haversineMiles(aLat, aLon, bLat, bLon)
-      bestCumul = cumulDistMi[i] + t * segMi
-      bestEle   = aEle + t * (bEle - aEle)
-    }
-  }
+    const { dist, match } = segmentSnapMatch(lat, lon, aLon, aLat, aEle, bLon, bLat, bEle, cumulDistMi[i])
 
-  if (bestDist > MAX_SNAP_DIST_M) return null
-  return { distFromStartMi: bestCumul, snapDistM: Math.round(bestDist), snapEleM: bestEle }
+    if (dist > MAX_SNAP_DIST_M) {
+      if (best) { passes.push(best); best = null; bestRawDist = Infinity }
+      continue
+    }
+    if (dist < bestRawDist) { bestRawDist = dist; best = match }
+  }
+  if (best) passes.push(best)
+
+  return passes
 }
 
 // ─── Elevation lookup ─────────────────────────────────────────────────────────
@@ -221,11 +252,14 @@ function buildCandidate(
   lat: number,
   lon: number,
   osmClass: OsmWaterClass,
-  snap: { distFromStartMi: number; snapDistM: number; snapEleM: number },
+  snap: RouteSnapMatch,
+  passIndex: number,
+  passCount: number,
 ): Candidate {
   const tags = el.tags ?? {}
+  const baseId = `osm-${el.type}-${el.id}`
   return {
-    id: `osm-${el.type}-${el.id}`,
+    id: passCount > 1 ? `${baseId}-pass${passIndex}` : baseId,
     lat,
     lon,
     label: osmLabel(tags, osmClass),
@@ -236,6 +270,8 @@ function buildCandidate(
     snapDistM: snap.snapDistM,
     snapEleM: snap.snapEleM,
     checkDate: tags['check_date'] ?? tags['survey:date'],
+    passIndex,
+    passCount,
   }
 }
 
@@ -265,10 +301,10 @@ function extractCandidates(
     if (seen.has(key)) continue
     seen.add(key)
 
-    const snap = snapToRoute(point.lat, point.lon, routeCoords, cumulDistMi)
-    if (!snap) continue
-
-    candidates.push(buildCandidate(el, point.lat, point.lon, osmClass, snap))
+    const passes = findRoutePasses(point.lat, point.lon, routeCoords, cumulDistMi)
+    passes.forEach((snap, i) => {
+      candidates.push(buildCandidate(el, point.lat, point.lon, osmClass, snap, i + 1, passes.length))
+    })
   }
 
   return candidates

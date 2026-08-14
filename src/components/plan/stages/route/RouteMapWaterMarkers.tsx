@@ -18,14 +18,31 @@ type RouteMapWaterMarkersProps = {
   onPan: (lat: number, lon: number) => void
 }
 
+type LocationMarker = DetectedWaterSource & { matchIds: string[] }
+
+// A source the route passes more than once (out-and-back leg, lollipop stick) shares one
+// lat/lon across all its passes — the map only needs one pin per physical location. Keep
+// every pass's id on that pin (matchIds) so selecting either pass's table row still
+// highlights the shared marker; the table itself (keyed by full id) lists every pass.
+function dedupeByLocation(sources: DetectedWaterSource[]): LocationMarker[] {
+  const byLoc = new Map<string, LocationMarker>()
+  for (const src of sources) {
+    const key = `${src.lat},${src.lon}`
+    const existing = byLoc.get(key)
+    if (existing) existing.matchIds.push(src.id)
+    else byLoc.set(key, { ...src, matchIds: [src.id] })
+  }
+  return [...byLoc.values()]
+}
+
 export function RouteMapWaterMarkers({ detectedWater, activeRowId, sys, isPlacingPin, onMarkerClick, onPan }: RouteMapWaterMarkersProps) {
   return (
     <>
-      {detectedWater.map(src => (
+      {dedupeByLocation(detectedWater).map(src => (
         <Marker
           key={src.id}
           position={[src.lat, src.lon]}
-          icon={activeRowId === src.id
+          icon={activeRowId !== null && src.matchIds.includes(activeRowId)
             ? makeWaypointIcon(src.waypointType, true, ACTIVE_ICON_SIZE)
             : makeDetectedWaterIcon(src.waypointType, DEFAULT_ICON_SIZE)}
           eventHandlers={{ click: () => isPlacingPin ? onMarkerClick(src.lat, src.lon) : onPan(src.lat, src.lon) }}

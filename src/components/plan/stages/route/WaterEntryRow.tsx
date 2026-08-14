@@ -1,6 +1,6 @@
 import { WaypointIcon } from '../../../map/WaypointIcon'
 import { WAYPOINT_COLOR } from '../../../map/constants'
-import { IconSparkle } from '../../../icons'
+import { IconSparkle, IconArrowLeft } from '../../../icons'
 import { ACTIVE_BG, fmtMi } from './routeStage.helpers'
 import { useUnitSystem } from '../../../../hooks/useUnitSystem'
 import type { MergedRow } from './routeStage.types'
@@ -36,6 +36,14 @@ export function WaterEntryRow({ row, isDraggable, isLast, isActive, gridTemplate
         {row.entry.isDetected && (
           <span className="shrink-0 inline-flex items-center gap-0.5 font-mono text-label tracking-[0.06em] uppercase px-1 py-0.5 rounded-sm border border-dashed border-border text-text-dim/60">
             <IconSparkle />auto
+          </span>
+        )}
+        {row.entry.passCount > 1 && (
+          <span
+            className="shrink-0 inline-flex items-center gap-0.5 font-mono text-label tracking-[0.06em] uppercase px-1 py-0.5 rounded-sm border border-dashed border-border text-text-dim/60"
+            title="The route passes this point more than once — e.g. out on the way in, again on the way back"
+          >
+            <IconArrowLeft size={8} />pass {row.entry.passIndex}/{row.entry.passCount}
           </span>
         )}
       </div>
