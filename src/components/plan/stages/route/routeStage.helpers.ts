@@ -7,16 +7,24 @@ import type { Waypoint } from '../../../../types'
 import { haversineMiles, haversinePathMiles } from '../../../../lib/geo'
 import { mToFt, milesToKm, ftToM } from '../../../../lib/units'
 import type { UnitSystem } from '../../../../lib/units'
+import { getSunTimes, localSolarHHMM } from '../../../../lib/sun'
+import { daysToMs, readCachedTTL, writeCachedTTL } from '../../../../lib/localCache'
 
 const ELEV_GAIN_ROUND_TO_FT = 10
 const COORD_DISPLAY_DECIMALS = 3
 const DEFAULT_SPLIT_RATIO = 0.5
 const MINUTES_PER_HOUR = 60
 const MINUTES_PER_DAY = 1440
-const SUN_API_COORD_DECIMALS = 4
-const ISO_TIME_SLICE_START = 11
-const ISO_TIME_SLICE_END = 16
 const DEFAULT_MAP_LAT = 40.0
+// Place names and terrain elevation don't change — round to ~110m so re-dragging a pin
+// near the same spot reuses the cache instead of re-hitting Nominatim/open-elevation.
+const GEO_CACHE_COORD_DECIMALS = 3
+const GEO_CACHE_TTL_DAYS = 30
+const GEO_CACHE_TTL_MS = daysToMs(GEO_CACHE_TTL_DAYS)
+
+function roundedCoordKey(...coords: number[]): string {
+  return coords.map(c => c.toFixed(GEO_CACHE_COORD_DECIMALS)).join(',')
+}
 const DEFAULT_MAP_LON = -105.5
 const DEFAULT_MAP_ZOOM = 5
 const MAP_FIT_PADDING_PX = 20
@@ -287,7 +295,12 @@ async function previewFromStraightLine(start: [number, number], end: [number, nu
   ] as [number, number])
   const mi = haversinePathMiles(path)
   const sampled = path.filter((_, i) => i % 2 === 0 || i === path.length - 1)
-  const sparkElevs = await fetchElevationLookup(sampled)
+
+  const cacheKey = `ridgeline-elev-${roundedCoordKey(...start, ...end)}`
+  const cached = readCachedTTL<number[]>(cacheKey, GEO_CACHE_TTL_MS)
+  const sparkElevs = cached ?? await fetchElevationLookup(sampled)
+  if (!cached && sparkElevs.length > 0) writeCachedTTL(cacheKey, sparkElevs)
+
   const gain = sparkElevs.length > 0 ? sumElevationGainFt(sparkElevs) : 0
   return { path, mi, gain, sparkElevs }
 }
@@ -365,37 +378,35 @@ export function addMinutesToTime(hhmm: string, minutes: number): string {
   return `${String(Math.floor(total / MINUTES_PER_HOUR)).padStart(2, '0')}:${String(total % MINUTES_PER_HOUR).padStart(2, '0')}`
 }
 
-export async function fetchSunTimes(
+// Computed locally (no network call) — sunrise/sunset for a lat/lng/date is a pure
+// astronomical calculation, not something that needs an API round-trip.
+export function fetchSunTimes(
   lat: number,
   lng: number,
   date: string,
-): Promise<{ sunrise: string; sunset: string } | null> {
-  try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(SUN_API_COORD_DECIMALS)}&longitude=${lng.toFixed(SUN_API_COORD_DECIMALS)}&daily=sunrise,sunset&timezone=auto&start_date=${date}&end_date=${date}`
-    const res = await fetch(url)
-    if (!res.ok) return null
-    const data = await res.json()
-    const sunrise = (data.daily?.sunrise?.[0] as string | undefined)
-    const sunset  = (data.daily?.sunset?.[0]  as string | undefined)
-    if (!sunrise || !sunset) return null
-    // Returned as "2024-07-15T05:23" — extract HH:MM
-    return {
-      sunrise: sunrise.slice(ISO_TIME_SLICE_START, ISO_TIME_SLICE_END),
-      sunset: sunset.slice(ISO_TIME_SLICE_START, ISO_TIME_SLICE_END),
-    }
-  } catch {
-    return null
+): { sunrise: string; sunset: string } | null {
+  const { sunrise, sunset, daylightHours } = getSunTimes(lat, lng, new Date(date + 'T12:00:00Z'))
+  if (daylightHours === 0) return null // polar night — no meaningful anchor
+  return {
+    sunrise: localSolarHHMM(sunrise, lng),
+    sunset: localSolarHHMM(sunset, lng),
   }
 }
 
 export async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  const cacheKey = `ridgeline-revgeo-${roundedCoordKey(lat, lng)}`
+  const cached = readCachedTTL<string>(cacheKey, GEO_CACHE_TTL_MS)
+  if (cached !== null) return cached
+
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
       { headers: { 'Accept-Language': 'en' } },
     )
     const data = await res.json()
-    return data.name || data.display_name?.split(',')[0] || ''
+    const name = data.name || data.display_name?.split(',')[0] || ''
+    if (name) writeCachedTTL(cacheKey, name)
+    return name
   } catch {
     return ''
   }

@@ -1,4 +1,6 @@
 const DAY_MS = 86_400_000
+const MS_PER_HOUR = 3_600_000
+const DEGREES_PER_TIMEZONE_HOUR = 15
 
 // ─── Julian day helpers ───────────────────────────────────────────────────────
 
@@ -75,6 +77,19 @@ export function getSunTimes(lat: number, lng: number, date: Date): SunTimes {
     sunset:  julianToDate(jSet),
     daylightHours: (jSet - jRise) * 24,
   }
+}
+
+// ─── Local solar time formatting ───────────────────────────────────────────────
+
+/**
+ * Formats a UTC sun-event instant as 24-hour "HH:MM" local solar time — approximated
+ * by shifting UTC by longitude/15°, the same convention used for weather display.
+ */
+export function localSolarHHMM(date: Date, lng: number): string {
+  const shifted = new Date(date.getTime() + Math.round(lng / DEGREES_PER_TIMEZONE_HOUR) * MS_PER_HOUR)
+  const h = shifted.getUTCHours()
+  const m = shifted.getUTCMinutes()
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
 // ─── Multi-day helper ─────────────────────────────────────────────────────────

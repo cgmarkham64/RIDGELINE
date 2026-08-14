@@ -1,15 +1,14 @@
 import type { WaypointType } from '../types'
 import { haversineMeters, haversineMiles } from './geo'
+import { daysToMs, readCachedTTL, writeCachedTTL } from './localCache'
 
 const OVERPASS_URL     = 'https://overpass-api.de/api/interpreter'
 const MAX_SNAP_DIST_M  = 400
 const MAX_VERT_DROP_M  = 40       // ~130 ft — sources below this are effectively off a cliff
 const CLUSTER_MI       = 0.35     // within 0.35 miles, only the most reliable source shows
-const SECONDS_PER_MINUTE = 60
-const MS_PER_SECOND    = 1000
-const MS_PER_MINUTE    = SECONDS_PER_MINUTE * MS_PER_SECOND
-const CACHE_TTL_MINUTES = 30
-const CACHE_TTL_MS     = CACHE_TTL_MINUTES * MS_PER_MINUTE
+// Springs/streams/rivers don't move — this only needs refreshing on the timescale of OSM edits, not user sessions.
+const CACHE_TTL_DAYS   = 7
+const CACHE_TTL_MS     = daysToMs(CACHE_TTL_DAYS)
 const RETRY_DELAY_MS   = 6_000            // wait 6 s before retrying a 429
 const HTTP_TOO_MANY_REQUESTS = 429
 
@@ -31,17 +30,11 @@ export interface DetectedWaterSource {
 // ─── Cache + fetch helpers ────────────────────────────────────────────────────
 
 function readCache(key: string): DetectedWaterSource[] | null {
-  try {
-    const raw = sessionStorage.getItem(key)
-    if (!raw) return null
-    const { data, ts } = JSON.parse(raw) as { data: DetectedWaterSource[]; ts: number }
-    if (Date.now() - ts > CACHE_TTL_MS) { sessionStorage.removeItem(key); return null }
-    return data
-  } catch { return null }
+  return readCachedTTL<DetectedWaterSource[]>(key, CACHE_TTL_MS)
 }
 
 function writeCache(key: string, data: DetectedWaterSource[]): void {
-  try { sessionStorage.setItem(key, JSON.stringify({ data, ts: Date.now() })) } catch { /* quota */ }
+  writeCachedTTL(key, data)
 }
 
 async function overpassFetch(query: string): Promise<Response> {

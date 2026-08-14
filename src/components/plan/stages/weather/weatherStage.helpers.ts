@@ -6,17 +6,21 @@ import { cToF, kmhToMph, mToFt } from '../../../../lib/units'
 
 // ─── Cache TTLs ───────────────────────────────────────────────────────────────
 
+const HOURS_PER_DAY = 24
 const MINUTES_PER_HOUR = 60
 const SECONDS_PER_MINUTE = 60
 const MS_PER_SECOND = 1000
 const MS_PER_HOUR = MINUTES_PER_HOUR * SECONDS_PER_MINUTE * MS_PER_SECOND
+const MS_PER_DAY = HOURS_PER_DAY * MS_PER_HOUR
 
-const GEOCODE_CACHE_HOURS  = 12
-const CLIMATE_CACHE_HOURS  = 24
+// A location string always resolves to the same coordinates — effectively permanent.
+const GEOCODE_CACHE_DAYS  = 30
+// Historical climate normals barely shift week to week.
+const CLIMATE_CACHE_DAYS  = 7
 const FORECAST_CACHE_HOURS = 4
 
-export const CACHE_TTL_GEOCODE_MS  = GEOCODE_CACHE_HOURS * MS_PER_HOUR
-export const CACHE_TTL_CLIMATE_MS  = CLIMATE_CACHE_HOURS * MS_PER_HOUR
+export const CACHE_TTL_GEOCODE_MS  = GEOCODE_CACHE_DAYS * MS_PER_DAY
+export const CACHE_TTL_CLIMATE_MS  = CLIMATE_CACHE_DAYS * MS_PER_DAY
 export const CACHE_TTL_FORECAST_MS = FORECAST_CACHE_HOURS * MS_PER_HOUR
 
 // ─── Risk / correction thresholds ────────────────────────────────────────────
